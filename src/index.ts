@@ -1,3 +1,4 @@
+export { networks, address } from 'liquidjs-lib';
 export * from './identity';
 export * from './identities/mnemonic';
 export * from './identities/privatekey';

@@ -4,8 +4,7 @@
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "engines": {
     "node": ">=10"
@@ -35,7 +34,23 @@
     "trailingComma": "es5"
   },
   "name": "ldk",
-  "author": "Marco Argentieri",
+  "contributors": [
+    {
+      "name": "Marco Argentieri",
+      "email": "marco@vulpem.com",
+      "url": "https://vulpem.com"
+    },
+    {
+      "name": "Pietralberto Mazza",
+      "email": "pietro@vulpem.com",
+      "url": "https://vulpem.com"
+    },
+    {
+      "name": "Louis Singer",
+      "email": "louis@vulpem.com",
+      "url": "https://vulpem.com"
+    }
+  ],
   "module": "dist/ldk.esm.js",
   "size-limit": [
     {
