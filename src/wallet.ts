@@ -381,6 +381,8 @@ function decodePset(psetBase64: string) {
 export interface UtxoInterface {
   txid: string;
   vout: number;
+  asset: string;
+  value: number;
   prevout: TxOutput;
 }
 
@@ -395,41 +397,58 @@ export async function fetchUtxos(
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
+export async function* fetchAndUnblindUtxosGenerator(
+  address: string,
+  blindPrivKey: string,
+  url: string
+): AsyncGenerator<UtxoInterface, number, undefined> {
+  const blindedUtxos = await fetchUtxos(address, url);
+  const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
+    unblindUtxo(utxo, blindPrivKey, url)
+  );
+  for (const promise of unblindedUtxosPromises) {
+    yield await promise;
+  }
+
+  return unblindedUtxosPromises.length;
+}
+
 export async function fetchAndUnblindUtxos(
   address: string,
   blindPrivKey: string,
   url: string
-): Promise<Array<UtxoInterface>> {
+): Promise<Promise<UtxoInterface>[]> {
   const blindedUtxos = await fetchUtxos(address, url);
-  const prevoutHexes = await Promise.all(
-    blindedUtxos.map((utxo: UtxoInterface) => fetchTxHex(utxo.txid, url))
-  );
-
-  const unblindedUtxos = blindedUtxos.map(
-    (blindedUtxo: UtxoInterface, index: number) => {
-      const prevout = Transaction.fromHex(String(prevoutHexes[index])).outs[
-        blindedUtxo.vout
-      ];
-
-      const unblindedUtxo = confidential.unblindOutput(
-        prevout.nonce,
-        Buffer.from(blindPrivKey, 'hex'),
-        prevout.rangeProof!,
-        prevout.value,
-        prevout.asset,
-        prevout.script
-      );
-
-      return {
-        txid: blindedUtxo.txid,
-        vout: blindedUtxo.vout,
-        asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
-        value: parseInt(unblindedUtxo.value, 10),
-        prevout: prevout,
-      };
-    }
+  const unblindedUtxos = blindedUtxos.map((utxo: UtxoInterface) =>
+    unblindUtxo(utxo, blindPrivKey, url)
   );
   return unblindedUtxos;
+}
+
+async function unblindUtxo(
+  utxo: UtxoInterface,
+  blindPrivKey: string,
+  url: string
+): Promise<UtxoInterface> {
+  const prevoutHex: string = await fetchTxHex(utxo.txid, url);
+  const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+  const unblindedUtxo = confidential.unblindOutput(
+    prevout.nonce,
+    Buffer.from(blindPrivKey, 'hex'),
+    prevout.rangeProof!,
+    prevout.value,
+    prevout.asset,
+    prevout.script
+  );
+
+  return {
+    txid: utxo.txid,
+    vout: utxo.vout,
+    asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
+    value: parseInt(unblindedUtxo.value, 10),
+    prevout: prevout,
+  };
 }
 
 export async function fetchBalances(

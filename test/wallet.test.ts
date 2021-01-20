@@ -3,6 +3,8 @@ import {
   isBlindedOutputInterface,
   UnblindedOutputInterface,
   fetchAndUnblindUtxos,
+  fetchAndUnblindUtxosGenerator,
+  UtxoInterface,
 } from '../src/wallet';
 import { networks, TxOutput, Transaction, Psbt } from 'liquidjs-lib';
 import {
@@ -124,11 +126,13 @@ describe('Wallet - Transaction builder', () => {
       ).data;
       await sleep(5000);
 
-      const utxos = await fetchAndUnblindUtxos(
+      const utxosPromises = await fetchAndUnblindUtxos(
         senderAddress,
         sender.getNextAddress().blindingPrivateKey,
         APIURL
       );
+
+      const utxos = await Promise.all(utxosPromises);
 
       const tx = senderWallet.createTx();
       const unsignedTx = senderWallet.buildTx(
@@ -170,6 +174,28 @@ describe('Wallet - Transaction builder', () => {
           return false;
         });
       expect(hasUnblindedPrevout).toEqual(true);
+    });
+  });
+
+  describe('fetchAndUnblindGenerator function', () => {
+    it('should return utxos at each next iteration', async () => {
+      await axios.post(`${APIURL}/faucet`, { address: senderAddress });
+      await sleep(5000);
+
+      const utxosGenerator = fetchAndUnblindUtxosGenerator(
+        senderAddress,
+        sender.getNextAddress().blindingPrivateKey,
+        APIURL
+      );
+
+      const utxosArray: UtxoInterface[] = [];
+      let utxoV = await utxosGenerator.next();
+      while (!utxoV.done) {
+        utxosArray.push(utxoV.value as UtxoInterface);
+        utxoV = await utxosGenerator.next();
+      }
+
+      assert.strictEqual(utxosArray.length, utxoV.value);
     });
   });
 });
