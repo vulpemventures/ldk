@@ -127,8 +127,12 @@ describe('Wallet - Transaction builder', () => {
       await sleep(5000);
 
       const utxosPromises = await fetchAndUnblindUtxos(
-        senderAddress,
-        sender.getNextAddress().blindingPrivateKey,
+        [
+          {
+            address: senderAddress,
+            blindingKey: sender.getNextAddress().blindingPrivateKey,
+          },
+        ],
         APIURL
       );
 
@@ -183,8 +187,16 @@ describe('Wallet - Transaction builder', () => {
       await sleep(5000);
 
       const utxosGenerator = fetchAndUnblindUtxosGenerator(
-        senderAddress,
-        sender.getNextAddress().blindingPrivateKey,
+        [
+          {
+            address: senderAddress,
+            blindingKey: sender.getNextAddress().blindingPrivateKey,
+          },
+          {
+            address: recipientAddress,
+            blindingKey: '',
+          },
+        ],
         APIURL
       );
 

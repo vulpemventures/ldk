@@ -397,32 +397,67 @@ export async function fetchUtxos(
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
+export interface AddressWithBlindingKey {
+  address: string;
+  blindingKey: string;
+}
+
 export async function* fetchAndUnblindUtxosGenerator(
-  address: string,
-  blindPrivKey: string,
+  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
   url: string
 ): AsyncGenerator<UtxoInterface, number, undefined> {
-  const blindedUtxos = await fetchUtxos(address, url);
-  const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
-    unblindUtxo(utxo, blindPrivKey, url)
-  );
-  for (const promise of unblindedUtxosPromises) {
-    yield await promise;
+  let numberOfUtxos = 0;
+
+  // the generator repeats the process for each addresses
+  for (const { address, blindingKey } of addressesAndBlindingKeys) {
+    const blindedUtxos = await fetchUtxos(address, url);
+    const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
+      // this is a non blocking function, returning the base utxo if the unblind failed
+      tryToUnblindUtxo(utxo, blindingKey, url)
+    );
+
+    // increase the number of utxos
+    numberOfUtxos += unblindedUtxosPromises.length;
+
+    // at each 'next' call, the generator will return the result of the next promise
+    for (const promise of unblindedUtxosPromises) {
+      yield await promise;
+    }
   }
 
-  return unblindedUtxosPromises.length;
+  return numberOfUtxos;
 }
 
 export async function fetchAndUnblindUtxos(
-  address: string,
+  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
+  url: string
+): Promise<UtxoInterface[]> {
+  const utxosGenerator = fetchAndUnblindUtxosGenerator(
+    addressesAndBlindingKeys,
+    url
+  );
+  const utxos: UtxoInterface[] = [];
+
+  let iterator = await utxosGenerator.next();
+  while (!iterator.done) {
+    utxos.push(iterator.value);
+    iterator = await utxosGenerator.next();
+  }
+
+  return utxos;
+}
+
+async function tryToUnblindUtxo(
+  utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
-): Promise<Promise<UtxoInterface>[]> {
-  const blindedUtxos = await fetchUtxos(address, url);
-  const unblindedUtxos = blindedUtxos.map((utxo: UtxoInterface) =>
-    unblindUtxo(utxo, blindPrivKey, url)
-  );
-  return unblindedUtxos;
+): Promise<UtxoInterface> {
+  try {
+    const unblinded = await unblindUtxo(utxo, blindPrivKey, url);
+    return unblinded;
+  } catch (_) {
+    return utxo;
+  }
 }
 
 async function unblindUtxo(
@@ -456,7 +491,10 @@ export async function fetchBalances(
   blindPrivKey: string,
   url: string
 ) {
-  const utxoInterfaces = await fetchAndUnblindUtxos(address, blindPrivKey, url);
+  const utxoInterfaces = await fetchAndUnblindUtxos(
+    [{ address, blindingKey: blindPrivKey }],
+    url
+  );
   return (utxoInterfaces as any).reduce(
     (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
       // get the first instance of the key by which we're grouping

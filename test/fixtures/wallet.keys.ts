@@ -33,4 +33,4 @@ export const recipientAddress = payments.p2wpkh({
   pubkey: keyPair2.publicKey,
   blindkey: blindKeyPair2.publicKey,
   network,
-}).confidentialAddress;
+}).confidentialAddress!;
