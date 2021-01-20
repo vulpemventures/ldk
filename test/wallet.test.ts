@@ -126,7 +126,7 @@ describe('Wallet - Transaction builder', () => {
       ).data;
       await sleep(5000);
 
-      const utxosPromises = await fetchAndUnblindUtxos(
+      const utxos = await fetchAndUnblindUtxos(
         [
           {
             address: senderAddress,
@@ -135,8 +135,6 @@ describe('Wallet - Transaction builder', () => {
         ],
         APIURL
       );
-
-      const utxos = await Promise.all(utxosPromises);
 
       const tx = senderWallet.createTx();
       const unsignedTx = senderWallet.buildTx(
