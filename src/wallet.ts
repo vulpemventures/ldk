@@ -100,16 +100,17 @@ export class Wallet implements WalletInterface {
     recipient: string,
     amount: number,
     asset: string,
-    changeAddress: string
+    changeAddress: string,
+    satsPerByte: number = 0.1
   ): string {
     const pset = decodePset(psetBase64);
 
-    // at 0.1 sat per byte means pretty big transactions
-    const FIXED_FEE = 2000;
     let inputBlindingKeys: Array<Buffer> = [];
     let outputBlindingKeys: Array<Buffer> = [];
 
-    let lbtcAmountToLookup = FIXED_FEE;
+    const feeEstimation = Math.ceil(estimateSize(1, 2) * satsPerByte);
+    let lbtcAmountToLookup = feeEstimation;
+
     if (asset === this.network.assetHash) {
       lbtcAmountToLookup += amount;
       // The receiving output of LBTC
@@ -226,7 +227,7 @@ export class Wallet implements WalletInterface {
     // fee output
     pset.addOutput({
       script: Buffer.alloc(0),
-      value: confidential.satoshiToConfidentialValue(FIXED_FEE),
+      value: confidential.satoshiToConfidentialValue(feeEstimation),
       asset: this.network.assetHash,
       nonce: Buffer.from('00', 'hex'),
     });
@@ -706,7 +707,7 @@ function tryToUnblindOutput(
   );
 
   const unblindedOutput: UnblindedOutputInterface = {
-    asset: unblindedResult.asset.reverse().toString('hex'),
+    asset: Buffer.from(unblindedResult.asset.reverse()).toString('hex'),
     value: parseInt(unblindedResult.value, 10),
     script: output.script,
   };
@@ -780,4 +781,12 @@ export function coinselect(
   change = availableSat - amount;
 
   return { selectedUnspents: unspents, change };
+}
+
+export function estimateSize(
+  numberOfInputs: number,
+  numberOfOutputs: number
+): number {
+  const estimateTxSize = 10 + 180 * numberOfInputs + 1100 * numberOfOutputs;
+  return estimateTxSize;
 }
