@@ -5,10 +5,10 @@ import {
   fetchAndUnblindUtxos,
   fetchAndUnblindUtxosGenerator,
   UtxoInterface,
+  fetchAndUnblindTxsGenerator,
 } from '../src/wallet';
 import { networks, TxOutput, Transaction, Psbt } from 'liquidjs-lib';
 import {
-  faucet,
   fetchUtxos,
   fetchTxHex,
   mint,
@@ -30,13 +30,24 @@ const network = networks.regtest;
 jest.setTimeout(500000);
 
 describe('Wallet - Transaction builder', () => {
+  let faucetTxID: string;
+
+  beforeAll(async () => {
+    const { txId } = (
+      await axios.post(`${APIURL}/faucet`, { address: senderAddress })
+    ).data;
+
+    faucetTxID = txId;
+
+    // sleep 5s for nigiri
+    await sleep(5000);
+  });
+
   describe('buildTx', () => {
     let senderUtxos: any[] = [];
     let USDT: string = '';
 
     beforeAll(async () => {
-      // fund the proposer account with LBTC
-      await faucet(senderAddress);
       // mint and fund with USDT
       const minted = await mint(senderAddress, 100);
       USDT = minted.asset;
@@ -89,21 +100,20 @@ describe('Wallet - Transaction builder', () => {
   });
 
   describe('FetchAndUnblindTx function', () => {
-    it('should fetch all the transactions of an address & unblind the outputs', async () => {
-      const { txId } = (
-        await axios.post(`${APIURL}/faucet`, { address: senderAddress })
-      ).data;
-
-      // sleep 5s for nigiri
-      await sleep(5000);
-
+    test.only('should fetch all the transactions of an address & unblind the outputs', async () => {
+      console.log('start');
       const txs = await fetchAndUnblindTxs(
-        senderAddress,
-        [sender.getNextAddress().blindingPrivateKey],
+        [
+          {
+            address: senderAddress,
+            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
+          },
+        ],
         APIURL
       );
+      console.log('end');
 
-      const faucetTx = txs.find(tx => tx.txid === txId);
+      const faucetTx = txs.find(tx => tx.txid === faucetTxID);
       expect(faucetTx).not.toBeUndefined();
 
       const LBTC = networks.regtest.assetHash;
@@ -121,11 +131,6 @@ describe('Wallet - Transaction builder', () => {
     });
 
     it('should fetch all the transactions of an address & unblind the prevouts', async () => {
-      const { txId } = (
-        await axios.post(`${APIURL}/faucet`, { address: senderAddress })
-      ).data;
-      await sleep(5000);
-
       const utxos = await fetchAndUnblindUtxos(
         [
           {
@@ -139,7 +144,7 @@ describe('Wallet - Transaction builder', () => {
       const tx = senderWallet.createTx();
       const unsignedTx = senderWallet.buildTx(
         tx,
-        utxos.filter(utxo => utxo.txid === txId),
+        utxos.filter(utxo => utxo.txid === faucetTxID),
         recipientAddress!,
         100,
         networks.regtest.assetHash,
@@ -154,8 +159,12 @@ describe('Wallet - Transaction builder', () => {
       const txIdBroadcasted = await broadcastTx(hex);
 
       const txs = await fetchAndUnblindTxs(
-        senderAddress,
-        [sender.getNextAddress().blindingPrivateKey],
+        [
+          {
+            address: senderAddress,
+            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
+          },
+        ],
         APIURL
       );
       const faucetTx = txs.find(
@@ -179,11 +188,8 @@ describe('Wallet - Transaction builder', () => {
     });
   });
 
-  describe('fetchAndUnblindGenerator function', () => {
+  describe('fetchAndUnblindUtxosGenerator function', () => {
     it('should return utxos at each next iteration', async () => {
-      await axios.post(`${APIURL}/faucet`, { address: senderAddress });
-      await sleep(5000);
-
       const utxosGenerator = fetchAndUnblindUtxosGenerator(
         [
           {
@@ -206,6 +212,27 @@ describe('Wallet - Transaction builder', () => {
       }
 
       assert.strictEqual(utxosArray.length, utxoV.value);
+    });
+  });
+
+  describe('fetchAndUnblindTxsGenerator function', () => {
+    it('should return tx at each next iteration', async () => {
+      const txsGenerator = fetchAndUnblindTxsGenerator(
+        [
+          {
+            address: senderAddress,
+            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
+          },
+          {
+            address: recipientAddress,
+            blindingKeys: [''],
+          },
+        ],
+        APIURL
+      );
+
+      const firstTxIt = await txsGenerator.next();
+      assert.strictEqual(firstTxIt.done, false);
     });
   });
 });

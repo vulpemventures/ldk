@@ -44,6 +44,16 @@ export interface WalletInterface {
   ): any;
 }
 
+export interface AddressWithBlindingKey {
+  address: string;
+  blindingKey: string;
+}
+
+export interface AddressWithBlindingKeys {
+  address: string;
+  blindingKeys: string[];
+}
+
 /**
  * Implementation of Wallet Interface.
  * @member network type of network (regtest...)
@@ -397,11 +407,6 @@ export async function fetchUtxos(
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
-export interface AddressWithBlindingKey {
-  address: string;
-  blindingKey: string;
-}
-
 export async function* fetchAndUnblindUtxosGenerator(
   addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
   url: string
@@ -584,22 +589,44 @@ interface EsploraTx {
   }>;
 }
 
-/**
- * fetch all tx associated to an address and unblind the tx's outputs and prevouts.
- * @param address address to fetch
- * @param blindingPrivateKeys private blinding key used to unblind prevouts and outputs
- * @param explorerUrl the esplora endpoint
- */
 export async function fetchAndUnblindTxs(
-  address: string,
-  blindingPrivateKeys: string[],
+  addressesWithBlindingKeys: AddressWithBlindingKeys[],
   explorerUrl: string
 ): Promise<TxInterface[]> {
-  const txs = await fetchTxs(address, explorerUrl);
-  const unblindedTxs = txs.map(tx =>
-    unblindTransactionPrevoutsAndOutputs(tx, blindingPrivateKeys)
+  const generator = fetchAndUnblindTxsGenerator(
+    addressesWithBlindingKeys,
+    explorerUrl
   );
-  return unblindedTxs;
+  const txs: Array<TxInterface> = [];
+
+  let iterator = await generator.next();
+  while (!iterator.done) {
+    txs.push(iterator.value);
+    iterator = await generator.next();
+  }
+
+  return txs;
+}
+
+/**
+ * fetch all tx associated to an address and unblind the tx's outputs and prevouts.
+ * @param addressesWithBlindingKeys an array of object with address and blindingKeys used to unblind txs inputs/outputs.
+ * @param explorerUrl the esplora endpoint
+ */
+export async function* fetchAndUnblindTxsGenerator(
+  addressesWithBlindingKeys: AddressWithBlindingKeys[],
+  explorerUrl: string
+): AsyncGenerator<TxInterface, void, undefined> {
+  for (const { address, blindingKeys } of addressesWithBlindingKeys) {
+    const txsGenerator = fetchTxsGenerator(address, explorerUrl);
+    let txIterator = await txsGenerator.next();
+    while (!txIterator.done) {
+      const tx = txIterator.value;
+      yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeys);
+
+      txIterator = await txsGenerator.next();
+    }
+  }
 }
 
 /**
@@ -607,25 +634,35 @@ export async function fetchAndUnblindTxs(
  * @param address the confidential address
  * @param explorerUrl the Esplora URL API using to fetch blockchain data.
  */
-async function fetchTxs(
+async function* fetchTxsGenerator(
   address: string,
   explorerUrl: string
-): Promise<TxInterface[]> {
-  const txs: EsploraTx[] = [];
+): AsyncGenerator<TxInterface, number, undefined> {
   let lastSeenTxid = undefined;
+  let newTxs: EsploraTx[] = [];
+  let numberOfTxs: number = 0;
 
   do {
-    const newTxs: EsploraTx[] = await fetch25newestTxsForAddress(
+    // fetch up to 25 txs
+    newTxs = await fetch25newestTxsForAddress(
       address,
       explorerUrl,
       lastSeenTxid
     );
 
-    txs.push(...newTxs);
-    if (newTxs.length === 25) lastSeenTxid = newTxs[24].txid;
-  } while (lastSeenTxid != null);
+    numberOfTxs += newTxs.length;
 
-  return Promise.all(txs.map(tx => esploraTxToTxInterface(tx, explorerUrl)));
+    // convert them into txInterface
+    const txs: Promise<TxInterface>[] = newTxs.map(tx =>
+      esploraTxToTxInterface(tx, explorerUrl)
+    );
+
+    for (const tx of txs) {
+      yield await tx;
+    }
+  } while (newTxs.length < 25);
+
+  return numberOfTxs;
 }
 
 async function esploraTxToTxInterface(
@@ -703,26 +740,20 @@ function txOutputToOutputInterface(
  * @param tx transaction to unblind
  * @param blindingPrivateKeys the privateKeys using to unblind the outputs.
  */
-function unblindTransactionPrevoutsAndOutputs(
+async function unblindTransactionPrevoutsAndOutputs(
   tx: TxInterface,
   blindingPrivateKeys: string[]
-): TxInterface {
+): Promise<TxInterface> {
+  var start = Date.now();
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
     const prevout = tx.vin[inputIndex].prevout;
     if (isBlindedOutputInterface(prevout)) {
-      for (let i = 0; i < blindingPrivateKeys.length; i++) {
-        try {
-          const unblindOutput = tryToUnblindOutput(
-            prevout,
-            blindingPrivateKeys[i]
-          );
-          tx.vin[inputIndex].prevout = unblindOutput;
-          break;
-        } catch (_) {
-          continue;
-        }
-      }
+      await Promise.any(
+        blindingPrivateKeys.map(key => tryToUnblindOutput(prevout, key))
+      ).then(
+        (unblind: UnblindedOutputInterface) => (tx.vout[inputIndex] = unblind)
+      );
     }
   }
 
@@ -730,29 +761,26 @@ function unblindTransactionPrevoutsAndOutputs(
   for (let outputIndex = 0; outputIndex < tx.vout.length; outputIndex++) {
     const output = tx.vout[outputIndex];
     if (isBlindedOutputInterface(output)) {
-      for (let i = 0; i < blindingPrivateKeys.length; i++) {
-        try {
-          const unblindOutput = tryToUnblindOutput(
-            output,
-            blindingPrivateKeys[i]
-          );
-          tx.vout[outputIndex] = unblindOutput;
-          break;
-        } catch (_) {
-          continue;
-        }
-      }
+      await Promise.any(
+        blindingPrivateKeys.map(key => tryToUnblindOutput(output, key))
+      ).then(
+        (unblind: UnblindedOutputInterface) => (tx.vout[outputIndex] = unblind)
+      );
     }
   }
+
+  var end = Date.now() - start;
+  console.log('unblind took: ', end, 'ms');
 
   return tx;
 }
 
-function tryToUnblindOutput(
+async function tryToUnblindOutput(
   output: BlindedOutputInterface,
   BlindingPrivateKey: string
-): UnblindedOutputInterface {
+): Promise<UnblindedOutputInterface> {
   const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
+
   const unblindedResult = confidential.unblindOutput(
     output.nonce,
     blindPrivateKeyBuffer,
