@@ -108,6 +108,7 @@ export class Wallet implements WalletInterface {
     let inputBlindingKeys: Array<Buffer> = [];
     let outputBlindingKeys: Array<Buffer> = [];
 
+    // estimate the amount of fee for a common transaction
     const feeEstimation = Math.ceil(estimateTxSize(1, 2) * satsPerByte);
     let lbtcAmountToLookup = feeEstimation;
 
@@ -783,6 +784,7 @@ export function coinselect(
   return { selectedUnspents: unspents, change };
 }
 
+// estimate segwit transaction size in bytes depending on number of inputs and outputs
 export function estimateTxSize(numInputs: number, numOutputs: number): number {
   const base = calcTxSize(false, numInputs, numOutputs, false);
   const total = calcTxSize(true, numInputs, numOutputs, true);
