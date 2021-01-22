@@ -44,6 +44,11 @@ export interface WalletInterface {
   ): any;
 }
 
+export interface AddressWithBlindingKey {
+  address: string;
+  blindingKey: string;
+}
+
 /**
  * Implementation of Wallet Interface.
  * @member network type of network (regtest...)
@@ -383,6 +388,8 @@ function decodePset(psetBase64: string) {
 export interface UtxoInterface {
   txid: string;
   vout: number;
+  asset: string;
+  value: number;
   prevout: TxOutput;
 }
 
@@ -397,41 +404,88 @@ export async function fetchUtxos(
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
+export async function* fetchAndUnblindUtxosGenerator(
+  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
+  url: string
+): AsyncGenerator<UtxoInterface, number, undefined> {
+  let numberOfUtxos = 0;
+
+  // the generator repeats the process for each addresses
+  for (const { address, blindingKey } of addressesAndBlindingKeys) {
+    const blindedUtxos = await fetchUtxos(address, url);
+    const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
+      // this is a non blocking function, returning the base utxo if the unblind failed
+      tryToUnblindUtxo(utxo, blindingKey, url)
+    );
+
+    // increase the number of utxos
+    numberOfUtxos += unblindedUtxosPromises.length;
+
+    // at each 'next' call, the generator will return the result of the next promise
+    for (const promise of unblindedUtxosPromises) {
+      yield await promise;
+    }
+  }
+
+  return numberOfUtxos;
+}
+
 export async function fetchAndUnblindUtxos(
-  address: string,
+  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
+  url: string
+): Promise<UtxoInterface[]> {
+  const utxosGenerator = fetchAndUnblindUtxosGenerator(
+    addressesAndBlindingKeys,
+    url
+  );
+  const utxos: UtxoInterface[] = [];
+
+  let iterator = await utxosGenerator.next();
+  while (!iterator.done) {
+    utxos.push(iterator.value);
+    iterator = await utxosGenerator.next();
+  }
+
+  return utxos;
+}
+
+async function tryToUnblindUtxo(
+  utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
-): Promise<Array<UtxoInterface>> {
-  const blindedUtxos = await fetchUtxos(address, url);
-  const prevoutHexes = await Promise.all(
-    blindedUtxos.map((utxo: UtxoInterface) => fetchTxHex(utxo.txid, url))
+): Promise<UtxoInterface> {
+  try {
+    const unblinded = await unblindUtxo(utxo, blindPrivKey, url);
+    return unblinded;
+  } catch (_) {
+    return utxo;
+  }
+}
+
+async function unblindUtxo(
+  utxo: UtxoInterface,
+  blindPrivKey: string,
+  url: string
+): Promise<UtxoInterface> {
+  const prevoutHex: string = await fetchTxHex(utxo.txid, url);
+  const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+  const unblindedUtxo = confidential.unblindOutput(
+    prevout.nonce,
+    Buffer.from(blindPrivKey, 'hex'),
+    prevout.rangeProof!,
+    prevout.value,
+    prevout.asset,
+    prevout.script
   );
 
-  const unblindedUtxos = blindedUtxos.map(
-    (blindedUtxo: UtxoInterface, index: number) => {
-      const prevout = Transaction.fromHex(String(prevoutHexes[index])).outs[
-        blindedUtxo.vout
-      ];
-
-      const unblindedUtxo = confidential.unblindOutput(
-        prevout.nonce,
-        Buffer.from(blindPrivKey, 'hex'),
-        prevout.rangeProof!,
-        prevout.value,
-        prevout.asset,
-        prevout.script
-      );
-
-      return {
-        txid: blindedUtxo.txid,
-        vout: blindedUtxo.vout,
-        asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
-        value: parseInt(unblindedUtxo.value, 10),
-        prevout: prevout,
-      };
-    }
-  );
-  return unblindedUtxos;
+  return {
+    txid: utxo.txid,
+    vout: utxo.vout,
+    asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
+    value: parseInt(unblindedUtxo.value, 10),
+    prevout: prevout,
+  };
 }
 
 export async function fetchBalances(
@@ -439,7 +493,10 @@ export async function fetchBalances(
   blindPrivKey: string,
   url: string
 ) {
-  const utxoInterfaces = await fetchAndUnblindUtxos(address, blindPrivKey, url);
+  const utxoInterfaces = await fetchAndUnblindUtxos(
+    [{ address, blindingKey: blindPrivKey }],
+    url
+  );
   return (utxoInterfaces as any).reduce(
     (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
       // get the first instance of the key by which we're grouping
@@ -529,22 +586,49 @@ interface EsploraTx {
   }>;
 }
 
-/**
- * fetch all tx associated to an address and unblind the tx's outputs and prevouts.
- * @param address address to fetch
- * @param blindingPrivateKeys private blinding key used to unblind prevouts and outputs
- * @param explorerUrl the esplora endpoint
- */
+// define function that takes a script as input and returns a blinding key (or undefined)
+export type BlindingKeyGetter = (script: string) => string | undefined;
+
 export async function fetchAndUnblindTxs(
-  address: string,
-  blindingPrivateKeys: string[],
+  addresses: string[],
+  blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string
 ): Promise<TxInterface[]> {
-  const txs = await fetchTxs(address, explorerUrl);
-  const unblindedTxs = txs.map(tx =>
-    unblindTransactionPrevoutsAndOutputs(tx, blindingPrivateKeys)
+  const generator = fetchAndUnblindTxsGenerator(
+    addresses,
+    blindingKeyGetter,
+    explorerUrl
   );
-  return unblindedTxs;
+  const txs: Array<TxInterface> = [];
+
+  let iterator = await generator.next();
+  while (!iterator.done) {
+    txs.push(iterator.value);
+    iterator = await generator.next();
+  }
+
+  return txs;
+}
+
+/**
+ * fetch all tx associated to an address and unblind the tx's outputs and prevouts.
+ * @param explorerUrl the esplora endpoint
+ */
+export async function* fetchAndUnblindTxsGenerator(
+  addresses: string[],
+  blindingKeyGetter: BlindingKeyGetter,
+  explorerUrl: string
+): AsyncGenerator<TxInterface, void, undefined> {
+  for (const address of addresses) {
+    const txsGenerator = fetchTxsGenerator(address, explorerUrl);
+    let txIterator = await txsGenerator.next();
+    while (!txIterator.done) {
+      const tx = txIterator.value;
+      yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeyGetter);
+
+      txIterator = await txsGenerator.next();
+    }
+  }
 }
 
 /**
@@ -552,42 +636,57 @@ export async function fetchAndUnblindTxs(
  * @param address the confidential address
  * @param explorerUrl the Esplora URL API using to fetch blockchain data.
  */
-async function fetchTxs(
+async function* fetchTxsGenerator(
   address: string,
   explorerUrl: string
-): Promise<TxInterface[]> {
-  const txs: EsploraTx[] = [];
+): AsyncGenerator<TxInterface, number, undefined> {
   let lastSeenTxid = undefined;
+  let newTxs: EsploraTx[] = [];
+  let numberOfTxs: number = 0;
 
   do {
-    const newTxs: EsploraTx[] = await fetch25newestTxsForAddress(
+    // fetch up to 25 txs
+    newTxs = await fetch25newestTxsForAddress(
       address,
       explorerUrl,
       lastSeenTxid
     );
 
-    txs.push(...newTxs);
-    if (newTxs.length === 25) lastSeenTxid = newTxs[24].txid;
-  } while (lastSeenTxid != null);
+    numberOfTxs += newTxs.length;
 
-  return Promise.all(txs.map(tx => esploraTxToTxInterface(tx, explorerUrl)));
+    // convert them into txInterface
+    const txs: Promise<TxInterface>[] = newTxs.map(tx =>
+      esploraTxToTxInterface(tx, explorerUrl)
+    );
+
+    for (const tx of txs) {
+      yield await tx;
+    }
+  } while (newTxs.length < 25);
+
+  return numberOfTxs;
 }
 
 async function esploraTxToTxInterface(
   esploraTx: EsploraTx,
   explorerUrl: string
 ): Promise<TxInterface> {
-  const inputTxIds = esploraTx.vin.map(input => input.txid);
-  const inputVouts = esploraTx.vin.map(input => input.vout);
+  const inputTxIds: string[] = [];
+  const inputVouts: number[] = [];
+
+  for (const input of esploraTx.vin) {
+    inputTxIds.push(input.txid);
+    inputVouts.push(input.vout);
+  }
+
   const prevoutTxHexs = await Promise.all(
     inputTxIds.map(txid => fetchTxHex(txid, explorerUrl))
   );
 
-  const prevouts = prevoutTxHexs.map(
-    (hex: string, index: number) =>
-      Transaction.fromHex(hex).outs[inputVouts[index]]
+  const prevoutAsOutput = prevoutTxHexs.map((hex: string, index: number) =>
+    txOutputToOutputInterface(Transaction.fromHex(hex).outs[inputVouts[index]])
   );
-  const prevoutAsOutput = prevouts.map(txOutputToOutputInterface);
+
   const txInputs: InputInterface[] = inputTxIds.map(
     (txid: string, index: number) => {
       return {
@@ -648,26 +747,25 @@ function txOutputToOutputInterface(
  * @param tx transaction to unblind
  * @param blindingPrivateKeys the privateKeys using to unblind the outputs.
  */
-function unblindTransactionPrevoutsAndOutputs(
+async function unblindTransactionPrevoutsAndOutputs(
   tx: TxInterface,
-  blindingPrivateKeys: string[]
-): TxInterface {
+  blindingPrivateKeyGetter: BlindingKeyGetter
+): Promise<TxInterface> {
+  const promises: Promise<void>[] = [];
+
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
     const prevout = tx.vin[inputIndex].prevout;
     if (isBlindedOutputInterface(prevout)) {
-      for (let i = 0; i < blindingPrivateKeys.length; i++) {
-        try {
-          const unblindOutput = tryToUnblindOutput(
-            prevout,
-            blindingPrivateKeys[i]
-          );
-          tx.vin[inputIndex].prevout = unblindOutput;
-          break;
-        } catch (_) {
-          continue;
+      const promise = async () => {
+        const blindingKey = blindingPrivateKeyGetter(prevout.script);
+        if (blindingKey) {
+          const unblinded = tryToUnblindOutput(prevout, blindingKey);
+          tx.vin[inputIndex].prevout = unblinded;
         }
-      }
+      };
+
+      promises.push(promise());
     }
   }
 
@@ -675,20 +773,19 @@ function unblindTransactionPrevoutsAndOutputs(
   for (let outputIndex = 0; outputIndex < tx.vout.length; outputIndex++) {
     const output = tx.vout[outputIndex];
     if (isBlindedOutputInterface(output)) {
-      for (let i = 0; i < blindingPrivateKeys.length; i++) {
-        try {
-          const unblindOutput = tryToUnblindOutput(
-            output,
-            blindingPrivateKeys[i]
-          );
-          tx.vout[outputIndex] = unblindOutput;
-          break;
-        } catch (_) {
-          continue;
+      const promise = async () => {
+        const blindingKey = blindingPrivateKeyGetter(output.script);
+        if (blindingKey) {
+          const unblinded = tryToUnblindOutput(output, blindingKey);
+          tx.vout[outputIndex] = unblinded;
         }
-      }
+      };
+
+      promises.push(promise());
     }
   }
+
+  await Promise.all(promises);
 
   return tx;
 }
@@ -698,6 +795,7 @@ function tryToUnblindOutput(
   BlindingPrivateKey: string
 ): UnblindedOutputInterface {
   const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
+
   const unblindedResult = confidential.unblindOutput(
     output.nonce,
     blindPrivateKeyBuffer,
