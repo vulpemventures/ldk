@@ -1,11 +1,11 @@
 import {
-  fetchAndUnblindTxs,
   isBlindedOutputInterface,
   UnblindedOutputInterface,
-  fetchAndUnblindUtxos,
   fetchAndUnblindUtxosGenerator,
   UtxoInterface,
   fetchAndUnblindTxsGenerator,
+  fetchAndUnblindUtxos,
+  TxInterface,
 } from '../src/wallet';
 import { networks, TxOutput, Transaction, Psbt } from 'liquidjs-lib';
 import {
@@ -22,6 +22,7 @@ import {
   senderWallet,
   recipientAddress,
   sender,
+  senderBlindKeyGetter,
 } from './fixtures/wallet.keys';
 import axios from 'axios';
 
@@ -100,22 +101,22 @@ describe('Wallet - Transaction builder', () => {
   });
 
   describe('FetchAndUnblindTx function', () => {
-    test.only('should fetch all the transactions of an address & unblind the outputs', async () => {
-      console.log('start');
-      const txs = await fetchAndUnblindTxs(
-        [
-          {
-            address: senderAddress,
-            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
-          },
-        ],
+    let faucetTx: TxInterface;
+
+    beforeAll(async () => {
+      const txs = await fetchAndUnblindTxsGenerator(
+        [senderAddress],
+        senderBlindKeyGetter,
         APIURL
       );
-      console.log('end');
 
-      const faucetTx = txs.find(tx => tx.txid === faucetTxID);
-      expect(faucetTx).not.toBeUndefined();
+      faucetTx = (await txs.next()).value as TxInterface;
+      while (faucetTx.txid !== faucetTxID) {
+        faucetTx = (await txs.next()).value as TxInterface;
+      }
+    });
 
+    it('should fetch all the transactions of an address & unblind the outputs', async () => {
       const LBTC = networks.regtest.assetHash;
       const hasOutputWithValue1LBTC = faucetTx!.vout.some(out => {
         if (!isBlindedOutputInterface(out)) {
@@ -158,19 +159,15 @@ describe('Wallet - Transaction builder', () => {
         .toHex();
       const txIdBroadcasted = await broadcastTx(hex);
 
-      const txs = await fetchAndUnblindTxs(
-        [
-          {
-            address: senderAddress,
-            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
-          },
-        ],
+      const txs = await fetchAndUnblindTxsGenerator(
+        [senderAddress],
+        senderBlindKeyGetter,
         APIURL
       );
-      const faucetTx = txs.find(
-        tx => tx.txid.valueOf() === txIdBroadcasted.valueOf()
-      );
-      expect(faucetTx).not.toBeUndefined();
+      let faucetTx = (await txs.next()).value as TxInterface;
+      while (faucetTx.txid !== txIdBroadcasted) {
+        faucetTx = (await txs.next()).value as TxInterface;
+      }
 
       const hasUnblindedPrevout = faucetTx!.vin
         .map(input => input.prevout)
@@ -218,16 +215,8 @@ describe('Wallet - Transaction builder', () => {
   describe('fetchAndUnblindTxsGenerator function', () => {
     it('should return tx at each next iteration', async () => {
       const txsGenerator = fetchAndUnblindTxsGenerator(
-        [
-          {
-            address: senderAddress,
-            blindingKeys: [sender.getNextAddress().blindingPrivateKey],
-          },
-          {
-            address: recipientAddress,
-            blindingKeys: [''],
-          },
-        ],
+        [senderAddress],
+        senderBlindKeyGetter,
         APIURL
       );
 
