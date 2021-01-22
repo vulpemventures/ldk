@@ -1,7 +1,7 @@
 import { networks, payments, ECPair } from 'liquidjs-lib';
 import { PrivateKey } from '../../src/identities/privatekey';
 import { IdentityType } from '../../src/identity';
-import { walletFromAddresses } from '../../src/wallet';
+import { walletFromAddresses, BlindingKeyGetter } from '../../src/wallet';
 
 const network = networks.regtest;
 // generate a random keyPair for bob
@@ -23,6 +23,15 @@ export const sender = new PrivateKey({
     blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
   },
 });
+
+export const senderBlindKeyGetter: BlindingKeyGetter = (script: string) => {
+  try {
+    return sender.getBlindingPrivateKey(script);
+  } catch (_) {
+    return undefined;
+  }
+};
+
 export const senderAddress = sender.getNextAddress().confidentialAddress;
 export const senderWallet = walletFromAddresses(
   sender.getAddresses(),
