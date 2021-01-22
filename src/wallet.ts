@@ -100,16 +100,18 @@ export class Wallet implements WalletInterface {
     recipient: string,
     amount: number,
     asset: string,
-    changeAddress: string
+    changeAddress: string,
+    satsPerByte: number = 0.1
   ): string {
     const pset = decodePset(psetBase64);
 
-    // at 0.1 sat per byte means pretty big transactions
-    const FIXED_FEE = 2000;
     let inputBlindingKeys: Array<Buffer> = [];
     let outputBlindingKeys: Array<Buffer> = [];
 
-    let lbtcAmountToLookup = FIXED_FEE;
+    // estimate the amount of fee for a common transaction
+    const feeEstimation = Math.ceil(estimateTxSize(1, 2) * satsPerByte);
+    let lbtcAmountToLookup = feeEstimation;
+
     if (asset === this.network.assetHash) {
       lbtcAmountToLookup += amount;
       // The receiving output of LBTC
@@ -226,7 +228,7 @@ export class Wallet implements WalletInterface {
     // fee output
     pset.addOutput({
       script: Buffer.alloc(0),
-      value: confidential.satoshiToConfidentialValue(FIXED_FEE),
+      value: confidential.satoshiToConfidentialValue(feeEstimation),
       asset: this.network.assetHash,
       nonce: Buffer.from('00', 'hex'),
     });
@@ -706,7 +708,7 @@ function tryToUnblindOutput(
   );
 
   const unblindedOutput: UnblindedOutputInterface = {
-    asset: unblindedResult.asset.reverse().toString('hex'),
+    asset: Buffer.from(unblindedResult.asset.reverse()).toString('hex'),
     value: parseInt(unblindedResult.value, 10),
     script: output.script,
   };
@@ -780,4 +782,78 @@ export function coinselect(
   change = availableSat - amount;
 
   return { selectedUnspents: unspents, change };
+}
+
+// estimate segwit transaction size in bytes depending on number of inputs and outputs
+export function estimateTxSize(numInputs: number, numOutputs: number): number {
+  const base = calcTxSize(false, numInputs, numOutputs, false);
+  const total = calcTxSize(true, numInputs, numOutputs, true);
+  const weight = base * 3 + total;
+  const vsize = (weight + 3) / 4;
+
+  return vsize;
+}
+
+function calcTxSize(
+  withWitness: boolean,
+  numInputs: number,
+  numOutputs: number,
+  isConfidential: boolean
+) {
+  const inputsSize = calcInputsSize(withWitness, numInputs);
+  const outputsSize = calcOutputsSize(isConfidential, numOutputs);
+
+  return (
+    9 +
+    varIntSerializeSize(numOutputs) +
+    varIntSerializeSize(numInputs) +
+    inputsSize +
+    outputsSize
+  );
+}
+
+function calcInputsSize(withWitness: boolean, numInputs: number): number {
+  // prevout hash + prevout index
+  let size = (32 + 8) * numInputs;
+  if (withWitness) {
+    // scriptsig + pubkey
+    size += numInputs * (72 + 33);
+  }
+
+  return size;
+}
+
+function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
+  // asset + value + empty nonce
+  const baseOutputSize = 33 + 33 + 1;
+  let size = baseOutputSize * numOutputs;
+
+  if (isConfidential) {
+    // rangeproof + surjectionproof + 32 bytes for nonce
+    size += (4174 + 67 + 32) * numOutputs;
+  }
+
+  // fee asset + fee empty nonce + fee value
+  size += 33 + 1 + 9;
+
+  return size;
+}
+
+function varIntSerializeSize(val: number): number {
+  const maxUINT16 = 65535;
+  const maxUINT32 = 4294967295;
+
+  if (val < 0xfd) {
+    return 1;
+  }
+
+  if (val <= maxUINT16) {
+    return 3;
+  }
+
+  if (val <= maxUINT32) {
+    return 5;
+  }
+
+  return 9;
 }

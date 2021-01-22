@@ -14,6 +14,7 @@
     "build": "tsdx build --tsconfig tsconfig.json --entry src/index.ts",
     "test": "tsdx test",
     "lint": "tsdx lint src test",
+    "lint:fix": "tsdx lint src test --fix",
     "prepare": "tsdx build",
     "size": "size-limit",
     "analyze": "size-limit --why"
@@ -55,11 +56,11 @@
   "size-limit": [
     {
       "path": "dist/ldk.cjs.production.min.js",
-      "limit": "10 KB"
+      "limit": "1 MB"
     },
     {
       "path": "dist/ldk.esm.js",
-      "limit": "10 KB"
+      "limit": "1 MB"
     }
   ],
   "devDependencies": {
