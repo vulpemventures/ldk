@@ -108,6 +108,8 @@ export class Wallet implements WalletInterface {
     changeAddress: string,
     satsPerByte: number = 0.1
   ): string {
+    console.time('buildTx');
+
     const pset = decodePset(psetBase64);
 
     let inputBlindingKeys: Array<Buffer> = [];
@@ -133,12 +135,14 @@ export class Wallet implements WalletInterface {
       outputBlindingKeys.push(address.fromConfidential(recipient).blindingKey);
     } else {
       // coin select the asset
+      console.time('coinselect');
       const { selectedUnspents, change } = coinselect(
         unspents,
         amount,
         asset,
         this.blindingPrivateKeyByScript
       );
+      console.timeEnd('coinselect');
 
       selectedUnspents.forEach((i: UtxoInterface) => {
         pset.addInput({
@@ -238,15 +242,17 @@ export class Wallet implements WalletInterface {
       nonce: Buffer.from('00', 'hex'),
     });
 
+    console.time('blindOutputs');
     // Let's blind all the outputs. The order is important (same of output and some blinding key)
     // The alice linding private key is an hex string, we need to pass to Buffer.
     pset.blindOutputs(inputBlindingKeys, outputBlindingKeys);
+    console.timeEnd('blindOutputs');
 
+    console.timeEnd('buildTx');
     return pset.toBase64();
   }
 
   /**
-   *
    * @param psetBase64 the Pset to update, base64 encoded.
    * @param unspents unspent that will be used to found the transaction.
    * @param inputAmount the amount to found with unspents.
@@ -850,20 +856,16 @@ export function coinselect(
     const utxo = utxos[i];
 
     // confidential
-    try {
-      if (isConfidentialOutput(utxo.prevout)) {
-        const { asset: unblindAsset, value } = unblindOutput(
-          utxo.prevout,
-          inputBlindingKeys[utxo.prevout.script.toString('hex')]
-        );
+    if (isConfidentialOutput(utxo.prevout)) {
+      const { asset: unblindAsset, value } = unblindOutput(
+        utxo.prevout,
+        inputBlindingKeys[utxo.prevout.script.toString('hex')]
+      );
 
-        if (toAssetHash(unblindAsset) !== asset) continue;
-        unspents.push(utxo);
-        availableSat += value;
-        if (availableSat >= amount) break;
-        continue;
-      }
-    } catch (err) {
+      if (toAssetHash(unblindAsset) !== asset) continue;
+      unspents.push(utxo);
+      availableSat += value;
+      if (availableSat >= amount) break;
       continue;
     }
 
