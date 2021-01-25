@@ -50,7 +50,6 @@ describe('buildTx', () => {
       },
     ];
 
-    console.time('buildTxBis');
     const unsignedTx = buildTx(
       tx,
       senderUtxos,
@@ -59,7 +58,6 @@ describe('buildTx', () => {
       (_: string) =>
         address.toOutputScript(senderAddress, networks.regtest).toString('hex')
     );
-    console.timeEnd('buildTxBis');
 
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
@@ -78,7 +76,6 @@ describe('buildTx', () => {
       },
     ];
 
-    console.time('buildTxBis');
     const unsignedTx = buildTx(
       tx,
       senderUtxos,
@@ -87,7 +84,6 @@ describe('buildTx', () => {
       (_: string) =>
         address.toOutputScript(senderAddress, networks.regtest).toString('hex')
     );
-    console.timeEnd('buildTxBis');
 
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
@@ -123,13 +119,11 @@ describe('buildTx', () => {
 
     const pset = decodePset(unsignedTx);
 
-    console.time('blind');
     const privKeyBuffer = Buffer.from(senderBlindingKey, 'hex');
     pset.blindOutputsByIndex(
       new Map().set(0, privKeyBuffer).set(1, privKeyBuffer),
       new Map().set(2, address.fromConfidential(senderAddress).blindingKey)
     );
-    console.timeEnd('blind');
 
     const signedBase64 = await sender.signPset(pset.toBase64());
     const signedPset = decodePset(signedBase64);
