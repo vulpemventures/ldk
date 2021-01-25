@@ -199,9 +199,10 @@ export function addToTx(
   outputs: OutputInterface[]
 ): string {
   const pset = decodePset(psetBase64);
+  const unconfNonce = Buffer.from('00', 'hex');
 
   for (const out of outputs) {
-    pset.addOutput({ ...out });
+    pset.addOutput({ ...out, nonce: unconfNonce });
   }
 
   for (const unspent of unspents) {
