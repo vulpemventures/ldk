@@ -1,19 +1,19 @@
-import { Psbt, networks } from 'liquidjs-lib';
+import { Psbt, networks, address as laddress } from 'liquidjs-lib';
 import { estimateTxSize, UtxoInterface } from './wallet';
 
-export interface OutputInterface {
+export interface RecipientInterface {
   value: number;
   asset: string;
-  script: string;
+  address: string;
 }
 
 export interface CoinSelectionResult {
   selectedUtxos: UtxoInterface[];
-  changeOutputs: OutputInterface[];
+  changeOutputs: RecipientInterface[];
 }
 
-// define a type using to implement changeScript strategy
-type ChangeScriptFromAssetGetter = (asset: string) => string | undefined;
+// define a type using to implement change's address strategy
+type ChangeAddressFromAssetGetter = (asset: string) => string | undefined;
 
 /**
  * buildTx selects utxos among unspents to fill outputs' requirements,
@@ -30,15 +30,15 @@ type ChangeScriptFromAssetGetter = (asset: string) => string | undefined;
 export function buildTx(
   psetBase64: string,
   unspents: UtxoInterface[],
-  outputs: OutputInterface[],
-  changeScriptByAsset: ChangeScriptFromAssetGetter,
+  recipients: RecipientInterface[],
+  changeScriptByAsset: ChangeAddressFromAssetGetter,
   addFee: boolean = false,
   satsPerByte: number = 0.1,
   network: networks.Network = networks.regtest
 ): string {
   const { selectedUtxos, changeOutputs } = greedyCoinSelection(
     unspents,
-    outputs,
+    recipients,
     changeScriptByAsset
   );
 
@@ -46,14 +46,14 @@ export function buildTx(
 
   // if not fee, just add selected unspents as inputs and specified outputs + change outputs to pset
   if (!addFee) {
-    const outs = outputs.concat(changeOutputs);
-    return addToTx(psetBase64, inputs, outs);
+    const outs = recipients.concat(changeOutputs);
+    return addToTx(psetBase64, inputs, outs, network);
   }
 
   // otherwise, handle the fee output
   const fee = createFeeOutput(
     inputs.length,
-    outputs.length,
+    recipients.length,
     satsPerByte,
     network
   );
@@ -61,19 +61,20 @@ export function buildTx(
   const changeIndexLBTC: number = changeOutputs.findIndex(
     out => out.asset === network.assetHash
   );
+
   const diff = changeOutputs[changeIndexLBTC].value - fee.value;
 
   if (diff > 0) {
     changeOutputs[changeIndexLBTC].value = diff;
-    const outs = outputs.concat(changeOutputs).concat(fee);
-    return addToTx(psetBase64, inputs, outs);
+    const outs = recipients.concat(changeOutputs).concat(fee);
+    return addToTx(psetBase64, inputs, outs, network);
   }
   // remove the change outputs
   changeOutputs.splice(changeIndexLBTC, 1);
 
   if (diff === 0) {
-    const outs = outputs.concat(changeOutputs).concat(fee);
-    return addToTx(psetBase64, inputs, outs);
+    const outs = recipients.concat(changeOutputs).concat(fee);
+    return addToTx(psetBase64, inputs, outs, network);
   }
 
   const availableUnspents: UtxoInterface[] = [];
@@ -89,12 +90,12 @@ export function buildTx(
   );
 
   const ins = inputs.concat(coinSelectionResult.selectedUtxos);
-  const outs = outputs
+  const outs = recipients
     .concat(changeOutputs)
     .concat(fee)
     .concat(coinSelectionResult.changeOutputs);
 
-  return addToTx(psetBase64, ins, outs);
+  return addToTx(psetBase64, ins, outs, network);
 }
 
 /**
@@ -104,8 +105,8 @@ export function buildTx(
  */
 export function greedyCoinSelection(
   unspents: UtxoInterface[],
-  outputs: OutputInterface[],
-  changeScriptGetter: ChangeScriptFromAssetGetter
+  outputs: RecipientInterface[],
+  changeAddressGetter: ChangeAddressFromAssetGetter
 ): CoinSelectionResult {
   const result: CoinSelectionResult = {
     selectedUtxos: [],
@@ -118,7 +119,7 @@ export function greedyCoinSelection(
   >;
   const outputsGroupedByAsset = groupBy(outputs, 'asset') as Record<
     string,
-    OutputInterface[]
+    RecipientInterface[]
   >;
 
   for (const [asset, outputs] of Object.entries(outputsGroupedByAsset)) {
@@ -128,7 +129,7 @@ export function greedyCoinSelection(
     }
 
     const targetAmount: number = outputs.reduce(
-      (acc: number, output: OutputInterface) => acc + output.value,
+      (acc: number, output: RecipientInterface) => acc + output.value,
       0
     );
 
@@ -137,15 +138,15 @@ export function greedyCoinSelection(
     result.selectedUtxos.push(...selected);
 
     if (changeAmount > 0) {
-      const changeScript = changeScriptGetter(asset);
-      if (!changeScript) {
-        throw new Error('need change script for asset: ' + asset);
+      const changeAddr = changeAddressGetter(asset);
+      if (!changeAddr) {
+        throw new Error('need change address for asset: ' + asset);
       }
 
       result.changeOutputs.push({
         asset: asset,
         value: changeAmount,
-        script: changeScript,
+        address: changeAddr,
       });
     }
   }
@@ -182,27 +183,30 @@ export function createFeeOutput(
   numOutputs: number,
   satsPerByte: number,
   network: networks.Network
-): OutputInterface {
+): RecipientInterface {
   const sizeEstimation = estimateTxSize(numInputs, numOutputs);
   const feeEstimation = Math.ceil(sizeEstimation * satsPerByte);
 
   return {
     asset: network.assetHash,
     value: feeEstimation,
-    script: '',
+    address: '',
   };
 }
 
 export function addToTx(
   psetBase64: string,
   unspents: UtxoInterface[],
-  outputs: OutputInterface[]
+  outputs: RecipientInterface[],
+  network: networks.Network
 ): string {
   const pset = decodePset(psetBase64);
-  const unconfNonce = Buffer.from('00', 'hex');
+  const nonce = Buffer.from('00', 'hex');
 
-  for (const out of outputs) {
-    pset.addOutput({ ...out, nonce: unconfNonce });
+  for (const { asset, value, address } of outputs) {
+    const script =
+      address === '' ? '' : laddress.toOutputScript(address, network);
+    pset.addOutput({ asset, value, script, nonce });
   }
 
   for (const unspent of unspents) {

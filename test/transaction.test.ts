@@ -7,7 +7,7 @@ import {
   senderBlindingKey,
 } from './fixtures/wallet.keys';
 import { APIURL, broadcastTx, faucet, mint, sleep } from './_regtest';
-import { buildTx, decodePset, OutputInterface } from '../src/transaction';
+import { buildTx, decodePset, RecipientInterface } from '../src/transaction';
 import { fetchAndUnblindUtxos, UtxoInterface } from '../src/wallet';
 import * as assert from 'assert';
 
@@ -40,23 +40,20 @@ describe('buildTx', () => {
     // create a tx using wallet
     const tx = senderWallet.createTx();
 
-    const outputs: OutputInterface[] = [
+    const recipients: RecipientInterface[] = [
       {
         asset: USDT,
         value: 50000,
-        script: address
-          .toOutputScript(recipientAddress, networks.regtest)
-          .toString('hex'),
+        address: recipientAddress,
       },
     ];
 
     const unsignedTx = buildTx(
       tx,
       senderUtxos,
-      outputs,
-      // for change script, we just return the sender script for all assets
-      (_: string) =>
-        address.toOutputScript(senderAddress, networks.regtest).toString('hex')
+      recipients,
+      // for change script, we just return the sender address for all assets
+      (_: string) => senderAddress
     );
 
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
@@ -66,23 +63,20 @@ describe('buildTx', () => {
     // create a tx using wallet
     const tx = senderWallet.createTx();
 
-    const outputs: OutputInterface[] = [
+    const recipients: RecipientInterface[] = [
       {
         asset: networks.regtest.assetHash,
         value: 50000,
-        script: address
-          .toOutputScript(recipientAddress, networks.regtest)
-          .toString('hex'),
+        address: recipientAddress,
       },
     ];
 
     const unsignedTx = buildTx(
       tx,
       senderUtxos,
-      outputs,
+      recipients,
       // for change script, we just return the sender script for all assets
-      (_: string) =>
-        address.toOutputScript(senderAddress, networks.regtest).toString('hex')
+      (_: string) => senderAddress
     );
 
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
@@ -93,16 +87,12 @@ describe('buildTx', () => {
       {
         asset: networks.regtest.assetHash,
         value: 50000,
-        script: address
-          .toOutputScript(recipientAddress, networks.regtest)
-          .toString('hex'),
+        address: recipientAddress,
       },
       {
         asset: USDT,
         value: 50000,
-        script: address
-          .toOutputScript(recipientAddress, networks.regtest)
-          .toString('hex'),
+        address: recipientAddress,
       },
     ];
 
@@ -112,8 +102,7 @@ describe('buildTx', () => {
       senderUtxos,
       outputs,
       // for change script, we just return the sender script for all assets
-      (_: string) =>
-        address.toOutputScript(senderAddress, networks.regtest).toString('hex'),
+      (_: string) => senderAddress,
       true
     );
 
