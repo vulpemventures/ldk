@@ -31,15 +31,29 @@ export function buildTx(
   psetBase64: string,
   unspents: UtxoInterface[],
   recipients: RecipientInterface[],
-  changeScriptByAsset: ChangeAddressFromAssetGetter,
+  changeAddressByAsset: ChangeAddressFromAssetGetter,
   addFee: boolean = false,
   satsPerByte: number = 0.1,
   network: networks.Network = networks.regtest
 ): string {
+  if (satsPerByte < 0.1) {
+    throw new Error('satsPerByte minimum value is 0.1');
+  }
+
+  if (recipients.length === 0) {
+    throw new Error(
+      'need a least one recipient output to build the transaction'
+    );
+  }
+
+  if (unspents.length === 0) {
+    throw new Error('need at least one unspent to fund the transaction');
+  }
+
   const { selectedUtxos, changeOutputs } = greedyCoinSelection(
     unspents,
     recipients,
-    changeScriptByAsset
+    changeAddressByAsset
   );
 
   const inputs = selectedUtxos;
@@ -86,7 +100,7 @@ export function buildTx(
     availableUnspents,
     // a little trick to only select the difference not covered by the change output
     [{ ...fee, value: diff }],
-    changeScriptByAsset
+    changeAddressByAsset
   );
 
   const ins = inputs.concat(coinSelectionResult.selectedUtxos);
