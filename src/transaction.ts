@@ -67,7 +67,7 @@ export function buildTx(
   // otherwise, handle the fee output
   const fee = createFeeOutput(
     inputs.length,
-    recipients.length,
+    recipients.length + 1,
     satsPerByte,
     network
   );
@@ -76,15 +76,20 @@ export function buildTx(
     out => out.asset === network.assetHash
   );
 
-  const diff = changeOutputs[changeIndexLBTC].value - fee.value;
+  let diff =
+    changeIndexLBTC === -1
+      ? changeOutputs[changeIndexLBTC].value - fee.value
+      : 0;
 
   if (diff > 0) {
     changeOutputs[changeIndexLBTC].value = diff;
     const outs = recipients.concat(changeOutputs).concat(fee);
     return addToTx(psetBase64, inputs, outs, network);
   }
-  // remove the change outputs
-  changeOutputs.splice(changeIndexLBTC, 1);
+  // remove the change outputs (if it exists)
+  if (changeIndexLBTC > 0) {
+    changeOutputs.splice(changeIndexLBTC, 1);
+  }
 
   if (diff === 0) {
     const outs = recipients.concat(changeOutputs).concat(fee);
@@ -95,6 +100,17 @@ export function buildTx(
   for (const utxo of unspents) {
     if (!selectedUtxos.includes(utxo)) availableUnspents.push(utxo);
   }
+
+  // re-estimate the fees with one additional output
+  const feeBis = createFeeOutput(
+    inputs.length + 1,
+    recipients.length + 1,
+    satsPerByte,
+    network
+  );
+
+  // reassign diff to new value
+  diff = fee.value - feeBis.value + diff;
 
   const coinSelectionResult = greedyCoinSelection(
     availableUnspents,
@@ -175,6 +191,9 @@ function selectUtxos(
   selected: UtxoInterface[];
   changeAmount: number;
 } {
+  const compareFn = (a: UtxoInterface, b: UtxoInterface) => a.value - b.value;
+  utxos = utxos.sort(compareFn);
+
   const selected: UtxoInterface[] = [];
   let total = 0;
   for (const utxo of utxos) {
