@@ -1,4 +1,4 @@
-import { EsploraIdentityRestorer } from '../src/identityRestorer';
+import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
 import { faucet, sleep } from './_regtest';
 
 import * as assert from 'assert';

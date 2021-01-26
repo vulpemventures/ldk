@@ -1,8 +1,7 @@
-import { Mnemonic } from './../src/identities/mnemonic';
-import { EsploraIdentityRestorer } from './../src/identityRestorer';
-import { MasterPublicKey } from './../src/identities/masterpubkey';
-import { IdentityType } from './../src/identity';
-import { IdentityOpts } from './../dist/identity.d';
+import { Mnemonic } from './../src/identity/mnemonic';
+import { MasterPublicKey } from './../src/identity/masterpubkey';
+import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
+import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import * as assert from 'assert';
 import { fromXpub } from '../src/utils';
 import { networks, payments } from 'liquidjs-lib';

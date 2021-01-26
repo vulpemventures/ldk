@@ -4,7 +4,7 @@ import Identity, {
   IdentityInterface,
   IdentityOpts,
   IdentityType,
-} from '../identity';
+} from './identity';
 
 /**
  * This interface describes the shape of the value arguments used in contructor.
