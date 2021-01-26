@@ -1,3 +1,4 @@
+import { TxOutput } from 'liquidjs-lib';
 /**
  * Defines the shape of the object returned by the getAdresses's method.
  * @member confidentialAddress the confidential address.
@@ -6,4 +7,57 @@
 export interface AddressInterface {
   confidentialAddress: string;
   blindingPrivateKey: string;
+}
+
+// define a type using to implement change's address strategy
+export type ChangeAddressFromAssetGetter = (
+  asset: string
+) => string | undefined;
+
+export interface RecipientInterface {
+  value: number;
+  asset: string;
+  address: string;
+}
+
+export interface UtxoInterface {
+  txid: string;
+  vout: number;
+  asset: string;
+  value: number;
+  prevout: TxOutput;
+}
+
+export interface BlindedOutputInterface {
+  script: string;
+  blindedValue: Buffer;
+  blindedAsset: Buffer;
+  nonce: Buffer;
+  rangeProof: Buffer;
+  surjectionProof: Buffer;
+}
+
+export interface UnblindedOutputInterface {
+  script: string;
+  value: number;
+  asset: string;
+}
+
+export interface InputInterface {
+  txid: string;
+  vout: number;
+  prevout: BlindedOutputInterface | UnblindedOutputInterface;
+}
+
+export interface TxInterface {
+  txid: string;
+  fee: number;
+  status: {
+    confirmed: boolean;
+    blockHeight?: number;
+    blockHash?: string;
+    blockTime?: number;
+  };
+  vin: Array<InputInterface>;
+  vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
 }

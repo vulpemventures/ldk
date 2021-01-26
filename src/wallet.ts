@@ -8,7 +8,14 @@ import {
   Transaction,
   TxOutput,
 } from 'liquidjs-lib';
-import { AddressInterface } from './types';
+import {
+  AddressInterface,
+  BlindedOutputInterface,
+  InputInterface,
+  TxInterface,
+  UnblindedOutputInterface,
+  UtxoInterface,
+} from './types';
 import {
   isConfidentialOutput,
   toAssetHash,
@@ -24,14 +31,6 @@ export interface WalletInterface {
   addresses: AddressInterface[];
   blindingPrivateKeyByScript: Record<string, Buffer>;
   createTx(): string;
-  buildTx(
-    psetBase64: string,
-    unspents: Array<UtxoInterface>,
-    recipient: string,
-    amount: number,
-    asset: string,
-    changeAddress: string
-  ): string;
   updateTx(
     psetBase64: string,
     unspents: Array<UtxoInterface>,
@@ -91,162 +90,6 @@ export class Wallet implements WalletInterface {
   }
 
   /**
-   * Returns an unsigned pset base64 encoded with a valid transaction that spends the given asset versus a recipient.
-   * @param psetBase64
-   * @param unspents
-   * @param recipient
-   * @param amount
-   * @param asset
-   * @param changeAddress
-   */
-  buildTx(
-    psetBase64: string,
-    unspents: Array<UtxoInterface>,
-    recipient: string,
-    amount: number,
-    asset: string,
-    changeAddress: string,
-    satsPerByte: number = 0.1
-  ): string {
-    const pset = decodePset(psetBase64);
-
-    let inputBlindingKeys: Array<Buffer> = [];
-    let outputBlindingKeys: Array<Buffer> = [];
-
-    // estimate the amount of fee for a common transaction
-    const feeEstimation = Math.ceil(estimateTxSize(1, 2) * satsPerByte);
-    let lbtcAmountToLookup = feeEstimation;
-
-    if (asset === this.network.assetHash) {
-      lbtcAmountToLookup += amount;
-      // The receiving output of LBTC
-      const recipientScript = address
-        .toOutputScript(recipient, this.network)
-        .toString('hex');
-      pset.addOutput({
-        script: recipientScript,
-        value: confidential.satoshiToConfidentialValue(amount),
-        asset: this.network.assetHash,
-        nonce: Buffer.from('00', 'hex'),
-      });
-      // Add the receiving blinding pub key
-      outputBlindingKeys.push(address.fromConfidential(recipient).blindingKey);
-    } else {
-      // coin select the asset
-      const { selectedUnspents, change } = coinselect(
-        unspents,
-        amount,
-        asset,
-        this.blindingPrivateKeyByScript
-      );
-
-      selectedUnspents.forEach((i: UtxoInterface) => {
-        pset.addInput({
-          // if hash is string, txid, if hash is Buffer, is reversed compared to txid
-          hash: i.txid,
-          index: i.vout,
-          //We put here the blinded prevout
-          witnessUtxo: i.prevout,
-        });
-
-        // we update the inputBlindingKeys map after we add an input to the transaction
-        const scriptHex = i.prevout.script.toString('hex');
-        inputBlindingKeys.push(this.blindingPrivateKeyByScript[scriptHex]);
-      });
-
-      // The receiving output of the asset
-      const recipientScript = address
-        .toOutputScript(recipient, this.network)
-        .toString('hex');
-      pset.addOutput({
-        script: recipientScript,
-        value: confidential.satoshiToConfidentialValue(amount),
-        asset: asset,
-        nonce: Buffer.from('00', 'hex'),
-      });
-
-      // we update the outputBlindingKeys map after we add the change output to the transaction
-      outputBlindingKeys.push(address.fromConfidential(recipient).blindingKey);
-
-      if (change > 0) {
-        // Get the script from address
-        const changeScript = address
-          .toOutputScript(changeAddress, this.network)
-          .toString('hex');
-        // Change of the asset
-        pset.addOutput({
-          script: changeScript,
-          value: confidential.satoshiToConfidentialValue(change),
-          asset: asset,
-          nonce: Buffer.from('00', 'hex'),
-        });
-
-        // we update the outputBlindingKeys map after we add the change output to the transaction
-        outputBlindingKeys.push(
-          address.fromConfidential(changeAddress).blindingKey
-        );
-      }
-    }
-
-    const {
-      selectedUnspents: lbtcSelectedUnspents,
-      change: lbtcChange,
-    } = coinselect(
-      unspents,
-      lbtcAmountToLookup,
-      this.network.assetHash,
-      this.blindingPrivateKeyByScript
-    );
-
-    lbtcSelectedUnspents.forEach((i: UtxoInterface) => {
-      pset.addInput({
-        // if hash is string, txid, if hash is Buffer, is reversed compared to txid
-        hash: i.txid,
-        index: i.vout,
-        //We put here the blinded prevout
-        witnessUtxo: i.prevout,
-      });
-
-      // we update the inputBlindingKeys map after we add an input to the transaction
-      const scriptHex = i.prevout.script.toString('hex');
-      inputBlindingKeys.push(this.blindingPrivateKeyByScript[scriptHex]);
-    });
-
-    if (lbtcChange > 0) {
-      const lbtcChangeScript = address
-        .toOutputScript(changeAddress, this.network)
-        .toString('hex');
-      // Change of LBTC
-      pset.addOutput({
-        script: lbtcChangeScript,
-        value: confidential.satoshiToConfidentialValue(lbtcChange),
-        asset: this.network.assetHash,
-        nonce: Buffer.from('00', 'hex'),
-      });
-
-      // we update the outputBlindingKeys map after we add the change output to the transaction
-      outputBlindingKeys.push(
-        address.fromConfidential(changeAddress).blindingKey
-      );
-    }
-
-    // fee output
-    pset.addOutput({
-      script: Buffer.alloc(0),
-      value: confidential.satoshiToConfidentialValue(feeEstimation),
-      asset: this.network.assetHash,
-      nonce: Buffer.from('00', 'hex'),
-    });
-
-    // Let's blind all the outputs. The order is important (same of output and some blinding key)
-    // The alice linding private key is an hex string, we need to pass to Buffer.
-    pset.blindOutputs(inputBlindingKeys, outputBlindingKeys);
-
-    return pset.toBase64();
-  }
-
-  /**
-   *
    * @param psetBase64 the Pset to update, base64 encoded.
    * @param unspents unspent that will be used to found the transaction.
    * @param inputAmount the amount to found with unspents.
@@ -385,14 +228,6 @@ function decodePset(psetBase64: string) {
   return pset;
 }
 
-export interface UtxoInterface {
-  txid: string;
-  vout: number;
-  asset: string;
-  value: number;
-  prevout: TxOutput;
-}
-
 export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
 }
@@ -513,40 +348,6 @@ export async function fetchBalances(
     },
     {}
   ); // {} is the initial value of the storage
-}
-
-export interface BlindedOutputInterface {
-  script: string;
-  blindedValue: Buffer;
-  blindedAsset: Buffer;
-  nonce: Buffer;
-  rangeProof: Buffer;
-  surjectionProof: Buffer;
-}
-
-export interface UnblindedOutputInterface {
-  script: string;
-  value: number;
-  asset: string;
-}
-
-export interface InputInterface {
-  txid: string;
-  vout: number;
-  prevout: BlindedOutputInterface | UnblindedOutputInterface;
-}
-
-export interface TxInterface {
-  txid: string;
-  fee: number;
-  status: {
-    confirmed: boolean;
-    blockHeight?: number;
-    blockHash?: string;
-    blockTime?: number;
-  };
-  vin: Array<InputInterface>;
-  vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
 }
 
 export function isBlindedOutputInterface(
@@ -850,20 +651,16 @@ export function coinselect(
     const utxo = utxos[i];
 
     // confidential
-    try {
-      if (isConfidentialOutput(utxo.prevout)) {
-        const { asset: unblindAsset, value } = unblindOutput(
-          utxo.prevout,
-          inputBlindingKeys[utxo.prevout.script.toString('hex')]
-        );
+    if (isConfidentialOutput(utxo.prevout)) {
+      const { asset: unblindAsset, value } = unblindOutput(
+        utxo.prevout,
+        inputBlindingKeys[utxo.prevout.script.toString('hex')]
+      );
 
-        if (toAssetHash(unblindAsset) !== asset) continue;
-        unspents.push(utxo);
-        availableSat += value;
-        if (availableSat >= amount) break;
-        continue;
-      }
-    } catch (err) {
+      if (toAssetHash(unblindAsset) !== asset) continue;
+      unspents.push(utxo);
+      availableSat += value;
+      if (availableSat >= amount) break;
       continue;
     }
 

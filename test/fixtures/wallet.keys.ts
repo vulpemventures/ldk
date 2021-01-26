@@ -33,6 +33,7 @@ export const senderBlindKeyGetter: BlindingKeyGetter = (script: string) => {
 };
 
 export const senderAddress = sender.getNextAddress().confidentialAddress;
+export const senderBlindingKey = sender.getNextAddress().blindingPrivateKey;
 export const senderWallet = walletFromAddresses(
   sender.getAddresses(),
   'regtest'
