@@ -25,7 +25,7 @@ function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
     args.addFee = false;
   }
 
-  if (args.satsPerByte < 0.1 && args.addFee) {
+  if (args.addFee && args.satsPerByte < 0.1) {
     throw new Error('satsPerByte minimum value is 0.1');
   }
 
