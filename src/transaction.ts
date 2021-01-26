@@ -64,13 +64,12 @@ export function buildTx(
     return addToTx(psetBase64, inputs, outs, network);
   }
 
+  const pset = decodePset(psetBase64);
+  const nbInputs = pset.data.inputs.length + inputs.length;
+  const nbOutputs = pset.data.outputs.length + recipients.length + 1;
+
   // otherwise, handle the fee output
-  const fee = createFeeOutput(
-    inputs.length,
-    recipients.length + 1,
-    satsPerByte,
-    network
-  );
+  const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte, network);
 
   const changeIndexLBTC: number = changeOutputs.findIndex(
     out => out.asset === network.assetHash
@@ -78,8 +77,8 @@ export function buildTx(
 
   let diff =
     changeIndexLBTC === -1
-      ? changeOutputs[changeIndexLBTC].value - fee.value
-      : 0;
+      ? 0
+      : changeOutputs[changeIndexLBTC].value - fee.value;
 
   if (diff > 0) {
     changeOutputs[changeIndexLBTC].value = diff;
@@ -103,8 +102,8 @@ export function buildTx(
 
   // re-estimate the fees with one additional output
   const feeBis = createFeeOutput(
-    inputs.length + 1,
-    recipients.length + 1,
+    nbInputs + 1,
+    nbOutputs + changeOutputs.length,
     satsPerByte,
     network
   );
