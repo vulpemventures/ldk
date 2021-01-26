@@ -13,16 +13,12 @@ export interface BuildTxArgs {
   recipients: RecipientInterface[];
   coinSelector: CoinSelector;
   changeAddressByAsset: ChangeAddressFromAssetGetter;
+  feeAssetHash: string;
   addFee?: boolean;
   satsPerByte?: number;
-  network?: networks.Network;
 }
 
 function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
-  if (!args.network) {
-    args.network = networks.regtest;
-  }
-
   if (!args.satsPerByte) {
     args.satsPerByte = 0.1;
   }
@@ -69,7 +65,7 @@ export function buildTx(args: BuildTxArgs): string {
     recipients,
     unspents,
     addFee,
-    network,
+    feeAssetHash,
     satsPerByte,
   } = validateAndProcess(args);
 
@@ -84,7 +80,7 @@ export function buildTx(args: BuildTxArgs): string {
   // if not fee, just add selected unspents as inputs and specified outputs + change outputs to pset
   if (!addFee) {
     const outs = recipients.concat(changeOutputs);
-    return addToTx(psetBase64, inputs, outs, network!);
+    return addToTx(psetBase64, inputs, outs);
   }
 
   const pset = decodePset(psetBase64);
@@ -93,10 +89,10 @@ export function buildTx(args: BuildTxArgs): string {
     pset.data.outputs.length + recipients.length + changeOutputs.length;
 
   // otherwise, handle the fee output
-  const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, network!);
+  const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
 
   const changeIndexLBTC: number = changeOutputs.findIndex(
-    out => out.asset === network!.assetHash
+    out => out.asset === feeAssetHash
   );
 
   let diff =
@@ -107,7 +103,7 @@ export function buildTx(args: BuildTxArgs): string {
   if (diff > 0) {
     changeOutputs[changeIndexLBTC].value = diff;
     const outs = recipients.concat(changeOutputs).concat(fee);
-    return addToTx(psetBase64, inputs, outs, network!);
+    return addToTx(psetBase64, inputs, outs);
   }
   // remove the change outputs (if it exists)
   if (changeIndexLBTC > 0) {
@@ -117,7 +113,7 @@ export function buildTx(args: BuildTxArgs): string {
 
   if (diff === 0) {
     const outs = recipients.concat(changeOutputs).concat(fee);
-    return addToTx(psetBase64, inputs, outs, network!);
+    return addToTx(psetBase64, inputs, outs);
   }
 
   const availableUnspents: UtxoInterface[] = [];
@@ -130,7 +126,7 @@ export function buildTx(args: BuildTxArgs): string {
     nbInputs + 1,
     nbOutputs,
     satsPerByte!,
-    network!
+    feeAssetHash
   );
 
   // reassign diff to new value
@@ -149,20 +145,20 @@ export function buildTx(args: BuildTxArgs): string {
     .concat(fee)
     .concat(coinSelectionResult.changeOutputs);
 
-  return addToTx(psetBase64, ins, outs, network!);
+  return addToTx(psetBase64, ins, outs);
 }
 
 export function createFeeOutput(
   numInputs: number,
   numOutputs: number,
   satsPerByte: number,
-  network: networks.Network
+  assetHash: string
 ): RecipientInterface {
   const sizeEstimation = estimateTxSize(numInputs, numOutputs);
   const feeEstimation = Math.ceil(sizeEstimation * satsPerByte);
 
   return {
-    asset: network.assetHash,
+    asset: assetHash,
     value: feeEstimation,
     address: '',
   };
@@ -171,15 +167,13 @@ export function createFeeOutput(
 export function addToTx(
   psetBase64: string,
   unspents: UtxoInterface[],
-  outputs: RecipientInterface[],
-  network: networks.Network
+  outputs: RecipientInterface[]
 ): string {
   const pset = decodePset(psetBase64);
   const nonce = Buffer.from('00', 'hex');
 
   for (const { asset, value, address } of outputs) {
-    const script =
-      address === '' ? '' : laddress.toOutputScript(address, network);
+    const script = address === '' ? '' : toOutputScriptWithoutNetwork(address);
     pset.addOutput({ asset, value, script, nonce });
   }
 
@@ -202,4 +196,17 @@ export function decodePset(psetBase64: string): Psbt {
     throw new Error('Invalid pset');
   }
   return pset;
+}
+
+// TO DO: add this feature in liquidjs-lib
+function toOutputScriptWithoutNetwork(address: string): Buffer {
+  try {
+    return laddress.toOutputScript(address, networks.liquid);
+  } catch (_) {
+    try {
+      return laddress.toOutputScript(address, networks.regtest);
+    } catch (_) {
+      throw new Error('Invalid address');
+    }
+  }
 }

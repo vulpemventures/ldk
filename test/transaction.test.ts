@@ -43,6 +43,7 @@ describe('buildTx', () => {
       unspents: senderUtxos,
       changeAddressByAsset: (_: string) => senderAddress,
       coinSelector: greedyCoinSelector(),
+      feeAssetHash: networks.regtest.assetHash,
     };
   });
 
