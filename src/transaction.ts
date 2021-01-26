@@ -89,7 +89,8 @@ export function buildTx(args: BuildTxArgs): string {
 
   const pset = decodePset(psetBase64);
   const nbInputs = pset.data.inputs.length + inputs.length;
-  const nbOutputs = pset.data.outputs.length + recipients.length + 1;
+  let nbOutputs =
+    pset.data.outputs.length + recipients.length + changeOutputs.length + 1;
 
   // otherwise, handle the fee output
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, network!);
@@ -111,6 +112,7 @@ export function buildTx(args: BuildTxArgs): string {
   // remove the change outputs (if it exists)
   if (changeIndexLBTC > 0) {
     changeOutputs.splice(changeIndexLBTC, 1);
+    nbOutputs -= 1;
   }
 
   if (diff === 0) {
