@@ -101,11 +101,14 @@ export function buildTx(args: BuildTxArgs): string {
       : changeOutputs[changeIndexLBTC].value - fee.value;
 
   if (diff > 0) {
+    // changeAmount becomes the difference between fees and change base amount
     changeOutputs[changeIndexLBTC].value = diff;
     const outs = recipients.concat(changeOutputs).concat(fee);
     return addToTx(psetBase64, inputs, outs);
   }
+
   // remove the change outputs (if it exists)
+  // we will replace it by another coin selection
   if (changeIndexLBTC > 0) {
     changeOutputs.splice(changeIndexLBTC, 1);
     nbOutputs -= 1;
@@ -129,7 +132,7 @@ export function buildTx(args: BuildTxArgs): string {
     feeAssetHash
   );
 
-  // reassign diff to new value
+  // reassign diff to new value = diff + gap between both estimations
   diff = fee.value - feeBis.value + diff;
 
   const coinSelectionResult = coinSelector(
