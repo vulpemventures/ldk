@@ -1,3 +1,8 @@
+import {
+  BlindedOutputInterface,
+  TxInterface,
+  InputInterface,
+} from './../dist/wallet.d';
 import axios from 'axios';
 import {
   Network,
@@ -8,7 +13,11 @@ import {
   Transaction,
   TxOutput,
 } from 'liquidjs-lib';
-import { AddressInterface } from './types';
+import {
+  AddressInterface,
+  UnblindedOutputInterface,
+  UtxoInterface,
+} from './types';
 import {
   isConfidentialOutput,
   toAssetHash,
@@ -221,14 +230,6 @@ function decodePset(psetBase64: string) {
   return pset;
 }
 
-export interface UtxoInterface {
-  txid: string;
-  vout: number;
-  asset: string;
-  value: number;
-  prevout: TxOutput;
-}
-
 export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
 }
@@ -349,40 +350,6 @@ export async function fetchBalances(
     },
     {}
   ); // {} is the initial value of the storage
-}
-
-export interface BlindedOutputInterface {
-  script: string;
-  blindedValue: Buffer;
-  blindedAsset: Buffer;
-  nonce: Buffer;
-  rangeProof: Buffer;
-  surjectionProof: Buffer;
-}
-
-export interface UnblindedOutputInterface {
-  script: string;
-  value: number;
-  asset: string;
-}
-
-export interface InputInterface {
-  txid: string;
-  vout: number;
-  prevout: BlindedOutputInterface | UnblindedOutputInterface;
-}
-
-export interface TxInterface {
-  txid: string;
-  fee: number;
-  status: {
-    confirmed: boolean;
-    blockHeight?: number;
-    blockHash?: string;
-    blockTime?: number;
-  };
-  vin: Array<InputInterface>;
-  vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
 }
 
 export function isBlindedOutputInterface(

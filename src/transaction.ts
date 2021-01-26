@@ -1,19 +1,11 @@
+import {
+  UtxoInterface,
+  ChangeAddressFromAssetGetter,
+  RecipientInterface,
+} from './types';
 import { Psbt, networks, address as laddress } from 'liquidjs-lib';
-import { estimateTxSize, UtxoInterface } from './wallet';
-
-export interface RecipientInterface {
-  value: number;
-  asset: string;
-  address: string;
-}
-
-export interface CoinSelectionResult {
-  selectedUtxos: UtxoInterface[];
-  changeOutputs: RecipientInterface[];
-}
-
-// define a type using to implement change's address strategy
-type ChangeAddressFromAssetGetter = (asset: string) => string | undefined;
+import { estimateTxSize } from './wallet';
+import { CoinSelectionResult } from './coinselection/coinSelector';
 
 /**
  * buildTx selects utxos among unspents to fill outputs' requirements,
