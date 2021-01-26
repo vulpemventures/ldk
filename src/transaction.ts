@@ -90,7 +90,7 @@ export function buildTx(args: BuildTxArgs): string {
   const pset = decodePset(psetBase64);
   const nbInputs = pset.data.inputs.length + inputs.length;
   let nbOutputs =
-    pset.data.outputs.length + recipients.length + changeOutputs.length + 1;
+    pset.data.outputs.length + recipients.length + changeOutputs.length;
 
   // otherwise, handle the fee output
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, network!);
@@ -101,7 +101,7 @@ export function buildTx(args: BuildTxArgs): string {
 
   let diff =
     changeIndexLBTC === -1
-      ? 0
+      ? 0 - fee.value
       : changeOutputs[changeIndexLBTC].value - fee.value;
 
   if (diff > 0) {
@@ -128,7 +128,7 @@ export function buildTx(args: BuildTxArgs): string {
   // re-estimate the fees with one additional output
   const feeBis = createFeeOutput(
     nbInputs + 1,
-    nbOutputs + changeOutputs.length,
+    nbOutputs,
     satsPerByte!,
     network!
   );
@@ -139,7 +139,7 @@ export function buildTx(args: BuildTxArgs): string {
   const coinSelectionResult = coinSelector(
     availableUnspents,
     // a little trick to only select the difference not covered by the change output
-    [{ ...fee, value: diff }],
+    [{ ...fee, value: Math.abs(diff) }],
     changeAddressByAsset
   );
 
