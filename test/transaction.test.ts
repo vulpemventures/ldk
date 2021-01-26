@@ -7,15 +7,17 @@ import {
   senderBlindingKey,
 } from './fixtures/wallet.keys';
 import { APIURL, broadcastTx, faucet, mint, sleep } from './_regtest';
-import { buildTx, decodePset, RecipientInterface } from '../src/transaction';
-import { fetchAndUnblindUtxos, UtxoInterface } from '../src/wallet';
+import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
+import { fetchAndUnblindUtxos } from '../src/wallet';
 import * as assert from 'assert';
+import { RecipientInterface } from '../src/types';
+import { greedyCoinSelector } from '../src/coinselection/greedy';
 
 jest.setTimeout(50000);
 
 describe('buildTx', () => {
-  let senderUtxos: UtxoInterface[];
   let USDT: string = '';
+  let args: BuildTxArgs;
 
   beforeAll(async () => {
     await faucet(senderAddress);
@@ -25,7 +27,7 @@ describe('buildTx', () => {
 
     await sleep(3000);
 
-    senderUtxos = await fetchAndUnblindUtxos(
+    const senderUtxos = await fetchAndUnblindUtxos(
       [
         {
           address: senderAddress,
@@ -34,6 +36,14 @@ describe('buildTx', () => {
       ],
       APIURL
     );
+
+    args = {
+      psetBase64: '',
+      recipients: [],
+      unspents: senderUtxos,
+      changeAddressByAsset: (_: string) => senderAddress,
+      coinSelector: greedyCoinSelector(),
+    };
   });
 
   it('should build a confidential transaction spending USDT', () => {
@@ -48,14 +58,7 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx(
-      tx,
-      senderUtxos,
-      recipients,
-      // for change script, we just return the sender address for all assets
-      (_: string) => senderAddress
-    );
-
+    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
@@ -71,19 +74,12 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx(
-      tx,
-      senderUtxos,
-      recipients,
-      // for change script, we just return the sender script for all assets
-      (_: string) => senderAddress
-    );
-
+    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
   it('should be able to create a complex transaction and broadcast it', async () => {
-    const outputs = [
+    const recipients = [
       {
         asset: networks.regtest.assetHash,
         value: 50000,
@@ -97,14 +93,12 @@ describe('buildTx', () => {
     ];
 
     const tx = senderWallet.createTx();
-    const unsignedTx = buildTx(
-      tx,
-      senderUtxos,
-      outputs,
-      // for change script, we just return the sender script for all assets
-      (_: string) => senderAddress,
-      true
-    );
+    const unsignedTx = buildTx({
+      ...args,
+      recipients,
+      psetBase64: tx,
+      addFee: true,
+    });
 
     const pset = decodePset(unsignedTx);
 

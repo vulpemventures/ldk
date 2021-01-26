@@ -6,3 +6,6 @@ export * from './identities/masterpubkey';
 export * from './wallet';
 export * from './identityRestorer';
 export * from './utils';
+export * from './coinselection/coinSelector';
+export * from './coinselection/greedy';
+export * from './types';

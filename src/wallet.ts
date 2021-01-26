@@ -1,8 +1,3 @@
-import {
-  BlindedOutputInterface,
-  TxInterface,
-  InputInterface,
-} from './../dist/wallet.d';
 import axios from 'axios';
 import {
   Network,
@@ -15,6 +10,9 @@ import {
 } from 'liquidjs-lib';
 import {
   AddressInterface,
+  BlindedOutputInterface,
+  InputInterface,
+  TxInterface,
   UnblindedOutputInterface,
   UtxoInterface,
 } from './types';
