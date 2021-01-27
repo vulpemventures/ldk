@@ -5,7 +5,7 @@ import {
 import { Network, networks, Transaction } from 'liquidjs-lib';
 import { AddressInterface } from '../types';
 import { decodePset } from '../transaction';
-import { toHex } from '../utils';
+import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
 
 /**
  * Enumeration of all the Identity types.
@@ -107,7 +107,7 @@ export default class Identity {
     const outputsKeys: Map<number, Buffer> = new Map<number, Buffer>();
 
     const pset = decodePset(psetBase64);
-    const transaction = Transaction.fromHex(toHex(psetBase64));
+    const transaction = Transaction.fromHex(psetToUnsignedHex(psetBase64));
 
     // set the outputs map
     for (const index of outputsToBlind) {
@@ -129,10 +129,7 @@ export default class Identity {
 
       // continue if the input witness is unconfidential
       if (input.witnessUtxo) {
-        if (
-          !input.witnessUtxo.rangeProof ||
-          !input.witnessUtxo.surjectionProof
-        ) {
+        if (!isConfidentialOutput(input.witnessUtxo)) {
           continue;
         }
 
@@ -142,7 +139,7 @@ export default class Identity {
       if (input.nonWitnessUtxo) {
         const vout = transaction.ins[index].index;
         const witness = Transaction.fromBuffer(input.nonWitnessUtxo).outs[vout];
-        if (!witness.rangeProof || !witness.surjectionProof) {
+        if (!isConfidentialOutput(witness)) {
           continue;
         }
 

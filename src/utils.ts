@@ -78,11 +78,15 @@ function bufferNotEmptyOrNull(buffer?: Buffer): boolean {
  * Checks if a given output is a confidential one.
  * @param output the ouput to check.
  */
-export function isConfidentialOutput(output: TxOutput): boolean {
+export function isConfidentialOutput({
+  rangeProof,
+  surjectionProof,
+  nonce,
+}: any): boolean {
   return (
-    bufferNotEmptyOrNull(output.rangeProof) &&
-    bufferNotEmptyOrNull(output.surjectionProof) &&
-    output.nonce !== emptyNonce
+    bufferNotEmptyOrNull(rangeProof) &&
+    bufferNotEmptyOrNull(surjectionProof) &&
+    nonce !== emptyNonce
   );
 }
 
@@ -187,7 +191,7 @@ export function isValidExtendedBlindKey(masterBlind: string): Boolean {
   return true;
 }
 
-export function toHex(psetBase64: string): string {
+export function psetToUnsignedHex(psetBase64: string): string {
   let pset: Psbt;
   try {
     pset = Psbt.fromBase64(psetBase64);
