@@ -3,7 +3,7 @@ import {
   IdentityRestorerInterface,
 } from './identityRestorer';
 import { Network, networks } from 'liquidjs-lib';
-import { AddressInterface } from './types';
+import { AddressInterface } from '../types';
 
 /**
  * Enumeration of all the Identity types.

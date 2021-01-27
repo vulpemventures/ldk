@@ -12,8 +12,8 @@
   "scripts": {
     "start": "tsdx watch",
     "build": "tsdx build --tsconfig tsconfig.json --entry src/index.ts",
-    "test": "tsdx test",
-    "test:debug": "tsdx test --debug --runInBand",
+    "test": "tsdx test --no-cache",
+    "test:debug": "tsdx test --debug --runInBand --no-cache",
     "lint": "tsdx lint src test",
     "lint:fix": "tsdx lint src test --fix",
     "prepare": "tsdx build",

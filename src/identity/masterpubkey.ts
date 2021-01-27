@@ -1,27 +1,33 @@
-import { bip32, ECPair, payments, Psbt } from 'liquidjs-lib';
-import * as bip39 from 'bip39';
-import { fromSeed as slip77fromSeed, Slip77Interface } from 'slip77';
-import { fromSeed as bip32fromSeed, BIP32Interface } from 'bip32';
+import { AddressInterface } from '../types';
 import Identity, {
   IdentityInterface,
-  IdentityOpts,
   IdentityType,
-} from '../identity';
-import { BufferMap, fromXpub } from '../utils';
-import { AddressInterface } from '../types';
+  IdentityOpts,
+} from './identity';
+import {
+  BufferMap,
+  isValidXpub,
+  isValidExtendedBlindKey,
+  toXpub,
+} from '../utils';
+import { BIP32Interface, fromBase58 } from 'bip32';
+import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+import { payments } from 'liquidjs-lib';
 
-export interface MnemonicOptsValue {
-  mnemonic: string;
-  language?: string;
+export interface MasterPublicKeyOptsValue {
+  masterPublicKey: string;
+  masterBlindingKey: string;
 }
 
-function instanceOfMnemonicOptsValue(value: any): value is MnemonicOptsValue {
-  return 'mnemonic' in value;
+function instanceOfMasterPublicKeyOptsValue(
+  value: any
+): value is MasterPublicKeyOptsValue {
+  return 'masterPublicKey' in value && 'masterBlindingKey' in value;
 }
 
 interface AddressInterfaceExtended {
   address: AddressInterface;
-  signingPrivateKey: string;
+  publicKey: string;
   derivationPath: string;
 }
 
@@ -35,80 +41,49 @@ function getIndex(addrExtended: AddressInterfaceExtended) {
   return index;
 }
 
-/**
- * @class Mnemonic
- * Get a mnemonic as parameter to set up an HD Wallet.
- * @member masterPrivateKeyNode a BIP32 node computed from the seed, used to generate signing key pairs.
- * @member masterBlindingKeyNode a SLIP77 node computed from the seed, used to generate the blinding key pairs.
- * @member derivationPath the base derivation path.
- * @member index the next index used to derive the base node (for signing key pairs).
- * @member scriptToAddressCache a map scriptPubKey --> address generation.
- */
-export class Mnemonic extends Identity implements IdentityInterface {
-  static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
+export class MasterPublicKey extends Identity implements IdentityInterface {
   static INITIAL_INDEX: number = 0;
 
-  private baseDerivationPath: string = Mnemonic.INITIAL_BASE_PATH;
-  private index: number = Mnemonic.INITIAL_INDEX;
-  private changeIndex: number = Mnemonic.INITIAL_INDEX;
+  private index: number = MasterPublicKey.INITIAL_INDEX;
+  private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
   private scriptToAddressCache: BufferMap<
     AddressInterfaceExtended
   > = new BufferMap();
 
-  readonly masterPrivateKeyNode: BIP32Interface;
+  readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
-
-  public masterPublicKey: string;
-  public masterBlindingKey: string;
 
   readonly isRestored: Promise<boolean>;
 
   constructor(args: IdentityOpts) {
     super(args);
 
+    const xpub = toXpub(args.value.masterPublicKey);
+
     // check the identity type
-    if (args.type !== IdentityType.Mnemonic) {
-      throw new Error('The identity arguments have not the Mnemonic type.');
-    }
-    // check the arguments
-    if (!instanceOfMnemonicOptsValue(args.value)) {
+    if (args.type !== IdentityType.MasterPublicKey) {
       throw new Error(
-        'The value of IdentityOpts is not valid for Mnemonic Identity.'
+        'The identity arguments have not the MasterPublicKey type.'
       );
     }
-    // check set the language if it is different of the default language.
-    // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
-    if (args.value.language) {
-      bip39.setDefaultWordlist(args.value.language);
-    } else {
-      bip39.setDefaultWordlist('english');
+    // check the arguments
+    if (!instanceOfMasterPublicKeyOptsValue(args.value)) {
+      throw new Error(
+        'The value of IdentityOpts is not valid for MasterPublicKey Identity.'
+      );
+    }
+    // validate xpub
+    if (!isValidXpub(xpub)) {
+      throw new Error('Master public key is not valid');
+    }
+    // validate master blinding key
+    if (!isValidExtendedBlindKey(args.value.masterBlindingKey)) {
+      throw new Error('Master blinding key is not valid');
     }
 
-    // validate the mnemonic
-    if (!bip39.validateMnemonic(args.value.mnemonic)) {
-      throw new Error('Mnemonic is not valid.');
-    }
-
-    // retreive the wallet's seed from mnemonic
-    const walletSeed = bip39.mnemonicToSeedSync(args.value.mnemonic);
-    // generate the master private key from the wallet seed
-    this.masterPrivateKeyNode = bip32fromSeed(walletSeed, this.network);
-
-    // compute and expose the masterPublicKey in this.masterPublicKey
-    const baseNode = this.masterPrivateKeyNode.derivePath(
-      this.baseDerivationPath
-    );
-    const pubkey = baseNode.publicKey;
-    const accountPublicKey = bip32
-      .fromPublicKey(pubkey, baseNode.chainCode, baseNode.network)
-      .toBase58();
-
-    this.masterPublicKey = fromXpub(accountPublicKey, args.chain);
-
-    // generate the master blinding key from the seed
-    this.masterBlindingKeyNode = slip77fromSeed(walletSeed);
-    this.masterBlindingKey = this.masterBlindingKeyNode.masterKey.toString(
-      'hex'
+    this.masterPublicKeyNode = fromBase58(xpub);
+    this.masterBlindingKeyNode = fromMasterBlindingKey(
+      args.value.masterBlindingKey
     );
 
     this.isRestored = new Promise(() => true);
@@ -121,28 +96,18 @@ export class Mnemonic extends Identity implements IdentityInterface {
   }
 
   isAbleToSign(): boolean {
-    return true;
-  }
-
-  private getCurrentDerivationPath(isChange: boolean): string {
-    const changeValue: number = isChange ? 1 : 0;
-    return `${this.baseDerivationPath}/${changeValue}`;
+    return false;
   }
 
   /**
-   * return the next keypair derivated from the baseNode.
+   * return the next public key derivated from the baseNode.
    * increment the private member index +1.
    */
-  private deriveKeyWithIndex(
-    isChange: boolean,
-    index: number
-  ): { publicKey: Buffer; privateKey: Buffer } {
-    const baseNode = this.masterPrivateKeyNode.derivePath(
-      this.getCurrentDerivationPath(isChange)
-    );
-    const wif: string = baseNode.derive(index).toWIF();
-    const { publicKey, privateKey } = ECPair.fromWIF(wif, this.network);
-    return { publicKey: publicKey!, privateKey: privateKey! };
+  private derivePublicKeyWithIndex(isChange: boolean, index: number): Buffer {
+    const changeIndex = isChange ? 1 : 0;
+    const baseNode = this.masterPublicKeyNode.derive(changeIndex);
+    const child: BIP32Interface = baseNode.derive(index);
+    return child.publicKey;
   }
 
   /**
@@ -178,11 +143,8 @@ export class Mnemonic extends Identity implements IdentityInterface {
 
   // store the generation inside local cache
   private persistAddressToCache(address: AddressInterfaceExtended): void {
-    const privateKeyBuffer = Buffer.from(address.signingPrivateKey, 'hex');
-    const publicKey: Buffer = ECPair.fromPrivateKey(privateKeyBuffer, {
-      network: this.network,
-    }).publicKey!;
-    const script = this.scriptFromPublicKey(publicKey);
+    const publicKeyBuffer = Buffer.from(address.publicKey, 'hex');
+    const script = this.scriptFromPublicKey(publicKeyBuffer);
     this.scriptToAddressCache.set(script, address);
   }
 
@@ -191,14 +153,14 @@ export class Mnemonic extends Identity implements IdentityInterface {
     index: number
   ): AddressInterfaceExtended {
     // get the next key pair
-    const signingKeyPair = this.deriveKeyWithIndex(isChange, index);
+    const publicKey = this.derivePublicKeyWithIndex(isChange, index);
     // use the public key to compute the scriptPubKey
-    const script: Buffer = this.scriptFromPublicKey(signingKeyPair.publicKey);
+    const script: Buffer = this.scriptFromPublicKey(publicKey);
     // generate the blindKeyPair from the scriptPubKey
     const blindingKeyPair = this.getBlindingKeyPair(script);
     // with blindingPublicKey & signingPublicKey, generate the confidential address
     const confidentialAddress = this.createConfidentialAddress(
-      signingKeyPair.publicKey,
+      publicKey,
       blindingKeyPair.publicKey
     );
     // create the address generation object
@@ -207,8 +169,8 @@ export class Mnemonic extends Identity implements IdentityInterface {
         confidentialAddress: confidentialAddress!,
         blindingPrivateKey: blindingKeyPair.privateKey!.toString('hex'),
       },
-      derivationPath: `${this.baseDerivationPath}/${index}`,
-      signingPrivateKey: signingKeyPair.privateKey!.toString('hex'),
+      derivationPath: `${isChange ? 1 : 0}/${index}`,
+      publicKey: publicKey.toString('hex'),
     };
     // return the generation data
     return newAddressGeneration;
@@ -235,33 +197,10 @@ export class Mnemonic extends Identity implements IdentityInterface {
     );
   }
 
-  async signPset(psetBase64: string): Promise<string> {
-    const pset = Psbt.fromBase64(psetBase64);
-    const signInputPromises: Array<Promise<void>> = [];
-
-    for (let index = 0; index < pset.data.inputs.length; index++) {
-      const input = pset.data.inputs[index];
-      if (input.witnessUtxo) {
-        const addressGeneration = this.scriptToAddressCache.get(
-          input.witnessUtxo.script
-        );
-
-        if (addressGeneration) {
-          // if there is an address generated for the input script: build the signing key pair.
-          const privateKeyBuffer = Buffer.from(
-            addressGeneration.signingPrivateKey,
-            'hex'
-          );
-          const signingKeyPair = ECPair.fromPrivateKey(privateKeyBuffer);
-          // add the promise to array
-          signInputPromises.push(pset.signInputAsync(index, signingKeyPair));
-        }
-      }
-    }
-    // wait that all signing promise resolved
-    await Promise.all(signInputPromises);
-    // return the signed pset, base64 encoded.
-    return pset.toBase64();
+  signPset(_: string): string {
+    throw new Error(
+      'MasterPublicKey is a watch only identity. Use Mnemonic to sign transactions'
+    );
   }
 
   // returns all the addresses generated
@@ -360,7 +299,9 @@ export class Mnemonic extends Identity implements IdentityInterface {
     // Set the index
     const allIndex = restoredAddresses.map(getIndex);
     this.index =
-      allIndex.length > 0 ? Math.max(...allIndex) + 1 : Mnemonic.INITIAL_INDEX;
+      allIndex.length > 0
+        ? Math.max(...allIndex) + 1
+        : MasterPublicKey.INITIAL_INDEX;
 
     // check for change address
     const changeAddresses: AddressInterfaceExtended[] = await Promise.all(
@@ -381,7 +322,7 @@ export class Mnemonic extends Identity implements IdentityInterface {
     this.changeIndex =
       allChangeIndex.length > 0
         ? Math.max(...allChangeIndex) + 1
-        : Mnemonic.INITIAL_INDEX;
+        : MasterPublicKey.INITIAL_INDEX;
 
     restoredAddresses.push(...usedChangeAddresses);
     // return the restored address

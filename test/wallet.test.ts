@@ -1,8 +1,3 @@
-import {
-  isBlindedOutputInterface,
-  fetchAndUnblindUtxosGenerator,
-  fetchAndUnblindTxsGenerator,
-} from '../src/wallet';
 import { networks } from 'liquidjs-lib';
 import { APIURL, sleep } from './_regtest';
 import * as assert from 'assert';
@@ -14,10 +9,15 @@ import {
 } from './fixtures/wallet.keys';
 import axios from 'axios';
 import {
+  isBlindedOutputInterface,
   TxInterface,
   UnblindedOutputInterface,
   UtxoInterface,
 } from '../src/types';
+import {
+  fetchAndUnblindTxsGenerator,
+  fetchAndUnblindUtxosGenerator,
+} from '../src/explorer/esplora';
 
 jest.setTimeout(500000);
 

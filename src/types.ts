@@ -14,6 +14,9 @@ export type ChangeAddressFromAssetGetter = (
   asset: string
 ) => string | undefined;
 
+// define function that takes a script as input and returns a blinding key (or undefined)
+export type BlindingKeyGetter = (script: string) => string | undefined;
+
 export interface RecipientInterface {
   value: number;
   asset: string;
@@ -35,6 +38,12 @@ export interface BlindedOutputInterface {
   nonce: Buffer;
   rangeProof: Buffer;
   surjectionProof: Buffer;
+}
+
+export function isBlindedOutputInterface(
+  object: any
+): object is BlindedOutputInterface {
+  return 'surjectionProof' in object && 'rangeProof' in object;
 }
 
 export interface UnblindedOutputInterface {
@@ -60,4 +69,9 @@ export interface TxInterface {
   };
   vin: Array<InputInterface>;
   vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
+}
+
+export interface AddressWithBlindingKey {
+  address: string;
+  blindingKey: string;
 }

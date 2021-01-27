@@ -1,5 +1,4 @@
-import { IdentityOpts, IdentityType } from './../src/identity';
-import { Mnemonic } from './../src/identities/mnemonic';
+import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import { fromSeed as slip77fromSeed } from 'slip77';
 import { fromSeed as bip32fromSeed } from 'bip32';
 import * as assert from 'assert';
@@ -12,7 +11,8 @@ import {
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 import { mnemonicToSeedSync } from 'bip39';
-import { EsploraIdentityRestorer } from '../src/identityRestorer';
+import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
+import { Mnemonic } from '../src/identity/mnemonic';
 
 const network = networks.regtest;
 

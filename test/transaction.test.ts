@@ -8,10 +8,10 @@ import {
 } from './fixtures/wallet.keys';
 import { APIURL, broadcastTx, faucet, mint, sleep } from './_regtest';
 import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
-import { fetchAndUnblindUtxos } from '../src/wallet';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
+import { fetchAndUnblindUtxos } from '../src/explorer/esplora';
 
 jest.setTimeout(50000);
 
@@ -43,7 +43,6 @@ describe('buildTx', () => {
       unspents: senderUtxos,
       changeAddressByAsset: (_: string) => senderAddress,
       coinSelector: greedyCoinSelector(),
-      feeAssetHash: networks.regtest.assetHash,
     };
   });
 

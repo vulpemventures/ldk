@@ -1,11 +1,18 @@
 export { networks, address } from 'liquidjs-lib';
-export * from './identity';
-export * from './identities/mnemonic';
-export * from './identities/privatekey';
-export * from './identities/masterpubkey';
-export * from './wallet';
-export * from './identityRestorer';
-export * from './utils';
+
+export * from './identity/identity';
+export * from './identity/mnemonic';
+export * from './identity/privatekey';
+export * from './identity/masterpubkey';
+export * from './identity/identityRestorer';
+
 export * from './coinselection/coinSelector';
 export * from './coinselection/greedy';
+
+export * from './explorer/types';
+export * from './explorer/esplora';
+
+export * from './transaction';
+export * from './wallet';
+export * from './utils';
 export * from './types';

@@ -5,7 +5,6 @@ import {
   RecipientInterface,
 } from './types';
 import { Psbt, networks, address as laddress } from 'liquidjs-lib';
-import { estimateTxSize } from './wallet';
 
 export interface BuildTxArgs {
   psetBase64: string;
@@ -13,7 +12,6 @@ export interface BuildTxArgs {
   recipients: RecipientInterface[];
   coinSelector: CoinSelector;
   changeAddressByAsset: ChangeAddressFromAssetGetter;
-  feeAssetHash: string;
   addFee?: boolean;
   satsPerByte?: number;
 }
@@ -27,7 +25,7 @@ function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
     args.addFee = false;
   }
 
-  if (args.satsPerByte < 0.1 && args.addFee) {
+  if (args.addFee && args.satsPerByte < 0.1) {
     throw new Error('satsPerByte minimum value is 0.1');
   }
 
@@ -65,7 +63,6 @@ export function buildTx(args: BuildTxArgs): string {
     recipients,
     unspents,
     addFee,
-    feeAssetHash,
     satsPerByte,
   } = validateAndProcess(args);
 
@@ -88,6 +85,7 @@ export function buildTx(args: BuildTxArgs): string {
   let nbOutputs =
     pset.data.outputs.length + recipients.length + changeOutputs.length;
 
+  const feeAssetHash = networkFromAddress(recipients[0].address).assetHash;
   // otherwise, handle the fee output
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
 
@@ -176,7 +174,10 @@ export function addToTx(
   const nonce = Buffer.from('00', 'hex');
 
   for (const { asset, value, address } of outputs) {
-    const script = address === '' ? '' : toOutputScriptWithoutNetwork(address);
+    const script =
+      address === ''
+        ? ''
+        : laddress.toOutputScript(address, networkFromAddress(address));
     pset.addOutput({ asset, value, script, nonce });
   }
 
@@ -202,14 +203,90 @@ export function decodePset(psetBase64: string): Psbt {
 }
 
 // TO DO: add this feature in liquidjs-lib
-function toOutputScriptWithoutNetwork(address: string): Buffer {
+function networkFromAddress(address: string): networks.Network {
   try {
-    return laddress.toOutputScript(address, networks.liquid);
+    laddress.toOutputScript(address, networks.liquid);
+    return networks.liquid;
   } catch (_) {
     try {
-      return laddress.toOutputScript(address, networks.regtest);
-    } catch (_) {
-      throw new Error('Invalid address');
+      laddress.toOutputScript(address, networks.regtest);
+      return networks.regtest;
+    } catch (e) {
+      throw new Error(address + ' is an invalid address ' + e);
     }
   }
+}
+
+// estimate segwit transaction size in bytes depending on number of inputs and outputs
+export function estimateTxSize(numInputs: number, numOutputs: number): number {
+  const base = calcTxSize(false, numInputs, numOutputs, false);
+  const total = calcTxSize(true, numInputs, numOutputs, true);
+  const weight = base * 3 + total;
+  const vsize = (weight + 3) / 4;
+
+  return vsize;
+}
+
+function calcTxSize(
+  withWitness: boolean,
+  numInputs: number,
+  numOutputs: number,
+  isConfidential: boolean
+) {
+  const inputsSize = calcInputsSize(withWitness, numInputs);
+  const outputsSize = calcOutputsSize(isConfidential, numOutputs);
+
+  return (
+    9 +
+    varIntSerializeSize(numOutputs) +
+    varIntSerializeSize(numInputs) +
+    inputsSize +
+    outputsSize
+  );
+}
+
+function calcInputsSize(withWitness: boolean, numInputs: number): number {
+  // prevout hash + prevout index
+  let size = (32 + 8) * numInputs;
+  if (withWitness) {
+    // scriptsig + pubkey
+    size += numInputs * (72 + 33);
+  }
+
+  return size;
+}
+
+function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
+  // asset + value + empty nonce
+  const baseOutputSize = 33 + 33 + 1;
+  let size = baseOutputSize * numOutputs;
+
+  if (isConfidential) {
+    // rangeproof + surjectionproof + 32 bytes for nonce
+    size += (4174 + 67 + 32) * numOutputs;
+  }
+
+  // fee asset + fee empty nonce + fee value
+  size += 33 + 1 + 9;
+
+  return size;
+}
+
+function varIntSerializeSize(val: number): number {
+  const maxUINT16 = 65535;
+  const maxUINT32 = 4294967295;
+
+  if (val < 0xfd) {
+    return 1;
+  }
+
+  if (val <= maxUINT16) {
+    return 3;
+  }
+
+  if (val <= maxUINT32) {
+    return 5;
+  }
+
+  return 9;
 }
