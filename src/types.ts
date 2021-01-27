@@ -23,6 +23,11 @@ export interface RecipientInterface {
   address: string;
 }
 
+export interface Outpoint {
+  txid: string;
+  vout: number;
+}
+
 export interface UtxoInterface {
   txid: string;
   vout: number;

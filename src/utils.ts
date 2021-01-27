@@ -1,3 +1,4 @@
+import { UtxoInterface, Outpoint } from './types';
 import { confidential, Network, TxOutput } from 'liquidjs-lib';
 import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
 // @ts-ignore
@@ -185,4 +186,8 @@ export function isValidExtendedBlindKey(masterBlind: string): Boolean {
   }
 
   return true;
+}
+
+export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {
+  return { txid, vout };
 }

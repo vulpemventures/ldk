@@ -1,5 +1,6 @@
 import { Network, networks, address, Psbt } from 'liquidjs-lib';
-import { AddressInterface } from './types';
+import { AddressInterface, UtxoInterface, Outpoint } from './types';
+import { toOutpoint } from './utils';
 
 /**
  * Wallet abstraction.
@@ -87,5 +88,32 @@ export function walletFromAddresses(
     });
   } catch (ignore) {
     throw new Error('fromAddress: Invalid addresses list or network');
+  }
+}
+
+export interface UtxoCacheInterface {
+  push(utxos: UtxoInterface[]): void;
+  delete(outpoint: Outpoint): boolean;
+  getAll(): UtxoInterface[];
+}
+
+export class UtxoCache implements UtxoCacheInterface {
+  private utxoMap: Map<Outpoint, UtxoInterface> = new Map<
+    Outpoint,
+    UtxoInterface
+  >();
+
+  push(utxos: UtxoInterface[]): void {
+    for (const utxo of utxos) {
+      this.utxoMap.set(toOutpoint(utxo), utxo);
+    }
+  }
+
+  delete(outpoint: Outpoint): boolean {
+    return this.utxoMap.delete(outpoint);
+  }
+
+  getAll(): UtxoInterface[] {
+    return Array.from(this.utxoMap.values());
   }
 }
