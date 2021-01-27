@@ -1,5 +1,5 @@
 import { UtxoInterface, Outpoint } from './types';
-import { confidential, Network, TxOutput } from 'liquidjs-lib';
+import { confidential, Network, TxOutput, networks } from 'liquidjs-lib';
 import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
 // @ts-ignore
 import b58 from 'bs58check';
@@ -194,4 +194,8 @@ export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {
 
 export function isBlindedUtxo({ asset, value }: UtxoInterface): boolean {
   return !asset || !value;
+}
+
+export function getNetwork(str?: string): Network {
+  return str ? (networks as Record<string, Network>)[str] : networks.liquid;
 }

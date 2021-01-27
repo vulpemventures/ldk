@@ -1,5 +1,5 @@
 import { CoinSelector } from './coinselection/coinSelector';
-import { Network, networks, Psbt } from 'liquidjs-lib';
+import { Network, Psbt } from 'liquidjs-lib';
 import {
   AddressInterface,
   UtxoInterface,
@@ -7,7 +7,7 @@ import {
   RecipientInterface,
   ChangeAddressFromAssetGetter,
 } from './types';
-import { toOutpoint } from './utils';
+import { getNetwork, toOutpoint } from './utils';
 import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
 import { fetchAndUnblindUtxos } from './explorer/esplora';
 
@@ -77,6 +77,7 @@ export class Wallet implements WalletInterface {
 /**
  * Factory: list of addresses --to--> Wallet
  * @param addresses a list of addressInterface.
+ * @param explorerUrl the esplora endpoint used to fetch addresses's utxos
  * @param network network type
  */
 export async function walletFromAddresses(
@@ -84,17 +85,15 @@ export async function walletFromAddresses(
   explorerUrl: string,
   network?: string
 ): Promise<WalletInterface> {
-  const _network = network
-    ? (networks as Record<string, Network>)[network]
-    : networks.liquid;
-
   const utxos = await fetchAndUnblindUtxos(addresses, explorerUrl);
+  return walletFromCoins(utxos, network);
+}
 
-  try {
-    return new Wallet(new UtxoCache(utxos), _network);
-  } catch (ignore) {
-    throw new Error('fromAddress: Invalid addresses list or network');
-  }
+export function walletFromCoins(
+  coins: UtxoInterface[],
+  network?: string
+): WalletInterface {
+  return new Wallet(new UtxoCache(coins), getNetwork(network));
 }
 
 export interface UtxoCacheInterface {
