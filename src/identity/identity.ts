@@ -38,9 +38,14 @@ export interface IdentityInterface {
   getBlindingPrivateKey(script: string): string;
   isAbleToSign(): boolean;
   blindPset(
+    // the pset to blind
     psetBase64: string,
+    // the output to blind, specifided by output index
     outputsIndexToBlind: number[],
+    // optional: an outputs index to hex encoded blinding pub key
+    // only useful for non-wallet outputs
     outputsPubKeysByIndex?: Map<number, string>,
+    // optional, same as ouputsPubKeysIndex
     inputsPrivKeysByIndex?: Map<number, string>
   ): Promise<string>;
 }
