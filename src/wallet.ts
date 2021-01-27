@@ -51,20 +51,6 @@ export class Wallet implements WalletInterface {
     const pset = new Psbt({ network: this.network });
     return pset.toBase64();
   }
-
-  static toHex(psetBase64: string): string {
-    let pset: Psbt;
-    try {
-      pset = Psbt.fromBase64(psetBase64);
-    } catch (ignore) {
-      throw new Error('Invalid pset');
-    }
-
-    pset.validateSignaturesOfAllInputs();
-    pset.finalizeAllInputs();
-
-    return pset.extractTransaction().toHex();
-  }
 }
 
 /**

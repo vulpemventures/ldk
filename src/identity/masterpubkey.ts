@@ -9,10 +9,12 @@ import {
   isValidXpub,
   isValidExtendedBlindKey,
   toXpub,
+  toHex,
 } from '../utils';
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-import { payments } from 'liquidjs-lib';
+import { payments, Transaction } from 'liquidjs-lib';
+import { decodePset } from '../transaction';
 
 export interface MasterPublicKeyOptsValue {
   masterPublicKey: string;
@@ -93,6 +95,21 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         throw new Error(`Error during restoration step: ${reason}`);
       });
     }
+  }
+
+  async blindPset(
+    psetBase64: string,
+    outputsToBlind: number[],
+    outputsPubKeys?: Map<number, string>,
+    inputsPrivKeys?: Map<number, string>
+  ): Promise<string> {
+    return super.blindPsetWithBlindKeysGetter(
+      (script: Buffer) => this.getBlindingKeyPair(script),
+      psetBase64,
+      outputsToBlind,
+      outputsPubKeys,
+      inputsPrivKeys
+    );
   }
 
   isAbleToSign(): boolean {

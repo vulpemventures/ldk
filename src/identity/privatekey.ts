@@ -81,6 +81,34 @@ export class PrivateKey extends Identity implements IdentityInterface {
     this.scriptPubKey = p2wpkh.output!;
   }
 
+  async blindPset(
+    psetBase64: string,
+    outputsToBlind: number[],
+    outputsPubKeys?: Map<number, string>,
+    inputsPrivKeys?: Map<number, string>
+  ): Promise<string> {
+    return super.blindPsetWithBlindKeysGetter(
+      (script: Buffer) => this.getBlindingKeyPair(script),
+      psetBase64,
+      outputsToBlind,
+      outputsPubKeys,
+      inputsPrivKeys
+    );
+  }
+
+  private getBlindingKeyPair(
+    script: Buffer
+  ): { publicKey: Buffer; privateKey: Buffer } {
+    if (!script.equals(this.scriptPubKey)) {
+      throw new Error(script + ' is unknown by the PrivateKey Identity');
+    }
+
+    return {
+      publicKey: this.blindingKeyPair.publicKey,
+      privateKey: this.blindingKeyPair.privateKey!,
+    };
+  }
+
   isAbleToSign(): boolean {
     return true;
   }

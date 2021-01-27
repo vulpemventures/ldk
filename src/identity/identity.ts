@@ -2,8 +2,10 @@ import {
   EsploraIdentityRestorer,
   IdentityRestorerInterface,
 } from './identityRestorer';
-import { Network, networks } from 'liquidjs-lib';
+import { Network, networks, Transaction } from 'liquidjs-lib';
 import { AddressInterface } from '../types';
+import { decodePset } from '../transaction';
+import { toHex } from '../utils';
 
 /**
  * Enumeration of all the Identity types.
@@ -35,6 +37,12 @@ export interface IdentityInterface {
   getAddresses(): AddressInterface[];
   getBlindingPrivateKey(script: string): string;
   isAbleToSign(): boolean;
+  blindPset(
+    psetBase64: string,
+    outputsIndexToBlind: number[],
+    outputsPubKeysByIndex?: Map<number, string>,
+    inputsPrivKeysByIndex?: Map<number, string>
+  ): Promise<string>;
 }
 
 /**
@@ -79,5 +87,77 @@ export default class Identity {
     } else {
       this.restorer = Identity.DEFAULT_RESTORER;
     }
+  }
+
+  async blindPsetWithBlindKeysGetter(
+    getBlindingKeyPair: (
+      script: Buffer
+    ) => { publicKey: Buffer; privateKey: Buffer },
+    psetBase64: string,
+    outputsToBlind: number[],
+    outputsPubKeys?: Map<number, string>,
+    inputsPrivKeys?: Map<number, string>
+  ): Promise<string> {
+    const inputsKeys: Map<number, Buffer> = new Map<number, Buffer>();
+    const outputsKeys: Map<number, Buffer> = new Map<number, Buffer>();
+
+    const pset = decodePset(psetBase64);
+    const transaction = Transaction.fromHex(toHex(psetBase64));
+
+    // set the outputs map
+    for (const index of outputsToBlind) {
+      if (outputsPubKeys && outputsPubKeys.has(index)) {
+        const pubKey = Buffer.from(outputsPubKeys.get(index)!, 'hex');
+        outputsKeys.set(index, pubKey);
+        continue;
+      }
+
+      const { script } = transaction.outs[index];
+      const pubKey = getBlindingKeyPair(script).publicKey;
+      outputsKeys.set(index, pubKey);
+    }
+
+    // set the inputs map
+    for (let index = 0; index < pset.data.inputs.length; index++) {
+      const input = pset.data.inputs[index];
+      let script: Buffer | undefined = undefined;
+
+      // continue if the input witness is unconfidential
+      if (input.witnessUtxo) {
+        if (
+          !input.witnessUtxo.rangeProof ||
+          !input.witnessUtxo.surjectionProof
+        ) {
+          continue;
+        }
+
+        script = input.witnessUtxo.script;
+      }
+
+      if (input.nonWitnessUtxo) {
+        const vout = transaction.ins[index].index;
+        const witness = Transaction.fromBuffer(input.nonWitnessUtxo).outs[vout];
+        if (!witness.rangeProof || !witness.surjectionProof) {
+          continue;
+        }
+
+        script = witness.script;
+      }
+
+      if (inputsPrivKeys && inputsPrivKeys.has(index)) {
+        const privKey = Buffer.from(inputsPrivKeys.get(index)!, 'hex');
+        inputsKeys.set(index, privKey);
+        continue;
+      }
+
+      if (!script) {
+        throw new Error('no witness script for input #' + index);
+      }
+
+      const privKey = getBlindingKeyPair(script).privateKey;
+      inputsKeys.set(index, privKey);
+    }
+
+    return pset.blindOutputsByIndex(inputsKeys, outputsKeys).toBase64();
   }
 }

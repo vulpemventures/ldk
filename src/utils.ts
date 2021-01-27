@@ -1,4 +1,4 @@
-import { confidential, Network, TxOutput } from 'liquidjs-lib';
+import { confidential, Network, Psbt, TxOutput } from 'liquidjs-lib';
 import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
 // @ts-ignore
 import b58 from 'bs58check';
@@ -185,4 +185,15 @@ export function isValidExtendedBlindKey(masterBlind: string): Boolean {
   }
 
   return true;
+}
+
+export function toHex(psetBase64: string): string {
+  let pset: Psbt;
+  try {
+    pset = Psbt.fromBase64(psetBase64);
+  } catch (ignore) {
+    throw new Error('Invalid pset');
+  }
+
+  return pset.data.globalMap.unsignedTx.toBuffer().toString('hex');
 }
