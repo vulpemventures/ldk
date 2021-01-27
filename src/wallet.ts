@@ -16,6 +16,7 @@ import { fetchAndUnblindUtxos } from './explorer/esplora';
  */
 export interface WalletInterface {
   network: Network;
+  cache: UtxoCacheInterface;
   createTx(): string;
   buildTx(
     psetBase64: string,
