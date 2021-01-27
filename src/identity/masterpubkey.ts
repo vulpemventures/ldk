@@ -9,12 +9,10 @@ import {
   isValidXpub,
   isValidExtendedBlindKey,
   toXpub,
-  toHex,
 } from '../utils';
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-import { payments, Transaction } from 'liquidjs-lib';
-import { decodePset } from '../transaction';
+import { payments } from 'liquidjs-lib';
 
 export interface MasterPublicKeyOptsValue {
   masterPublicKey: string;

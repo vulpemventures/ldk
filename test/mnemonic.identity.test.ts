@@ -180,6 +180,54 @@ describe('Identity: Private key', () => {
     });
   });
 
+  describe('Mnemonic.blindPset', () => {
+    it('should blind the transaction', async () => {
+      const mnemonic = new Mnemonic(validOpts);
+      const generated = mnemonic.getNextAddress();
+
+      await faucet(generated.confidentialAddress);
+      const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
+
+      const prevoutHex = await fetchTxHex(utxo.txid);
+      const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+      const script: Buffer = payments.p2wpkh({
+        confidentialAddress: generated.confidentialAddress,
+        network,
+      }).output!;
+
+      const pset: Psbt = new Psbt({ network })
+        .addInput({
+          hash: utxo.txid,
+          index: utxo.vout,
+          witnessUtxo: prevout,
+        })
+        .addOutputs([
+          {
+            nonce: Buffer.from('00', 'hex'),
+            value: confidential.satoshiToConfidentialValue(49999500),
+            script,
+            asset: network.assetHash,
+          },
+          {
+            nonce: Buffer.from('00', 'hex'),
+            value: confidential.satoshiToConfidentialValue(60000000),
+            script: Buffer.alloc(0),
+            asset: network.assetHash,
+          },
+        ]);
+
+      const blindBase64 = await mnemonic.blindPset(pset.toBase64(), [0]);
+      const signedBase64 = await mnemonic.signPset(blindBase64);
+      const signedPsbt = Psbt.fromBase64(signedBase64);
+      let isValid: boolean = false;
+      assert.doesNotThrow(
+        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+      );
+      assert.deepStrictEqual(isValid, true);
+    });
+  });
+
   describe('Mnemonic.getAddresses', () => {
     it('should return all the generated addresses', () => {
       const mnemonic = new Mnemonic(validOpts);
