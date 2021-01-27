@@ -75,8 +75,3 @@ export interface TxInterface {
   vin: Array<InputInterface>;
   vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
 }
-
-export interface AddressWithBlindingKey {
-  address: string;
-  blindingKey: string;
-}

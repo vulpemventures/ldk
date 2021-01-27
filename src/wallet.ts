@@ -1,15 +1,30 @@
-import { Network, networks, address, Psbt } from 'liquidjs-lib';
-import { AddressInterface, UtxoInterface, Outpoint } from './types';
+import { CoinSelector } from './coinselection/coinSelector';
+import { Network, networks, Psbt } from 'liquidjs-lib';
+import {
+  AddressInterface,
+  UtxoInterface,
+  Outpoint,
+  RecipientInterface,
+  ChangeAddressFromAssetGetter,
+} from './types';
 import { toOutpoint } from './utils';
+import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
+import { fetchAndUnblindUtxos } from './explorer/esplora';
 
 /**
  * Wallet abstraction.
  */
 export interface WalletInterface {
   network: Network;
-  addresses: AddressInterface[];
-  blindingPrivateKeyByScript: Record<string, Buffer>;
   createTx(): string;
+  buildTx(
+    psetBase64: string,
+    recipients: RecipientInterface[],
+    coinSelector: CoinSelector,
+    changeAddressByAsset: ChangeAddressFromAssetGetter,
+    addFee?: boolean,
+    satsPerByte?: number
+  ): string;
 }
 
 /**
@@ -22,27 +37,11 @@ export interface WalletInterface {
  */
 export class Wallet implements WalletInterface {
   network: Network;
-  addresses: AddressInterface[] = [];
-  blindingPrivateKeyByScript: Record<string, Buffer> = {};
+  cache: UtxoCacheInterface;
 
-  constructor({
-    addresses,
-    network,
-  }: {
-    addresses: AddressInterface[];
-    network: Network;
-  }) {
+  constructor(cache: UtxoCacheInterface, network: Network) {
     this.network = network;
-    this.addresses = addresses;
-    addresses.forEach((a: AddressInterface) => {
-      const scriptHex = address
-        .toOutputScript(a.confidentialAddress, network)
-        .toString('hex');
-      this.blindingPrivateKeyByScript[scriptHex] = Buffer.from(
-        a.blindingPrivateKey,
-        'hex'
-      );
-    });
+    this.cache = cache;
   }
 
   /**
@@ -53,18 +52,25 @@ export class Wallet implements WalletInterface {
     return pset.toBase64();
   }
 
-  static toHex(psetBase64: string): string {
-    let pset: Psbt;
-    try {
-      pset = Psbt.fromBase64(psetBase64);
-    } catch (ignore) {
-      throw new Error('Invalid pset');
-    }
+  buildTx(
+    psetBase64: string,
+    recipients: RecipientInterface[],
+    coinSelector: CoinSelector,
+    changeAddressByAsset: ChangeAddressFromAssetGetter,
+    addFee?: boolean,
+    satsPerByte?: number
+  ): string {
+    const args: BuildTxArgs = {
+      psetBase64,
+      recipients,
+      coinSelector,
+      changeAddressByAsset,
+      addFee,
+      satsPerByte,
+      unspents: this.cache.getAll(),
+    };
 
-    pset.validateSignaturesOfAllInputs();
-    pset.finalizeAllInputs();
-
-    return pset.extractTransaction().toHex();
+    return buildTxFunction(args);
   }
 }
 
@@ -73,19 +79,19 @@ export class Wallet implements WalletInterface {
  * @param addresses a list of addressInterface.
  * @param network network type
  */
-export function walletFromAddresses(
+export async function walletFromAddresses(
   addresses: AddressInterface[],
+  explorerUrl: string,
   network?: string
-): WalletInterface {
+): Promise<WalletInterface> {
   const _network = network
     ? (networks as Record<string, Network>)[network]
     : networks.liquid;
 
+  const utxos = await fetchAndUnblindUtxos(addresses, explorerUrl);
+
   try {
-    return new Wallet({
-      addresses,
-      network: _network,
-    });
+    return new Wallet(new UtxoCache(utxos), _network);
   } catch (ignore) {
     throw new Error('fromAddress: Invalid addresses list or network');
   }
@@ -102,6 +108,12 @@ export class UtxoCache implements UtxoCacheInterface {
     Outpoint,
     UtxoInterface
   >();
+
+  constructor(utxos?: UtxoInterface[]) {
+    if (utxos) {
+      this.push(utxos);
+    }
+  }
 
   push(utxos: UtxoInterface[]): void {
     for (const utxo of utxos) {
