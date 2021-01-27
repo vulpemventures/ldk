@@ -47,7 +47,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
 export async function fetchUtxos(
   address: string,
   url: string
-): Promise<Array<UtxoInterface>> {
+): Promise<Array<any>> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 

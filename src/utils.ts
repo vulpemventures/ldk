@@ -191,3 +191,7 @@ export function isValidExtendedBlindKey(masterBlind: string): Boolean {
 export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {
   return { txid, vout };
 }
+
+export function isBlindedUtxo({ asset, value }: UtxoInterface): boolean {
+  return !asset || !value;
+}

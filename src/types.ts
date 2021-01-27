@@ -31,8 +31,8 @@ export interface Outpoint {
 export interface UtxoInterface {
   txid: string;
   vout: number;
-  asset: string;
-  value: number;
+  asset?: string;
+  value?: number;
   prevout: TxOutput;
 }
 
