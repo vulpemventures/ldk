@@ -1,4 +1,4 @@
-import { networks, address, Psbt } from 'liquidjs-lib';
+import { networks, Psbt } from 'liquidjs-lib';
 import {
   recipientAddress,
   senderAddress,
@@ -100,15 +100,8 @@ describe('buildTx', () => {
       addFee: true,
     });
 
-    const pset = decodePset(unsignedTx);
-
-    const privKeyBuffer = Buffer.from(senderBlindingKey, 'hex');
-    pset.blindOutputsByIndex(
-      new Map().set(0, privKeyBuffer).set(1, privKeyBuffer),
-      new Map().set(2, address.fromConfidential(senderAddress).blindingKey)
-    );
-
-    const signedBase64 = await sender.signPset(pset.toBase64());
+    const blindedBase64 = await sender.blindPset(unsignedTx, [2]);
+    const signedBase64 = await sender.signPset(blindedBase64);
     const signedPset = decodePset(signedBase64);
 
     const hex = signedPset

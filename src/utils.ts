@@ -1,5 +1,5 @@
 import { UtxoInterface, Outpoint } from './types';
-import { confidential, Network, TxOutput, networks } from 'liquidjs-lib';
+import { confidential, Network, TxOutput, networks, Psbt } from 'liquidjs-lib';
 import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
 // @ts-ignore
 import b58 from 'bs58check';
@@ -79,11 +79,15 @@ function bufferNotEmptyOrNull(buffer?: Buffer): boolean {
  * Checks if a given output is a confidential one.
  * @param output the ouput to check.
  */
-export function isConfidentialOutput(output: TxOutput): boolean {
+export function isConfidentialOutput({
+  rangeProof,
+  surjectionProof,
+  nonce,
+}: any): boolean {
   return (
-    bufferNotEmptyOrNull(output.rangeProof) &&
-    bufferNotEmptyOrNull(output.surjectionProof) &&
-    output.nonce !== emptyNonce
+    bufferNotEmptyOrNull(rangeProof) &&
+    bufferNotEmptyOrNull(surjectionProof) &&
+    nonce !== emptyNonce
   );
 }
 
@@ -186,6 +190,17 @@ export function isValidExtendedBlindKey(masterBlind: string): Boolean {
   }
 
   return true;
+}
+
+export function psetToUnsignedHex(psetBase64: string): string {
+  let pset: Psbt;
+  try {
+    pset = Psbt.fromBase64(psetBase64);
+  } catch (ignore) {
+    throw new Error('Invalid pset');
+  }
+
+  return pset.data.globalMap.unsignedTx.toBuffer().toString('hex');
 }
 
 export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {

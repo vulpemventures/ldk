@@ -95,6 +95,21 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     }
   }
 
+  async blindPset(
+    psetBase64: string,
+    outputsToBlind: number[],
+    outputsPubKeys?: Map<number, string>,
+    inputsPrivKeys?: Map<number, string>
+  ): Promise<string> {
+    return super.blindPsetWithBlindKeysGetter(
+      (script: Buffer) => this.getBlindingKeyPair(script),
+      psetBase64,
+      outputsToBlind,
+      outputsPubKeys,
+      inputsPrivKeys
+    );
+  }
+
   isAbleToSign(): boolean {
     return false;
   }
