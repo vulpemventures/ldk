@@ -3,6 +3,7 @@ import { PrivateKey } from '../../src/identity/privatekey';
 import { IdentityType } from '../../src/identity/identity';
 import { walletFromAddresses } from '../../src/wallet';
 import { BlindingKeyGetter } from '../../src/types';
+import { APIURL } from '../_regtest';
 
 const network = networks.regtest;
 // generate a random keyPair for bob
@@ -37,6 +38,7 @@ export const senderAddress = sender.getNextAddress().confidentialAddress;
 export const senderBlindingKey = sender.getNextAddress().blindingPrivateKey;
 export const senderWallet = walletFromAddresses(
   sender.getAddresses(),
+  APIURL,
   'regtest'
 );
 // this is random address for who is receiving the withdrawal

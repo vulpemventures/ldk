@@ -1,3 +1,4 @@
+import { isBlindedUtxo } from '../utils';
 import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
@@ -8,7 +9,7 @@ import { CoinSelectionResult, CoinSelector } from './coinSelector';
 export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
 
 const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
-  a.value - b.value;
+  a.value! - b.value!;
 
 // the exported factory function for greedy coin selector
 export function greedyCoinSelector(
@@ -32,6 +33,8 @@ function greedyCoinSelection(
   changeAddressGetter: ChangeAddressFromAssetGetter,
   sortFn: CompareUtxoFn
 ): CoinSelectionResult {
+  unspents = unspents.filter(utxo => !isBlindedUtxo(utxo));
+
   const result: CoinSelectionResult = {
     selectedUtxos: [],
     changeOutputs: [],
@@ -94,8 +97,10 @@ function selectUtxos(
   const selected: UtxoInterface[] = [];
   let total = 0;
   for (const utxo of utxos) {
-    selected.push(utxo);
-    total += utxo.value;
+    if (!isBlindedUtxo(utxo)) {
+      selected.push(utxo);
+      total += utxo.value!;
+    }
 
     if (total >= targetAmount) {
       return {

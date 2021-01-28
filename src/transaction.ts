@@ -46,13 +46,7 @@ function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
  * buildTx selects utxos among unspents to fill outputs' requirements,
  * then it adds the associated inputs and outputs to the tx.
  * finally it returns the new pset base64 encoded.
- * @param psetBase64
- * @param unspents
- * @param outputs
- * @param changeScriptByAsset
- * @param addFee if true, estimate fee and add feeOutput to transaction (default = false)
- * @param satsPerByte used for fee estimation (default = 0.1)
- * @param network used for fee output (default = regtest)
+ * @param args buildTxArgs wraps arguments
  */
 export function buildTx(args: BuildTxArgs): string {
   // validate and deconstruct args object
