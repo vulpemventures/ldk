@@ -97,12 +97,12 @@ describe('Wallet - Transaction builder', () => {
       const utxosGenerator = fetchAndUnblindUtxosGenerator(
         [
           {
-            address: senderAddress,
-            blindingKey: sender.getNextAddress().blindingPrivateKey,
+            confidentialAddress: senderAddress,
+            blindingPrivateKey: sender.getNextAddress().blindingPrivateKey,
           },
           {
-            address: recipientAddress,
-            blindingKey: '',
+            confidentialAddress: recipientAddress,
+            blindingPrivateKey: '',
           },
         ],
         APIURL

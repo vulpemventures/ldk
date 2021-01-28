@@ -23,11 +23,16 @@ export interface RecipientInterface {
   address: string;
 }
 
+export interface Outpoint {
+  txid: string;
+  vout: number;
+}
+
 export interface UtxoInterface {
   txid: string;
   vout: number;
-  asset: string;
-  value: number;
+  asset?: string;
+  value?: number;
   prevout: TxOutput;
 }
 
@@ -69,9 +74,4 @@ export interface TxInterface {
   };
   vin: Array<InputInterface>;
   vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
-}
-
-export interface AddressWithBlindingKey {
-  address: string;
-  blindingKey: string;
 }

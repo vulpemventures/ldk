@@ -1,6 +1,6 @@
 import { Transaction, confidential, TxOutput } from 'liquidjs-lib';
 import {
-  AddressWithBlindingKey,
+  AddressInterface,
   UtxoInterface,
   TxInterface,
   BlindingKeyGetter,
@@ -19,7 +19,7 @@ export async function fetchBalances(
   url: string
 ) {
   const utxoInterfaces = await fetchAndUnblindUtxos(
-    [{ address, blindingKey: blindPrivKey }],
+    [{ confidentialAddress: address, blindingPrivateKey: blindPrivKey }],
     url
   );
   return (utxoInterfaces as any).reduce(
@@ -47,7 +47,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
 export async function fetchUtxos(
   address: string,
   url: string
-): Promise<Array<UtxoInterface>> {
+): Promise<Array<any>> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
@@ -73,17 +73,20 @@ export async function fetchAndUnblindTxs(
 }
 
 export async function* fetchAndUnblindUtxosGenerator(
-  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
+  addressesAndBlindingKeys: Array<AddressInterface>,
   url: string
 ): AsyncGenerator<UtxoInterface, number, undefined> {
   let numberOfUtxos = 0;
 
   // the generator repeats the process for each addresses
-  for (const { address, blindingKey } of addressesAndBlindingKeys) {
-    const blindedUtxos = await fetchUtxos(address, url);
+  for (const {
+    confidentialAddress,
+    blindingPrivateKey,
+  } of addressesAndBlindingKeys) {
+    const blindedUtxos = await fetchUtxos(confidentialAddress, url);
     const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
       // this is a non blocking function, returning the base utxo if the unblind failed
-      tryToUnblindUtxo(utxo, blindingKey, url)
+      tryToUnblindUtxo(utxo, blindingPrivateKey, url)
     );
 
     // increase the number of utxos
@@ -99,7 +102,7 @@ export async function* fetchAndUnblindUtxosGenerator(
 }
 
 export async function fetchAndUnblindUtxos(
-  addressesAndBlindingKeys: Array<AddressWithBlindingKey>,
+  addressesAndBlindingKeys: Array<AddressInterface>,
   url: string
 ): Promise<UtxoInterface[]> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(

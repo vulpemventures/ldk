@@ -30,8 +30,8 @@ describe('buildTx', () => {
     const senderUtxos = await fetchAndUnblindUtxos(
       [
         {
-          address: senderAddress,
-          blindingKey: senderBlindingKey,
+          confidentialAddress: senderAddress,
+          blindingPrivateKey: senderBlindingKey,
         },
       ],
       APIURL
@@ -46,9 +46,9 @@ describe('buildTx', () => {
     };
   });
 
-  it('should build a confidential transaction spending USDT', () => {
+  it('should build a confidential transaction spending USDT', async () => {
     // create a tx using wallet
-    const tx = senderWallet.createTx();
+    const tx = (await senderWallet).createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -64,7 +64,7 @@ describe('buildTx', () => {
 
   it('should build a confidential transaction spending LBTC', async () => {
     // create a tx using wallet
-    const tx = senderWallet.createTx();
+    const tx = (await senderWallet).createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -92,7 +92,7 @@ describe('buildTx', () => {
       },
     ];
 
-    const tx = senderWallet.createTx();
+    const tx = (await senderWallet).createTx();
     const unsignedTx = buildTx({
       ...args,
       recipients,
