@@ -4,7 +4,7 @@ import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
 } from './types';
-import { Psbt, networks, address as laddress } from 'liquidjs-lib';
+import { Psbt, address as laddress } from 'liquidjs-lib';
 
 export interface BuildTxArgs {
   psetBase64: string;
@@ -79,7 +79,7 @@ export function buildTx(args: BuildTxArgs): string {
   let nbOutputs =
     pset.data.outputs.length + recipients.length + changeOutputs.length;
 
-  const feeAssetHash = networkFromAddress(recipients[0].address).assetHash;
+  const feeAssetHash = laddress.getNetwork(recipients[0].address).assetHash;
   // otherwise, handle the fee output
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
 
@@ -168,10 +168,7 @@ export function addToTx(
   const nonce = Buffer.from('00', 'hex');
 
   for (const { asset, value, address } of outputs) {
-    const script =
-      address === ''
-        ? ''
-        : laddress.toOutputScript(address, networkFromAddress(address));
+    const script = address === '' ? '' : laddress.toOutputScript(address);
     pset.addOutput({ asset, value, script, nonce });
   }
 
@@ -194,21 +191,6 @@ export function decodePset(psetBase64: string): Psbt {
     throw new Error('Invalid pset');
   }
   return pset;
-}
-
-// TO DO: add this feature in liquidjs-lib
-function networkFromAddress(address: string): networks.Network {
-  try {
-    laddress.toOutputScript(address, networks.liquid);
-    return networks.liquid;
-  } catch (_) {
-    try {
-      laddress.toOutputScript(address, networks.regtest);
-      return networks.regtest;
-    } catch (e) {
-      throw new Error(address + ' is an invalid address ' + e);
-    }
-  }
 }
 
 // estimate segwit transaction size in bytes depending on number of inputs and outputs
