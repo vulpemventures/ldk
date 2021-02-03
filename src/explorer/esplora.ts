@@ -249,7 +249,7 @@ async function unblindTransactionPrevoutsAndOutputs(
   return tx;
 }
 
-function tryToUnblindOutput(
+export function tryToUnblindOutput(
   output: BlindedOutputInterface,
   BlindingPrivateKey: string
 ): UnblindedOutputInterface {
@@ -338,7 +338,7 @@ async function fetch25newestTxsForAddress(
   return response.data;
 }
 
-async function tryToUnblindUtxo(
+export async function tryToUnblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
@@ -351,7 +351,7 @@ async function tryToUnblindUtxo(
   }
 }
 
-async function unblindUtxo(
+export async function unblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
