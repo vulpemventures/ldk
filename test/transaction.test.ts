@@ -12,6 +12,7 @@ import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchAndUnblindUtxos } from '../src/explorer/esplora';
+import { psetToUnsignedHex } from '../src/utils';
 
 jest.setTimeout(50000);
 
@@ -58,7 +59,13 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
+    const unsignedTx = buildTx({
+      ...args,
+      recipients,
+      psetBase64: tx,
+      addFee: true,
+    });
+    console.log(psetToUnsignedHex(unsignedTx));
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
