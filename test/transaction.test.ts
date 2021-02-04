@@ -6,7 +6,7 @@ import {
   sender,
   senderBlindingKey,
 } from './fixtures/wallet.keys';
-import { APIURL, broadcastTx, faucet, mint, sleep } from './_regtest';
+import { APIURL, broadcastTx, faucet, mint } from './_regtest';
 import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
@@ -25,9 +25,6 @@ describe('buildTx', () => {
     // mint and fund with USDT
     const minted = await mint(senderAddress, 100);
     USDT = minted.asset;
-
-    await sleep(3000);
-
     const senderUtxos = await fetchAndUnblindUtxos(
       [
         {
@@ -58,7 +55,6 @@ describe('buildTx', () => {
         address: recipientAddress,
       },
     ];
-
     const unsignedTx = buildTx({
       ...args,
       recipients,

@@ -9,7 +9,6 @@ export function sleep(ms: number): Promise<any> {
 export async function fetchUtxos(address: string, txid?: string): Promise<any> {
   let utxos: any = [];
   try {
-    await sleep(3000);
     utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
     if (txid) {
       utxos = utxos.filter((u: any) => u.txid === txid);
@@ -24,7 +23,15 @@ export async function fetchUtxos(address: string, txid?: string): Promise<any> {
 export async function faucet(address: string): Promise<void> {
   try {
     await axios.post(`${APIURL}/faucet`, { address });
-    await sleep(3000);
+    while (true) {
+      try {
+        const utxos = await fetchUtxos(address);
+        if (utxos.length > 0) {
+          return;
+        }
+        sleep(1000);
+      } catch (ignore) {}
+    }
   } catch (e) {
     console.error(e);
     throw e;
@@ -32,38 +39,39 @@ export async function faucet(address: string): Promise<void> {
 }
 
 export async function fetchTxHex(txId: string): Promise<string> {
-  let hex: string;
   try {
-    await sleep(3000);
-    hex = (await axios.get(`${APIURL}/tx/${txId}/hex`)).data;
+    return (await axios.get(`${APIURL}/tx/${txId}/hex`)).data;
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return hex;
 }
 
 export async function mint(
   address: string,
   quantity: number
 ): Promise<{ asset: string; txid: string }> {
-  let ret: any;
   try {
     const response = await axios.post(`${APIURL}/mint`, { address, quantity });
-    await sleep(3000);
-    ret = response.data;
+    while (true) {
+      try {
+        const utxos = await fetchUtxos(address);
+        if (utxos.length > 0) {
+          break;
+        }
+        sleep(1000);
+      } catch (ignore) {}
+    }
+    return response.data;
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return ret;
 }
 
 export async function broadcastTx(hex: string): Promise<string> {
   try {
-    const response = await axios.post(`${APIURL}/tx`, hex);
-    await sleep(5000);
-    return response.data;
+    return (await axios.post(`${APIURL}/tx`, hex)).data;
   } catch (err) {
     console.error(err);
     throw err;

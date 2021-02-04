@@ -99,15 +99,8 @@ export function buildTx(args: BuildTxArgs): string {
     return addToTx(psetBase64, inputs, outs);
   }
 
-  // remove the change outputs (if it exists)
-  // we will replace it by another coin selection
-  if (changeIndexLBTC > 0) {
-    changeOutputs.splice(changeIndexLBTC, 1);
-    nbOutputs -= 1;
-  }
-
   if (diff === 0) {
-    const outs = recipients.concat(changeOutputs).concat(fee);
+    const outs = recipients.concat(fee);
     return addToTx(psetBase64, inputs, outs);
   }
 
@@ -116,29 +109,25 @@ export function buildTx(args: BuildTxArgs): string {
     if (!selectedUtxos.includes(utxo)) availableUnspents.push(utxo);
   }
 
-  // re-estimate the fees with one additional output
+  // re-estimate the fees with one additional input and change output
   const feeBis = createFeeOutput(
     nbInputs + 1,
-    nbOutputs,
+    nbOutputs + 1,
     satsPerByte!,
     feeAssetHash
   );
 
-  // reassign diff to new value = diff + gap between both estimations
-  diff = fee.value - feeBis.value + diff;
-
   const coinSelectionResult = coinSelector(
     availableUnspents,
-    // a little trick to only select the difference not covered by the change output
-    [{ ...fee, value: Math.abs(diff) }],
+    [feeBis],
     changeAddressByAsset
   );
 
   const ins = inputs.concat(coinSelectionResult.selectedUtxos);
   const outs = recipients
     .concat(changeOutputs)
-    .concat(fee)
-    .concat(coinSelectionResult.changeOutputs);
+    .concat(coinSelectionResult.changeOutputs)
+    .concat(feeBis);
 
   return addToTx(psetBase64, ins, outs);
 }
