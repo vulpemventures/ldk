@@ -7,29 +7,33 @@ export function sleep(ms: number): Promise<any> {
 }
 
 export async function fetchUtxos(address: string, txid?: string): Promise<any> {
-  let utxos: any = [];
   try {
-    utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
+    let utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
     if (txid) {
       utxos = utxos.filter((u: any) => u.txid === txid);
     }
+    return utxos;
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return utxos;
 }
 
-export async function faucet(address: string): Promise<void> {
+export async function faucet(address: string): Promise<any> {
   try {
-    await axios.post(`${APIURL}/faucet`, { address });
+    const { status, data } = await axios.post(`${APIURL}/faucet`, { address });
+    if (status !== 200) {
+      throw new Error('Invalid address');
+    }
+    const { txId } = data;
+
     while (true) {
+      sleep(1000);
       try {
-        const utxos = await fetchUtxos(address);
+        const utxos = await fetchUtxos(address, txId);
         if (utxos.length > 0) {
           return;
         }
-        sleep(1000);
       } catch (ignore) {}
     }
   } catch (e) {
@@ -52,17 +56,23 @@ export async function mint(
   quantity: number
 ): Promise<{ asset: string; txid: string }> {
   try {
-    const response = await axios.post(`${APIURL}/mint`, { address, quantity });
+    const { status, data } = await axios.post(`${APIURL}/mint`, {
+      address,
+      quantity,
+    });
+    if (status !== 200) {
+      throw new Error('Invalid address');
+    }
+
     while (true) {
+      sleep(1000);
       try {
-        const utxos = await fetchUtxos(address);
+        const utxos = await fetchUtxos(address, data.txId);
         if (utxos.length > 0) {
-          break;
+          return data;
         }
-        sleep(1000);
       } catch (ignore) {}
     }
-    return response.data;
   } catch (e) {
     console.error(e);
     throw e;
