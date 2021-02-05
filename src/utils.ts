@@ -1,5 +1,12 @@
 import { UtxoInterface, Outpoint } from './types';
-import { confidential, Network, TxOutput, networks, Psbt } from 'liquidjs-lib';
+import {
+  confidential,
+  Network,
+  TxOutput,
+  networks,
+  Psbt,
+  Transaction,
+} from 'liquidjs-lib';
 import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
 // @ts-ignore
 import b58 from 'bs58check';
@@ -201,6 +208,10 @@ export function psetToUnsignedHex(psetBase64: string): string {
   }
 
   return pset.data.globalMap.unsignedTx.toBuffer().toString('hex');
+}
+
+export function psetToUnsignedTx(ptx: string): Transaction {
+  return Transaction.fromHex(psetToUnsignedHex(ptx));
 }
 
 export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {
