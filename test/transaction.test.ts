@@ -6,7 +6,7 @@ import {
   sender,
   senderBlindingKey,
 } from './fixtures/wallet.keys';
-import { APIURL, broadcastTx, faucet, mint, sleep } from './_regtest';
+import { APIURL, broadcastTx, faucet, mint } from './_regtest';
 import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
@@ -24,9 +24,6 @@ describe('buildTx', () => {
     // mint and fund with USDT
     const minted = await mint(senderAddress, 100);
     USDT = minted.asset;
-
-    await sleep(3000);
-
     const senderUtxos = await fetchAndUnblindUtxos(
       [
         {
@@ -57,8 +54,12 @@ describe('buildTx', () => {
         address: recipientAddress,
       },
     ];
-
-    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
+    const unsignedTx = buildTx({
+      ...args,
+      recipients,
+      psetBase64: tx,
+      addFee: true,
+    });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
@@ -79,6 +80,8 @@ describe('buildTx', () => {
   });
 
   it('should be able to create a complex transaction and broadcast it', async () => {
+    const tx = (await senderWallet).createTx();
+
     const recipients = [
       {
         asset: networks.regtest.assetHash,
@@ -92,13 +95,13 @@ describe('buildTx', () => {
       },
     ];
 
-    const tx = (await senderWallet).createTx();
     const unsignedTx = buildTx({
       ...args,
       recipients,
       psetBase64: tx,
       addFee: true,
     });
+    assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
 
     const blindedBase64 = await sender.blindPset(unsignedTx, [2]);
     const signedBase64 = await sender.signPset(blindedBase64);

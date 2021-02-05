@@ -7,24 +7,35 @@ export function sleep(ms: number): Promise<any> {
 }
 
 export async function fetchUtxos(address: string, txid?: string): Promise<any> {
-  let utxos: any = [];
   try {
-    await sleep(3000);
-    utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
+    let utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
     if (txid) {
       utxos = utxos.filter((u: any) => u.txid === txid);
     }
+    return utxos;
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return utxos;
 }
 
-export async function faucet(address: string): Promise<void> {
+export async function faucet(address: string): Promise<any> {
   try {
-    await axios.post(`${APIURL}/faucet`, { address });
-    await sleep(3000);
+    const { status, data } = await axios.post(`${APIURL}/faucet`, { address });
+    if (status !== 200) {
+      throw new Error('Invalid address');
+    }
+    const { txId } = data;
+
+    while (true) {
+      sleep(1000);
+      try {
+        const utxos = await fetchUtxos(address, txId);
+        if (utxos.length > 0) {
+          return;
+        }
+      } catch (ignore) {}
+    }
   } catch (e) {
     console.error(e);
     throw e;
@@ -32,38 +43,45 @@ export async function faucet(address: string): Promise<void> {
 }
 
 export async function fetchTxHex(txId: string): Promise<string> {
-  let hex: string;
   try {
-    await sleep(3000);
-    hex = (await axios.get(`${APIURL}/tx/${txId}/hex`)).data;
+    return (await axios.get(`${APIURL}/tx/${txId}/hex`)).data;
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return hex;
 }
 
 export async function mint(
   address: string,
   quantity: number
 ): Promise<{ asset: string; txid: string }> {
-  let ret: any;
   try {
-    const response = await axios.post(`${APIURL}/mint`, { address, quantity });
-    await sleep(3000);
-    ret = response.data;
+    const { status, data } = await axios.post(`${APIURL}/mint`, {
+      address,
+      quantity,
+    });
+    if (status !== 200) {
+      throw new Error('Invalid address');
+    }
+
+    while (true) {
+      sleep(1000);
+      try {
+        const utxos = await fetchUtxos(address, data.txId);
+        if (utxos.length > 0) {
+          return data;
+        }
+      } catch (ignore) {}
+    }
   } catch (e) {
     console.error(e);
     throw e;
   }
-  return ret;
 }
 
 export async function broadcastTx(hex: string): Promise<string> {
   try {
-    const response = await axios.post(`${APIURL}/tx`, hex);
-    await sleep(5000);
-    return response.data;
+    return (await axios.post(`${APIURL}/tx`, hex)).data;
   } catch (err) {
     console.error(err);
     throw err;
