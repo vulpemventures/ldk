@@ -12,7 +12,6 @@ import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchAndUnblindUtxos } from '../src/explorer/esplora';
-import { psetToUnsignedHex } from '../src/utils';
 
 jest.setTimeout(50000);
 
@@ -61,7 +60,6 @@ describe('buildTx', () => {
       psetBase64: tx,
       addFee: true,
     });
-    console.log(psetToUnsignedHex(unsignedTx));
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
@@ -82,6 +80,8 @@ describe('buildTx', () => {
   });
 
   it('should be able to create a complex transaction and broadcast it', async () => {
+    const tx = (await senderWallet).createTx();
+
     const recipients = [
       {
         asset: networks.regtest.assetHash,
@@ -95,13 +95,13 @@ describe('buildTx', () => {
       },
     ];
 
-    const tx = (await senderWallet).createTx();
     const unsignedTx = buildTx({
       ...args,
       recipients,
       psetBase64: tx,
       addFee: true,
     });
+    assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
 
     const blindedBase64 = await sender.blindPset(unsignedTx, [2]);
     const signedBase64 = await sender.signPset(blindedBase64);
