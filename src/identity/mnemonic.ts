@@ -342,11 +342,10 @@ export class Mnemonic extends Identity implements IdentityInterface {
       const incrementOrResetCounter = (
         addresses: AddressInterfaceExtended[]
       ) => (hasBeenUsed: boolean, index: number) => {
-        if (hasBeenUsed === true) {
+        counter++;
+        if (hasBeenUsed) {
           counter = 0;
           usedAddresses.push(addresses[index]);
-        } else {
-          counter += 1;
         }
       };
 
