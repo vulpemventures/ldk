@@ -19,7 +19,7 @@ export async function fetchUtxos(address: string, txid?: string): Promise<any> {
   }
 }
 
-export async function faucet(address: string): Promise<any> {
+export async function faucet(address: string): Promise<string> {
   try {
     const { status, data } = await axios.post(`${APIURL}/faucet`, { address });
     if (status !== 200) {
@@ -32,7 +32,7 @@ export async function faucet(address: string): Promise<any> {
       try {
         const utxos = await fetchUtxos(address, txId);
         if (utxos.length > 0) {
-          return;
+          return txId;
         }
       } catch (ignore) {}
     }
