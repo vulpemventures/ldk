@@ -5,7 +5,7 @@ import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import * as assert from 'assert';
 import { fromXpub } from '../src/utils';
 import { networks, payments } from 'liquidjs-lib';
-import { faucet, sleep } from './_regtest';
+import { faucet } from './_regtest';
 
 jest.setTimeout(60000);
 
@@ -127,8 +127,6 @@ describe('Identity: Master Pub Key', () => {
         await faucet(addr.confidentialAddress);
         await faucet(changeAddr.confidentialAddress);
       }
-
-      await sleep(3000);
 
       toRestorePubKey = new MasterPublicKey({
         ...validOpts,

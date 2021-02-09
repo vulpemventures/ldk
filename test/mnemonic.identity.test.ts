@@ -9,7 +9,7 @@ import {
   Psbt,
   Transaction,
 } from 'liquidjs-lib';
-import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
+import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import { mnemonicToSeedSync } from 'bip39';
 import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
 import { Mnemonic } from '../src/identity/mnemonic';
@@ -273,8 +273,6 @@ describe('Identity: Private key', () => {
         await faucet(addr.confidentialAddress);
         await faucet(changeAddr.confidentialAddress);
       }
-
-      await sleep(3000);
 
       toRestoreMnemonic = new Mnemonic({
         ...validOpts,

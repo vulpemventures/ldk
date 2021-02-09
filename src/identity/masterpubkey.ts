@@ -234,13 +234,14 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    */
   private async generateSetOfAddresses(
     fromIndex: number,
-    numberToGenerate: number
+    numberToGenerate: number,
+    change: boolean
   ): Promise<AddressInterfaceExtended[]> {
     // asynchronous getAddress function
     const getAddressAsync = async (
       index: number
     ): Promise<AddressInterfaceExtended> => {
-      return this.getAddress(false, index);
+      return this.getAddress(change, index);
     };
 
     // index of addresses to generate.
@@ -251,13 +252,6 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
     // return a promise when all addresses are generated.
     return Promise.all(indexToGenerate.map(getAddressAsync));
-  }
-
-  private async addressToChangeAddressAsync(
-    address: AddressInterfaceExtended
-  ): Promise<AddressInterfaceExtended> {
-    const index = getIndex(address);
-    return this.getAddress(true, index);
   }
 
   private async checkAddressesWithRestorer(
@@ -276,70 +270,59 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
   private async restoreAddresses(): Promise<AddressInterfaceExtended[]> {
     const NOT_USED_ADDRESSES_LIMIT = 20;
-    let counter = 0;
-    let index = 0;
+    let restoredAddresses: AddressInterfaceExtended[] = [];
 
-    const restoredAddresses: AddressInterfaceExtended[] = [];
+    for (let i = 0; i < 2; i++) {
+      const change = i === 1;
+      let counter = 0;
+      let index = 0;
 
-    const incrementOrResetCounter = (addresses: AddressInterfaceExtended[]) => (
-      hasBeenUsed: boolean,
-      index: number
-    ) => {
-      if (hasBeenUsed === true) {
-        counter = 0;
-        restoredAddresses.push(addresses[index]);
-      } else {
-        counter += 1;
+      const usedAddresses: AddressInterfaceExtended[] = [];
+      const incrementOrResetCounter = (
+        addresses: AddressInterfaceExtended[]
+      ) => (hasBeenUsed: boolean, index: number) => {
+        counter++;
+        if (hasBeenUsed) {
+          counter = 0;
+          usedAddresses.push(addresses[index]);
+        }
+      };
+
+      while (counter < NOT_USED_ADDRESSES_LIMIT) {
+        // generate addresses to test
+        const addressesToTest = await this.generateSetOfAddresses(
+          index,
+          NOT_USED_ADDRESSES_LIMIT - counter,
+          change
+        );
+        // test all addresses asynchronously using restorer.
+        const hasBeenUsedArray: boolean[] = await this.checkAddressesWithRestorer(
+          addressesToTest
+        );
+
+        // iterate through array
+        // if address has been used before = push to restoredAddresses array
+        // else increment counter
+        hasBeenUsedArray.forEach(incrementOrResetCounter(addressesToTest));
+        index += NOT_USED_ADDRESSES_LIMIT;
       }
-    };
 
-    while (counter < NOT_USED_ADDRESSES_LIMIT) {
-      // generate addresses to test
-      const addressesToTest = await this.generateSetOfAddresses(
-        index,
-        NOT_USED_ADDRESSES_LIMIT - counter
-      );
-      // test all addresses asynchronously using restorer.
-      const hasBeenUsedArray: boolean[] = await this.checkAddressesWithRestorer(
-        addressesToTest
-      );
-
-      // iterate through array
-      // if address has been used before = push to restoredAddresses array
-      // else increment counter
-      hasBeenUsedArray.forEach(incrementOrResetCounter(addressesToTest));
-      index += NOT_USED_ADDRESSES_LIMIT;
+      // Set the index
+      const allIndex = usedAddresses.map(getIndex);
+      if (!change) {
+        this.index =
+          allIndex.length > 0
+            ? Math.max(...allIndex) + 1
+            : MasterPublicKey.INITIAL_INDEX;
+      } else {
+        this.changeIndex =
+          allIndex.length > 0
+            ? Math.max(...allIndex) + 1
+            : MasterPublicKey.INITIAL_INDEX;
+      }
+      restoredAddresses = restoredAddresses.concat(usedAddresses);
     }
 
-    // Set the index
-    const allIndex = restoredAddresses.map(getIndex);
-    this.index =
-      allIndex.length > 0
-        ? Math.max(...allIndex) + 1
-        : MasterPublicKey.INITIAL_INDEX;
-
-    // check for change address
-    const changeAddresses: AddressInterfaceExtended[] = await Promise.all(
-      restoredAddresses.map(addr => this.addressToChangeAddressAsync(addr))
-    );
-
-    const hasBeenUsedArrayChange: boolean[] = await this.checkAddressesWithRestorer(
-      changeAddresses
-    );
-
-    const usedChangeAddresses: AddressInterfaceExtended[] = changeAddresses.filter(
-      (_: AddressInterfaceExtended, index: number) =>
-        hasBeenUsedArrayChange[index]
-    );
-
-    // Set the index
-    const allChangeIndex = usedChangeAddresses.map(getIndex);
-    this.changeIndex =
-      allChangeIndex.length > 0
-        ? Math.max(...allChangeIndex) + 1
-        : MasterPublicKey.INITIAL_INDEX;
-
-    restoredAddresses.push(...usedChangeAddresses);
     // return the restored address
     return restoredAddresses;
   }

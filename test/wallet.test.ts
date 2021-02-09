@@ -1,5 +1,5 @@
 import { networks } from 'liquidjs-lib';
-import { APIURL, sleep } from './_regtest';
+import { APIURL, faucet } from './_regtest';
 import * as assert from 'assert';
 import {
   senderAddress,
@@ -7,7 +7,6 @@ import {
   sender,
   senderBlindKeyGetter,
 } from './fixtures/wallet.keys';
-import axios from 'axios';
 import {
   isBlindedOutputInterface,
   TxInterface,
@@ -25,14 +24,7 @@ describe('Wallet - Transaction builder', () => {
   let faucetTxID: string;
 
   beforeAll(async () => {
-    const { txId } = (
-      await axios.post(`${APIURL}/faucet`, { address: senderAddress })
-    ).data;
-
-    faucetTxID = txId;
-
-    // sleep 5s for nigiri
-    await sleep(5000);
+    faucetTxID = await faucet(senderAddress);
   });
 
   describe('FetchAndUnblindTx function', () => {

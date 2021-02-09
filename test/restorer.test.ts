@@ -1,5 +1,5 @@
 import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
-import { faucet, sleep } from './_regtest';
+import { faucet } from './_regtest';
 
 import * as assert from 'assert';
 
@@ -20,7 +20,6 @@ describe('EsploraIdentityRestorer', () => {
   describe('EsploraIdentityRestorer.addressHasBeenUsed', () => {
     beforeAll(async () => {
       await faucet(addressToFaucet);
-      await sleep(3000);
       resultThatShouldBeTrue = await restorer.addressHasBeenUsed(
         addressToFaucet
       );
