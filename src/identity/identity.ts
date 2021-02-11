@@ -6,6 +6,7 @@ import { Network, Transaction, networks } from 'liquidjs-lib';
 import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
 import { AddressInterface } from '../types';
 import { decodePset } from '../transaction';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 
 /**
  * Enumeration of all the Identity types.
@@ -45,8 +46,8 @@ export interface IdentityInterface {
     // optional: an outputs index to hex encoded blinding pub key
     // only useful for non-wallet outputs
     outputsPubKeysByIndex?: Map<number, string>,
-    // optional, same as ouputsPubKeysIndex
-    inputsPrivKeysByIndex?: Map<number, string>
+    // BlindingDataLike to use to blind the outputs by input index
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string>;
 }
 
@@ -101,10 +102,10 @@ export default class Identity {
     psetBase64: string,
     outputsToBlind: number[],
     outputsPubKeys?: Map<number, string>,
-    inputsPrivKeys?: Map<number, string>
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>,
   ): Promise<string> {
-    const inputsKeys: Map<number, Buffer> = new Map<number, Buffer>();
-    const outputsKeys: Map<number, Buffer> = new Map<number, Buffer>();
+    const inputsData = new Map<number, BlindingDataLike>();
+    const outputsKeys = new Map<number, Buffer>();
 
     const pset = decodePset(psetBase64);
     const transaction = Transaction.fromHex(psetToUnsignedHex(psetBase64));
@@ -146,21 +147,22 @@ export default class Identity {
         script = witness.script;
       }
 
-      if (inputsPrivKeys && inputsPrivKeys.has(index)) {
-        const privKey = Buffer.from(inputsPrivKeys.get(index)!, 'hex');
-        inputsKeys.set(index, privKey);
-        continue;
+      // check if blindingDataLike is specified
+      if (inputsBlindingDataLike && inputsBlindingDataLike.has(index)) {
+        inputsData.set(index, inputsBlindingDataLike.get(index))
+        continue
       }
 
       if (!script) {
         throw new Error('no witness script for input #' + index);
       }
 
+      // else, get the private blinding key and use it as blindingDataLike
       const privKey = getBlindingKeyPair(script).privateKey;
-      inputsKeys.set(index, privKey);
+      inputsData.set(index, privKey);
     }
 
-    const blinded = await pset.blindOutputsByIndex(inputsKeys, outputsKeys);
+    const blinded = await pset.blindOutputsByIndex(inputsData, outputsKeys);
     return blinded.toBase64();
   }
 }

@@ -1,4 +1,4 @@
-import { TxOutput } from 'liquidjs-lib';
+import { TxOutput, confidential } from 'liquidjs-lib';
 
 /**
  * Defines the shape of the object returned by the getAdresses's method.
@@ -34,7 +34,8 @@ export interface UtxoInterface {
   vout: number;
   asset?: string;
   value?: number;
-  prevout: TxOutput;
+  prevout?: TxOutput;
+  unblindData?: confidential.UnblindOutputResult;
 }
 
 export interface BlindedOutputInterface {

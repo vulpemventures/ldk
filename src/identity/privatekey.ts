@@ -1,3 +1,4 @@
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { ECPair, ECPairInterface, Psbt, payments } from 'liquidjs-lib';
 import Identity, {
   IdentityInterface,
@@ -85,14 +86,14 @@ export class PrivateKey extends Identity implements IdentityInterface {
     psetBase64: string,
     outputsToBlind: number[],
     outputsPubKeys?: Map<number, string>,
-    inputsPrivKeys?: Map<number, string>
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
       (script: Buffer) => this.getBlindingKeyPair(script),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
-      inputsPrivKeys
+      inputsBlindingDataLike
     );
   }
 

@@ -47,7 +47,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
 export async function fetchUtxos(
   address: string,
   url: string
-): Promise<Array<any>> {
+): Promise<any[]> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
@@ -342,6 +342,13 @@ async function fetch25newestTxsForAddress(
   return response.data;
 }
 
+/**
+ * try to unblind the utxo with blindPrivKey. if unblind fails, return utxo
+ * if unblind step success: set prevout & unblindData members in UtxoInterface result
+ * @param utxo utxo to unblind
+ * @param blindPrivKey the blinding private key using to unblind
+ * @param url esplora endpoint URL
+ */
 export async function tryToUnblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
@@ -363,7 +370,7 @@ export async function unblindUtxo(
   const prevoutHex: string = await fetchTxHex(utxo.txid, url);
   const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
 
-  const unblindedUtxo = await confidential.unblindOutputWithKey(
+  const unblindData = await confidential.unblindOutputWithKey(
     prevout,
     Buffer.from(blindPrivKey, 'hex')
   );
@@ -371,8 +378,9 @@ export async function unblindUtxo(
   return {
     txid: utxo.txid,
     vout: utxo.vout,
-    asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
-    value: parseInt(unblindedUtxo.value, 10),
+    asset: (unblindData.asset.reverse() as Buffer).toString('hex'),
+    value: parseInt(unblindData.value, 10),
     prevout: prevout,
+    unblindData,
   };
 }
