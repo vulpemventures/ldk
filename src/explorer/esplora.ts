@@ -44,10 +44,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
 }
 
-export async function fetchUtxos(
-  address: string,
-  url: string
-): Promise<any[]> {
+export async function fetchUtxos(address: string, url: string): Promise<any[]> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 

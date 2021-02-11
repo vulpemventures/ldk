@@ -102,7 +102,7 @@ export default class Identity {
     psetBase64: string,
     outputsToBlind: number[],
     outputsPubKeys?: Map<number, string>,
-    inputsBlindingDataLike?: Map<number, BlindingDataLike>,
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     const inputsData = new Map<number, BlindingDataLike>();
     const outputsKeys = new Map<number, Buffer>();
@@ -149,8 +149,8 @@ export default class Identity {
 
       // check if blindingDataLike is specified
       if (inputsBlindingDataLike && inputsBlindingDataLike.has(index)) {
-        inputsData.set(index, inputsBlindingDataLike.get(index))
-        continue
+        inputsData.set(index, inputsBlindingDataLike.get(index));
+        continue;
       }
 
       if (!script) {
