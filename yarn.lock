@@ -5389,9 +5389,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@vulpemventures/liquidjs-lib:
+liquidjs-lib@^5.1.6:
   version "5.1.6"
-  resolved "https://codeload.github.com/vulpemventures/liquidjs-lib/tar.gz/3e9e0287e9e1da4bc2fa8b32f34544884dd032f2"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.6.tgz#baadb72c9f6b2e148dba97187388e4c4f646582a"
+  integrity sha512-UrGmC5vBZ5LWbtPEv0iiuKpeg5yuNq79dhe6z3SxN4Uf0npYjaqXVzck9oT/OK19UeOeh1z6qIBuw5A3uY2QWw==
   dependencies:
     axios "^0.19.2"
     bech32 "^1.1.2"
@@ -7621,9 +7622,10 @@ slice-ansi@^2.1.0:
     astral-regex "^1.0.0"
     is-fullwidth-code-point "^2.0.0"
 
-slip77@vulpemventures/slip77:
-  version "0.1.0"
-  resolved "https://codeload.github.com/vulpemventures/slip77/tar.gz/b9e32e7f29f77e9e6e2d89b95368032be2c0cf4d"
+slip77@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/slip77/-/slip77-0.1.1.tgz#171a5489a3b4ba099c04621866bf8a0587cccbd2"
+  integrity sha512-C/6oIYbq4jwDzllpQiIK2dtjhx3SyZCTNJ91H2mfeIFuDDjNZF9aJyFhZO60NKJfLuSyOukIYKlSYXi0sxcnog==
   dependencies:
     "@types/node" "^13.9.1"
     create-hmac "^1.1.7"
