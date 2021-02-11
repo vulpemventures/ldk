@@ -1,16 +1,18 @@
-import { PrivateKey } from './../src/identity/privatekey';
-import { AddressInterface } from './../src/types';
-import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import * as assert from 'assert';
+
 import {
-  payments,
   ECPair,
-  networks,
   Psbt,
-  confidential,
   Transaction,
+  confidential,
+  networks,
+  payments,
 } from 'liquidjs-lib';
-import { faucet, fetchUtxos, fetchTxHex } from './_regtest';
+import { IdentityOpts, IdentityType } from '../src/identity/identity';
+import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
+
+import { AddressInterface } from './../src/types';
+import { PrivateKey } from './../src/identity/privatekey';
 
 const network = networks.regtest;
 
@@ -86,13 +88,9 @@ describe('Identity: Private key', () => {
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
 
-      const unblindedUtxo = confidential.unblindOutput(
-        Buffer.from(utxo.noncecommitment, 'hex'),
-        keypair2.privateKey!,
-        prevout.rangeProof!,
-        Buffer.from(utxo.valuecommitment, 'hex'),
-        Buffer.from(utxo.assetcommitment, 'hex'),
-        p2wpkh.output!
+      const unblindedUtxo = await confidential.unblindOutputWithKey(
+        prevout,
+        keypair2.privateKey!
       );
 
       const pset: Psbt = new Psbt({ network })

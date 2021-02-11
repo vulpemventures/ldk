@@ -2,10 +2,11 @@ import {
   EsploraIdentityRestorer,
   IdentityRestorerInterface,
 } from './identityRestorer';
-import { Network, networks, Transaction } from 'liquidjs-lib';
+import { Network, Transaction, networks } from 'liquidjs-lib';
+import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
+
 import { AddressInterface } from '../types';
 import { decodePset } from '../transaction';
-import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
 
 /**
  * Enumeration of all the Identity types.
@@ -160,6 +161,7 @@ export default class Identity {
       inputsKeys.set(index, privKey);
     }
 
-    return pset.blindOutputsByIndex(inputsKeys, outputsKeys).toBase64();
+    const blinded = await pset.blindOutputsByIndex(inputsKeys, outputsKeys);
+    return blinded.toBase64();
   }
 }

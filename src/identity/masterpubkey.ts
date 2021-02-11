@@ -1,17 +1,18 @@
-import { AddressInterface } from '../types';
-import Identity, {
-  IdentityInterface,
-  IdentityType,
-  IdentityOpts,
-} from './identity';
+import { BIP32Interface, fromBase58 } from 'bip32';
 import {
   BufferMap,
-  isValidXpub,
   isValidExtendedBlindKey,
+  isValidXpub,
   toXpub,
 } from '../utils';
-import { BIP32Interface, fromBase58 } from 'bip32';
+import Identity, {
+  IdentityInterface,
+  IdentityOpts,
+  IdentityType,
+} from './identity';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+
+import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
 
 export interface MasterPublicKeyOptsValue {

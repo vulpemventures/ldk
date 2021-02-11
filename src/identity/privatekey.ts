@@ -1,10 +1,11 @@
-import { ECPair, ECPairInterface, payments, Psbt } from 'liquidjs-lib';
-import { AddressInterface } from '../types';
+import { ECPair, ECPairInterface, Psbt, payments } from 'liquidjs-lib';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
   IdentityType,
 } from './identity';
+
+import { AddressInterface } from '../types';
 
 /**
  * This interface describes the shape of the value arguments used in contructor.
@@ -27,7 +28,7 @@ function instanceOfPrivateKeyOptsValue(
 }
 
 /**
- * The PrivateKey Identity take WIF and modelize a user using his private key.
+ * The PrivateKey Identity takes a WIF and modelize a user using his private key.
  * @member signingKeyPair private, the key pair used to sign inputs.
  * @member blindingKeyPair private, the key pair used to blind outputs.
  * @member confidentialAddress private, the confidential address generated from keypairs.

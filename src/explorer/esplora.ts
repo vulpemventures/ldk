@@ -1,17 +1,18 @@
-import { Transaction, confidential, TxOutput } from 'liquidjs-lib';
 import {
   AddressInterface,
-  UtxoInterface,
-  TxInterface,
-  BlindingKeyGetter,
   BlindedOutputInterface,
-  UnblindedOutputInterface,
+  BlindingKeyGetter,
   InputInterface,
+  TxInterface,
+  UnblindedOutputInterface,
+  UtxoInterface,
   isBlindedOutputInterface,
 } from '../types';
-import axios from 'axios';
-import { EsploraTx } from './types';
+import { Transaction, TxOutput, confidential } from 'liquidjs-lib';
 import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
+
+import { EsploraTx } from './types';
+import axios from 'axios';
 
 export async function fetchBalances(
   address: string,
@@ -219,7 +220,7 @@ async function unblindTransactionPrevoutsAndOutputs(
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(prevout.script);
         if (blindingKey) {
-          const unblinded = tryToUnblindOutput(prevout, blindingKey);
+          const unblinded = await unblindOutput(prevout, blindingKey);
           tx.vin[inputIndex].prevout = unblinded;
         }
       };
@@ -235,7 +236,7 @@ async function unblindTransactionPrevoutsAndOutputs(
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(output.script);
         if (blindingKey) {
-          const unblinded = tryToUnblindOutput(output, blindingKey);
+          const unblinded = await unblindOutput(output, blindingKey);
           tx.vout[outputIndex] = unblinded;
         }
       };
@@ -249,19 +250,23 @@ async function unblindTransactionPrevoutsAndOutputs(
   return tx;
 }
 
-export function tryToUnblindOutput(
+export async function unblindOutput(
   output: BlindedOutputInterface,
   BlindingPrivateKey: string
-): UnblindedOutputInterface {
-  const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
+): Promise<UnblindedOutputInterface> {
+  const txOutput: TxOutput = {
+    asset: output.blindedAsset,
+    value: output.blindedValue,
+    rangeProof: output.rangeProof,
+    surjectionProof: output.surjectionProof,
+    nonce: output.nonce,
+    script: Buffer.from(output.script, 'hex'),
+  };
 
-  const unblindedResult = confidential.unblindOutput(
-    output.nonce,
-    blindPrivateKeyBuffer,
-    output.rangeProof,
-    output.blindedValue,
-    output.blindedAsset,
-    Buffer.from(output.script, 'hex')
+  const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
+  const unblindedResult = await confidential.unblindOutputWithKey(
+    txOutput,
+    blindPrivateKeyBuffer
   );
 
   const unblindedOutput: UnblindedOutputInterface = {
@@ -359,13 +364,9 @@ export async function unblindUtxo(
   const prevoutHex: string = await fetchTxHex(utxo.txid, url);
   const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
 
-  const unblindedUtxo = confidential.unblindOutput(
-    prevout.nonce,
-    Buffer.from(blindPrivKey, 'hex'),
-    prevout.rangeProof!,
-    prevout.value,
-    prevout.asset,
-    prevout.script
+  const unblindedUtxo = await confidential.unblindOutputWithKey(
+    prevout,
+    Buffer.from(blindPrivKey, 'hex')
   );
 
   return {

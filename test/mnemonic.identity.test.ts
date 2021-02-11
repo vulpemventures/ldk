@@ -1,18 +1,20 @@
-import { IdentityOpts, IdentityType } from '../src/identity/identity';
-import { fromSeed as slip77fromSeed } from 'slip77';
-import { fromSeed as bip32fromSeed } from 'bip32';
 import * as assert from 'assert';
+
+import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import {
+  Psbt,
+  Transaction,
   confidential,
   networks,
   payments,
-  Psbt,
-  Transaction,
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-import { mnemonicToSeedSync } from 'bip39';
+
 import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
 import { Mnemonic } from '../src/identity/mnemonic';
+import { fromSeed as bip32fromSeed } from 'bip32';
+import { mnemonicToSeedSync } from 'bip39';
+import { fromSeed as slip77fromSeed } from 'slip77';
 
 const network = networks.regtest;
 
@@ -128,13 +130,9 @@ describe('Identity: Private key', () => {
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
-      const unblindedUtxo = confidential.unblindOutput(
-        prevout.nonce,
-        Buffer.from(generated.blindingPrivateKey, 'hex'),
-        prevout.rangeProof!,
-        prevout.value,
-        prevout.asset,
-        prevout.script
+      const unblindedUtxo = await confidential.unblindOutputWithKey(
+        prevout,
+        Buffer.from(generated.blindingPrivateKey, 'hex')
       );
 
       const script: Buffer = payments.p2wpkh({

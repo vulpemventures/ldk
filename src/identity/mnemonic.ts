@@ -1,13 +1,15 @@
-import { bip32, ECPair, payments, Psbt } from 'liquidjs-lib';
 import * as bip39 from 'bip39';
-import { fromSeed as slip77fromSeed, Slip77Interface } from 'slip77';
-import { fromSeed as bip32fromSeed, BIP32Interface } from 'bip32';
+
+import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
+import { BufferMap, fromXpub } from '../utils';
+import { ECPair, Psbt, bip32, payments } from 'liquidjs-lib';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
   IdentityType,
 } from './identity';
-import { BufferMap, fromXpub } from '../utils';
+import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
+
 import { AddressInterface } from '../types';
 
 export interface MnemonicOptsValue {

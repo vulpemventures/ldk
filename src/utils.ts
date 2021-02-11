@@ -1,13 +1,12 @@
-import { UtxoInterface, Outpoint } from './types';
 import {
-  confidential,
   Network,
-  TxOutput,
-  networks,
   Psbt,
   Transaction,
+  confidential,
+  networks,
 } from 'liquidjs-lib';
-import { UnblindOutputResult } from 'liquidjs-lib/types/confidential';
+import { Outpoint, UtxoInterface } from './types';
+
 // @ts-ignore
 import b58 from 'bs58check';
 import { fromBase58 } from 'bip32';
@@ -41,39 +40,6 @@ export interface UnblindResult {
   asset: Buffer;
   // in satoshis
   value: number;
-}
-
-/**
- * Unblind an output using confidential.unblindOutput function from liquidjs-lib.
- * @param output the output to unblind.
- * @param blindKey the private blinding key.
- */
-export function unblindOutput(
-  output: TxOutput,
-  blindKey: Buffer
-): UnblindResult {
-  const result: UnblindResult = { asset: Buffer.alloc(0), value: 0 };
-
-  if (!output.rangeProof) {
-    throw new Error('The output does not contain rangeProof.');
-  }
-
-  const unblindedResult: UnblindOutputResult = confidential.unblindOutput(
-    output.nonce,
-    blindKey,
-    output.rangeProof,
-    output.value,
-    output.asset,
-    output.script
-  );
-
-  result.asset = Buffer.concat([
-    // add the prefix a the beginning (confidential.unblindOutput remove it)
-    Buffer.alloc(1, 10),
-    unblindedResult.asset,
-  ]);
-  result.value = parseInt(unblindedResult.value, 10);
-  return result;
 }
 
 const emptyNonce: Buffer = Buffer.from('0x00', 'hex');

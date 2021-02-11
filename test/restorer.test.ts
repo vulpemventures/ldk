@@ -1,7 +1,7 @@
+import * as assert from 'assert';
+
 import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
 import { faucet } from './_regtest';
-
-import * as assert from 'assert';
 
 jest.setTimeout(15000);
 
