@@ -1,4 +1,5 @@
 import { TxOutput } from 'liquidjs-lib';
+
 /**
  * Defines the shape of the object returned by the getAdresses's method.
  * @member confidentialAddress the confidential address.

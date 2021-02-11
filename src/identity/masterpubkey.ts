@@ -11,7 +11,6 @@ import Identity, {
   IdentityType,
 } from './identity';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-
 import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
 

@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-
 import { IdentityOpts, IdentityType } from '../src/identity/identity';
 import {
   Psbt,
@@ -9,7 +8,6 @@ import {
   payments,
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-
 import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
 import { Mnemonic } from '../src/identity/mnemonic';
 import { fromSeed as bip32fromSeed } from 'bip32';

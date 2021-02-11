@@ -4,7 +4,6 @@ import Identity, {
   IdentityOpts,
   IdentityType,
 } from './identity';
-
 import { AddressInterface } from '../types';
 
 /**

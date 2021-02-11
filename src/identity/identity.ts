@@ -4,7 +4,6 @@ import {
 } from './identityRestorer';
 import { Network, Transaction, networks } from 'liquidjs-lib';
 import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
-
 import { AddressInterface } from '../types';
 import { decodePset } from '../transaction';
 

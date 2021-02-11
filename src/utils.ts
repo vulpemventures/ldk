@@ -6,7 +6,6 @@ import {
   networks,
 } from 'liquidjs-lib';
 import { Outpoint, UtxoInterface } from './types';
-
 // @ts-ignore
 import b58 from 'bs58check';
 import { fromBase58 } from 'bip32';

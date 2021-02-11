@@ -1,5 +1,4 @@
 import * as bip39 from 'bip39';
-
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
 import { BufferMap, fromXpub } from '../utils';
 import { ECPair, Psbt, bip32, payments } from 'liquidjs-lib';
@@ -9,7 +8,6 @@ import Identity, {
   IdentityType,
 } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
-
 import { AddressInterface } from '../types';
 
 export interface MnemonicOptsValue {

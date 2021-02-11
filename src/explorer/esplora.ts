@@ -10,7 +10,6 @@ import {
 } from '../types';
 import { Transaction, TxOutput, confidential } from 'liquidjs-lib';
 import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
-
 import { EsploraTx } from './types';
 import axios from 'axios';
 
