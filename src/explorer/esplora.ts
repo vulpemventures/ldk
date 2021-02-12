@@ -10,7 +10,6 @@ import {
 } from '../types';
 import { Transaction, TxOutput, confidential } from 'liquidjs-lib';
 import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
-
 import { EsploraTx } from './types';
 import axios from 'axios';
 
@@ -45,10 +44,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
 }
 
-export async function fetchUtxos(
-  address: string,
-  url: string
-): Promise<Array<any>> {
+export async function fetchUtxos(address: string, url: string): Promise<any[]> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 
@@ -95,7 +91,8 @@ export async function* fetchAndUnblindUtxosGenerator(
 
     // at each 'next' call, the generator will return the result of the next promise
     for (const promise of unblindedUtxosPromises) {
-      yield await promise;
+      const r = await promise;
+      yield r;
     }
   }
 
@@ -343,6 +340,13 @@ async function fetch25newestTxsForAddress(
   return response.data;
 }
 
+/**
+ * try to unblind the utxo with blindPrivKey. if unblind fails, return utxo
+ * if unblind step success: set prevout & unblindData members in UtxoInterface result
+ * @param utxo utxo to unblind
+ * @param blindPrivKey the blinding private key using to unblind
+ * @param url esplora endpoint URL
+ */
 export async function tryToUnblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
@@ -364,16 +368,20 @@ export async function unblindUtxo(
   const prevoutHex: string = await fetchTxHex(utxo.txid, url);
   const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
 
-  const unblindedUtxo = await confidential.unblindOutputWithKey(
+  const unblindData = await confidential.unblindOutputWithKey(
     prevout,
     Buffer.from(blindPrivKey, 'hex')
   );
 
+  const unblindAsset = Buffer.alloc(32);
+  unblindData.asset.copy(unblindAsset);
+
   return {
     txid: utxo.txid,
     vout: utxo.vout,
-    asset: (unblindedUtxo.asset.reverse() as Buffer).toString('hex'),
-    value: parseInt(unblindedUtxo.value, 10),
+    asset: unblindAsset.reverse().toString('hex'),
+    value: parseInt(unblindData.value, 10),
     prevout: prevout,
+    unblindData,
   };
 }

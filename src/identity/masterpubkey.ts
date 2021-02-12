@@ -1,3 +1,4 @@
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { BIP32Interface, fromBase58 } from 'bip32';
 import {
   BufferMap,
@@ -11,7 +12,6 @@ import Identity, {
   IdentityType,
 } from './identity';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-
 import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
 
@@ -100,14 +100,14 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     psetBase64: string,
     outputsToBlind: number[],
     outputsPubKeys?: Map<number, string>,
-    inputsPrivKeys?: Map<number, string>
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
       (script: Buffer) => this.getBlindingKeyPair(script),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
-      inputsPrivKeys
+      inputsBlindingDataLike
     );
   }
 

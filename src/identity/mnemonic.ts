@@ -1,5 +1,5 @@
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import * as bip39 from 'bip39';
-
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
 import { BufferMap, fromXpub } from '../utils';
 import { ECPair, Psbt, bip32, payments } from 'liquidjs-lib';
@@ -9,7 +9,6 @@ import Identity, {
   IdentityType,
 } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
-
 import { AddressInterface } from '../types';
 
 export interface MnemonicOptsValue {
@@ -126,14 +125,14 @@ export class Mnemonic extends Identity implements IdentityInterface {
     psetBase64: string,
     outputsToBlind: number[],
     outputsPubKeys?: Map<number, string>,
-    inputsPrivKeys?: Map<number, string>
+    inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
       (script: Buffer) => this.getBlindingKeyPair(script),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
-      inputsPrivKeys
+      inputsBlindingDataLike
     );
   }
 

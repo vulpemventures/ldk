@@ -1,4 +1,5 @@
-import { networks, Psbt } from 'liquidjs-lib';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { networks, Psbt, Transaction } from 'liquidjs-lib';
 import {
   recipientAddress,
   senderAddress,
@@ -11,7 +12,8 @@ import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
-import { fetchAndUnblindUtxos } from '../src/explorer/esplora';
+import { fetchAndUnblindUtxos, fetchTxHex } from '../src/explorer/esplora';
+import { psetToUnsignedHex } from '../src/utils';
 
 jest.setTimeout(50000);
 
@@ -103,7 +105,26 @@ describe('buildTx', () => {
     });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
 
-    const blindedBase64 = await sender.blindPset(unsignedTx, [2]);
+    const blindingDataMap = new Map<number, BlindingDataLike>();
+
+    const transaction = Transaction.fromHex(psetToUnsignedHex(unsignedTx));
+    for (let i = 0; i < transaction.ins.length; i++) {
+      const input = transaction.ins[i];
+      const blindingData = args.unspents.find(
+        u =>
+          input.hash.equals(Buffer.from(u.txid, 'hex').reverse()) &&
+          u.vout === input.index
+      )!.unblindData;
+      blindingDataMap.set(i, blindingData);
+    }
+
+    // blind only the change output
+    const blindedBase64 = await sender.blindPset(
+      unsignedTx,
+      [2],
+      undefined,
+      blindingDataMap
+    );
     const signedBase64 = await sender.signPset(blindedBase64);
     const signedPset = decodePset(signedBase64);
 
@@ -112,6 +133,8 @@ describe('buildTx', () => {
       .extractTransaction()
       .toHex();
 
-    await broadcastTx(hex);
+    const txid = await broadcastTx(hex);
+    const txhex = await fetchTxHex(txid, APIURL);
+    assert.doesNotThrow(() => Transaction.fromHex(txhex));
   });
 });
