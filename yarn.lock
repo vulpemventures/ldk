@@ -1253,9 +1253,9 @@
   integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
 
 "@types/node@*":
-  version "14.14.26"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.26.tgz#e40df24c957568f350cca04e63bfb1e1556d1cbf"
-  integrity sha512-skWxepWOs+VArEBWd2S/VR3wUavioIIx9/HzW+UJiIjtwa6+kNXdsOeq7FfxDXf56hIcL0ieo2brwMgBJ1+lhw==
+  version "14.14.27"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.27.tgz#c7127f8da0498993e13b1a42faf1303d3110d2f2"
+  integrity sha512-Ecfmo4YDQPwuqTCl1yBxLV5ihKfRlkBmzUEDcfIRvDxOTGQEeikr317Ln7Gcv0tjA8dVgKI3rniqW2G1OyKDng==
 
 "@types/node@10.12.18":
   version "10.12.18"
@@ -2001,7 +2001,7 @@ bindings@^1.3.0, bindings@^1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
-bip174@vulpemventures/bip174.git:
+"bip174@github:vulpemventures/bip174":
   version "1.0.1"
   resolved "https://codeload.github.com/vulpemventures/bip174/tar.gz/d6a71254fa66b2ba84de80c67b7255ab65979c3b"
 
@@ -2049,7 +2049,7 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blech32@vulpemventures/blech32.git:
+"blech32@github:vulpemventures/blech32":
   version "1.0.0"
   resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/b42822d0496a27ed5a313395517e9029bcfccf2e"
 
@@ -5389,9 +5389,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@vulpemventures/liquidjs-lib:
+liquidjs-lib@^5.1.6:
   version "5.1.7"
-  resolved "https://codeload.github.com/vulpemventures/liquidjs-lib/tar.gz/9005730a69a7ffa7fb4ca5202ec8af76f774f8c9"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.7.tgz#4d747b115d48fe2220e82942a4d8b01e4ce27410"
+  integrity sha512-eeAk0vFhqsONM7buCC+4y3jZJwIOFHbS/PiXc8Mci8h/1SsD4ysmMFSrENt10tt5lxxIcPbeeDda8PXANiIj/A==
   dependencies:
     axios "^0.19.2"
     bech32 "^1.1.2"
@@ -7621,9 +7622,10 @@ slice-ansi@^2.1.0:
     astral-regex "^1.0.0"
     is-fullwidth-code-point "^2.0.0"
 
-slip77@vulpemventures/slip77:
+slip77@^0.1.1:
   version "0.1.1"
-  resolved "https://codeload.github.com/vulpemventures/slip77/tar.gz/c1f81155e309b005727dc703eced68c178c5ae0a"
+  resolved "https://registry.yarnpkg.com/slip77/-/slip77-0.1.1.tgz#171a5489a3b4ba099c04621866bf8a0587cccbd2"
+  integrity sha512-C/6oIYbq4jwDzllpQiIK2dtjhx3SyZCTNJ91H2mfeIFuDDjNZF9aJyFhZO60NKJfLuSyOukIYKlSYXi0sxcnog==
   dependencies:
     "@types/node" "^13.9.1"
     create-hmac "^1.1.7"
