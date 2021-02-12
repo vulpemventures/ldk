@@ -91,7 +91,8 @@ export async function* fetchAndUnblindUtxosGenerator(
 
     // at each 'next' call, the generator will return the result of the next promise
     for (const promise of unblindedUtxosPromises) {
-      yield await promise;
+      const r = await promise;
+      yield r;
     }
   }
 
@@ -372,10 +373,13 @@ export async function unblindUtxo(
     Buffer.from(blindPrivKey, 'hex')
   );
 
+  const unblindAsset = Buffer.alloc(32);
+  unblindData.asset.copy(unblindAsset);
+
   return {
     txid: utxo.txid,
     vout: utxo.vout,
-    asset: (unblindData.asset.reverse() as Buffer).toString('hex'),
+    asset: unblindAsset.reverse().toString('hex'),
     value: parseInt(unblindData.value, 10),
     prevout: prevout,
     unblindData,

@@ -2,7 +2,13 @@ import {
   EsploraIdentityRestorer,
   IdentityRestorerInterface,
 } from './identityRestorer';
-import { Network, Transaction, networks } from 'liquidjs-lib';
+import {
+  Network,
+  Transaction,
+  networks,
+  confidential,
+  TxOutput,
+} from 'liquidjs-lib';
 import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
 import { AddressInterface } from '../types';
 import { decodePset } from '../transaction';
@@ -159,7 +165,12 @@ export default class Identity {
 
       // else, get the private blinding key and use it as blindingDataLike
       const privKey = getBlindingKeyPair(script).privateKey;
-      inputsData.set(index, privKey);
+      const blinders = await confidential.unblindOutputWithKey(
+        input.witnessUtxo as TxOutput,
+        privKey
+      );
+
+      inputsData.set(index, blinders);
     }
 
     const blinded = await pset.blindOutputsByIndex(inputsData, outputsKeys);
