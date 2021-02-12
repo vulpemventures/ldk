@@ -12,7 +12,7 @@ import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
-import { fetchAndUnblindUtxos } from '../src/explorer/esplora';
+import { fetchAndUnblindUtxos, fetchTxHex } from '../src/explorer/esplora';
 import { psetToUnsignedHex } from '../src/utils';
 
 jest.setTimeout(50000);
@@ -133,6 +133,8 @@ describe('buildTx', () => {
       .extractTransaction()
       .toHex();
 
-    await broadcastTx(hex);
+    const txid = await broadcastTx(hex);
+    const txhex = await fetchTxHex(txid, APIURL);
+    assert.doesNotThrow(() => Transaction.fromHex(txhex));
   });
 });
