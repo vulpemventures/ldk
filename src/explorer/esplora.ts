@@ -71,7 +71,8 @@ export async function fetchAndUnblindTxs(
 
 export async function* fetchAndUnblindUtxosGenerator(
   addressesAndBlindingKeys: Array<AddressInterface>,
-  url: string
+  url: string,
+  skip?: (utxo: UtxoInterface) => boolean
 ): AsyncGenerator<UtxoInterface, number, undefined> {
   let numberOfUtxos = 0;
 
@@ -81,10 +82,14 @@ export async function* fetchAndUnblindUtxosGenerator(
     blindingPrivateKey,
   } of addressesAndBlindingKeys) {
     const blindedUtxos = await fetchUtxos(confidentialAddress, url);
-    const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) =>
+    const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) => {
+      if (skip && skip(utxo)) {
+        return utxo;
+      }
+
       // this is a non blocking function, returning the base utxo if the unblind failed
-      tryToUnblindUtxo(utxo, blindingPrivateKey, url)
-    );
+      return tryToUnblindUtxo(utxo, blindingPrivateKey, url);
+    });
 
     // increase the number of utxos
     numberOfUtxos += unblindedUtxosPromises.length;
@@ -101,11 +106,13 @@ export async function* fetchAndUnblindUtxosGenerator(
 
 export async function fetchAndUnblindUtxos(
   addressesAndBlindingKeys: Array<AddressInterface>,
-  url: string
+  url: string,
+  skip?: (utxo: UtxoInterface) => boolean
 ): Promise<UtxoInterface[]> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(
     addressesAndBlindingKeys,
-    url
+    url,
+    skip
   );
   const utxos: UtxoInterface[] = [];
 
