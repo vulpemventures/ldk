@@ -180,6 +180,8 @@ async function* fetchTxsGenerator(
       lastSeenTxid
     );
 
+    if (newTxs.length === 0) break;
+    lastSeenTxid = newTxs[newTxs.length - 1].txid;
     numberOfTxs += newTxs.length;
 
     // convert them into txInterface
@@ -194,7 +196,7 @@ async function* fetchTxsGenerator(
       }
       yield transaction;
     }
-  } while (newTxs.length < 25);
+  } while (lastSeenTxid);
 
   return numberOfTxs;
 }
