@@ -140,15 +140,22 @@ export async function* fetchAndUnblindTxsGenerator(
   explorerUrl: string,
   skip?: (tx: TxInterface) => boolean
 ): AsyncGenerator<TxInterface, void, undefined> {
+  const txids: string[] = [];
   for (const address of addresses) {
     const txsGenerator = fetchTxsGenerator(address, explorerUrl, skip);
     let txIterator = await txsGenerator.next();
     while (!txIterator.done) {
       const tx = txIterator.value;
+      if (txids.includes(tx.txid)) {
+        continue;
+      }
+
+      txids.push(tx.txid);
       yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeyGetter);
       txIterator = await txsGenerator.next();
     }
   }
+  return;
 }
 
 /**
