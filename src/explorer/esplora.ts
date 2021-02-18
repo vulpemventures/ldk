@@ -51,12 +51,14 @@ export async function fetchUtxos(address: string, url: string): Promise<any[]> {
 export async function fetchAndUnblindTxs(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetter,
-  explorerUrl: string
+  explorerUrl: string,
+  skip?: (tx: TxInterface) => boolean
 ): Promise<TxInterface[]> {
   const generator = fetchAndUnblindTxsGenerator(
     addresses,
     blindingKeyGetter,
-    explorerUrl
+    explorerUrl,
+    skip
   );
   const txs: Array<TxInterface> = [];
 
@@ -126,24 +128,34 @@ export async function fetchAndUnblindUtxos(
 }
 
 /**
- * fetch all tx associated to an address and unblind the tx's outputs and prevouts.
- * @param explorerUrl the esplora endpoint
+ * Return an async generator fetching and unblinding addresses' transactions
+ * @param addresses
+ * @param blindingKeyGetter
+ * @param explorerUrl
+ * @param skip optional, can be used to skip certain transaction
  */
 export async function* fetchAndUnblindTxsGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetter,
-  explorerUrl: string
+  explorerUrl: string,
+  skip?: (tx: TxInterface) => boolean
 ): AsyncGenerator<TxInterface, void, undefined> {
+  const txids: string[] = [];
   for (const address of addresses) {
-    const txsGenerator = fetchTxsGenerator(address, explorerUrl);
+    const txsGenerator = fetchTxsGenerator(address, explorerUrl, skip);
     let txIterator = await txsGenerator.next();
     while (!txIterator.done) {
       const tx = txIterator.value;
-      yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeyGetter);
+      if (txids.includes(tx.txid)) {
+        continue;
+      }
 
+      txids.push(tx.txid);
+      yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeyGetter);
       txIterator = await txsGenerator.next();
     }
   }
+  return;
 }
 
 /**
@@ -153,7 +165,8 @@ export async function* fetchAndUnblindTxsGenerator(
  */
 async function* fetchTxsGenerator(
   address: string,
-  explorerUrl: string
+  explorerUrl: string,
+  skip?: (tx: TxInterface) => boolean
 ): AsyncGenerator<TxInterface, number, undefined> {
   let lastSeenTxid = undefined;
   let newTxs: EsploraTx[] = [];
@@ -167,6 +180,8 @@ async function* fetchTxsGenerator(
       lastSeenTxid
     );
 
+    if (newTxs.length === 0) break;
+    lastSeenTxid = newTxs[newTxs.length - 1].txid;
     numberOfTxs += newTxs.length;
 
     // convert them into txInterface
@@ -175,9 +190,13 @@ async function* fetchTxsGenerator(
     );
 
     for (const tx of txs) {
-      yield await tx;
+      const transaction = await tx;
+      if (skip && skip(transaction)) {
+        continue;
+      }
+      yield transaction;
     }
-  } while (newTxs.length < 25);
+  } while (lastSeenTxid);
 
   return numberOfTxs;
 }
