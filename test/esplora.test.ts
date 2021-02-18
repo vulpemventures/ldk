@@ -12,7 +12,7 @@ import { APIURL, faucet } from './_regtest';
 import { isBlindedUtxo } from '../src/utils';
 import * as assert from 'assert';
 
-jest.setTimeout(50000);
+jest.setTimeout(80000);
 
 describe('fetchAndUnblindUtxos', () => {
   let txid: string;
