@@ -78,5 +78,16 @@ describe('esplora', () => {
       const faucetTx = senderTxs.find(t => t.txid === txid);
       assert.strictEqual(faucetTx, undefined);
     });
+
+    it('should work with duplicate addresses', async () => {
+      const senderTxs = await fetchAndUnblindTxs(
+        [senderAddress, senderAddress],
+        senderBlindKeyGetter,
+        APIURL
+      );
+
+      const faucetTx = senderTxs.find(t => t.txid === txid);
+      assert.notStrictEqual(faucetTx, undefined);
+    });
   });
 });

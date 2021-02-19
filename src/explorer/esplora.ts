@@ -147,6 +147,7 @@ export async function* fetchAndUnblindTxsGenerator(
     while (!txIterator.done) {
       const tx = txIterator.value;
       if (txids.includes(tx.txid)) {
+        txIterator = await txsGenerator.next();
         continue;
       }
 
