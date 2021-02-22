@@ -90,7 +90,7 @@ export async function* fetchAndUnblindUtxosGenerator(
       }
 
       // this is a non blocking function, returning the base utxo if the unblind failed
-      return tryToUnblindUtxo(utxo, blindingPrivateKey, url);
+      return fetchPrevoutAndTryToUnblindUtxo(utxo, blindingPrivateKey, url);
     });
 
     // increase the number of utxos
@@ -367,6 +367,16 @@ async function fetch25newestTxsForAddress(
   return response.data;
 }
 
+export async function utxoWithPrevout(
+  utxo: UtxoInterface,
+  explorerURL: string
+): Promise<UtxoInterface> {
+  const prevoutHex: string = await fetchTxHex(utxo.txid, explorerURL);
+  const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+  return { ...utxo, prevout };
+}
+
 /**
  * try to unblind the utxo with blindPrivKey. if unblind fails, return utxo
  * if unblind step success: set prevout & unblindData members in UtxoInterface result
@@ -374,14 +384,14 @@ async function fetch25newestTxsForAddress(
  * @param blindPrivKey the blinding private key using to unblind
  * @param url esplora endpoint URL
  */
-export async function tryToUnblindUtxo(
+export async function fetchPrevoutAndTryToUnblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
 ): Promise<UtxoInterface> {
+  if (!utxo.prevout) utxo = await utxoWithPrevout(utxo, url);
   try {
-    const unblinded = await unblindUtxo(utxo, blindPrivKey, url);
-    return unblinded;
+    return unblindUtxo(utxo, blindPrivKey);
   } catch (_) {
     return utxo;
   }
@@ -389,14 +399,19 @@ export async function tryToUnblindUtxo(
 
 export async function unblindUtxo(
   utxo: UtxoInterface,
-  blindPrivKey: string,
-  url: string
+  blindPrivKey: string
 ): Promise<UtxoInterface> {
-  const prevoutHex: string = await fetchTxHex(utxo.txid, url);
-  const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+  if (!utxo.prevout)
+    throw new Error(
+      'utxo need utxo.prevout to be defined. Use utxoWithPrevout.'
+    );
+
+  if (!isConfidentialOutput(utxo.prevout)) {
+    return utxo;
+  }
 
   const unblindData = await confidential.unblindOutputWithKey(
-    prevout,
+    utxo.prevout,
     Buffer.from(blindPrivKey, 'hex')
   );
 
@@ -404,11 +419,9 @@ export async function unblindUtxo(
   unblindData.asset.copy(unblindAsset);
 
   return {
-    txid: utxo.txid,
-    vout: utxo.vout,
+    ...utxo,
     asset: unblindAsset.reverse().toString('hex'),
     value: parseInt(unblindData.value, 10),
-    prevout: prevout,
     unblindData,
   };
 }

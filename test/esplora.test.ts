@@ -7,6 +7,7 @@ import {
   senderAddress,
   senderBlindingKey,
   senderBlindKeyGetter,
+  unconfidentialSenderAddress,
 } from './fixtures/wallet.keys';
 import { APIURL, faucet } from './_regtest';
 import { isBlindedUtxo } from '../src/utils';
@@ -19,9 +20,25 @@ describe('esplora', () => {
 
   beforeAll(async () => {
     txid = await faucet(senderAddress);
+    await faucet(unconfidentialSenderAddress);
   });
 
   describe('fetchAndUnblindUtxos', () => {
+    it('should fetch the utxo prevout, even if unconfidential address is provided', async () => {
+      const senderUtxos = await fetchAndUnblindUtxos(
+        [
+          {
+            confidentialAddress: senderAddress,
+            blindingPrivateKey: senderBlindingKey,
+          },
+        ],
+        APIURL
+      );
+
+      const withPrevouts = senderUtxos.filter(u => u.prevout);
+      assert.deepStrictEqual(withPrevouts.length, senderUtxos.length);
+    });
+
     it('should unblind utxos if the blinding key is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
