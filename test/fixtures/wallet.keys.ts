@@ -1,4 +1,4 @@
-import { networks, payments, ECPair } from 'liquidjs-lib';
+import { networks, payments, ECPair, address } from 'liquidjs-lib';
 import { PrivateKey } from '../../src/identity/privatekey';
 import { IdentityType } from '../../src/identity/identity';
 import { walletFromAddresses } from '../../src/wallet';
@@ -35,6 +35,9 @@ export const senderBlindKeyGetter: BlindingKeyGetter = (script: string) => {
 };
 
 export const senderAddress = sender.getNextAddress().confidentialAddress;
+export const unconfidentialSenderAddress = address.fromConfidential(
+  senderAddress
+).unconfidentialAddress;
 export const senderBlindingKey = sender.getNextAddress().blindingPrivateKey;
 export const senderWallet = walletFromAddresses(
   sender.getAddresses(),
