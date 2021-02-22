@@ -31,10 +31,6 @@ describe('esplora', () => {
             confidentialAddress: senderAddress,
             blindingPrivateKey: senderBlindingKey,
           },
-          {
-            confidentialAddress: unconfidentialSenderAddress,
-            blindingPrivateKey: '',
-          },
         ],
         APIURL
       );

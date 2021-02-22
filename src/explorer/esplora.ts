@@ -391,7 +391,6 @@ export async function fetchPrevoutAndTryToUnblindUtxo(
 ): Promise<UtxoInterface> {
   if (!utxo.prevout) utxo = await utxoWithPrevout(utxo, url);
   try {
-    if (blindPrivKey === '') return utxo;
     return unblindUtxo(utxo, blindPrivKey);
   } catch (_) {
     return utxo;
@@ -406,6 +405,10 @@ export async function unblindUtxo(
     throw new Error(
       'utxo need utxo.prevout to be defined. Use utxoWithPrevout.'
     );
+
+  if (!isConfidentialOutput(utxo.prevout)) {
+    return utxo;
+  }
 
   const unblindData = await confidential.unblindOutputWithKey(
     utxo.prevout,
