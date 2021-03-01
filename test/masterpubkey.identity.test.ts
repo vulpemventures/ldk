@@ -1,9 +1,12 @@
-import { Mnemonic } from './../src/identity/mnemonic';
-import { MasterPublicKey } from './../src/identity/masterpubkey';
-import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
-import { IdentityOpts, IdentityType } from '../src/identity/identity';
+import {
+  EsploraIdentityRestorer,
+  IdentityOpts,
+  IdentityType,
+  MasterPublicKey,
+  Mnemonic,
+  fromXpub,
+} from '../src';
 import * as assert from 'assert';
-import { fromXpub } from '../src/utils';
 import { networks, payments } from 'liquidjs-lib';
 import { faucet } from './_regtest';
 
@@ -79,6 +82,23 @@ describe('Identity: Master Pub Key', () => {
   });
 
   describe('MasterPubKey.getAddresses', () => {
+    it('should have private method getAddress return an AddressInterfaceExtended', () => {
+      const pubKey = new MasterPublicKey(validOpts);
+      const addressExtended = pubKey['getAddress'](true, 5);
+      assert.deepStrictEqual(addressExtended, {
+        address: {
+          blindingPrivateKey:
+            '14ead34445d4e1e7d74f37af73243b577d329b13186e73d0c0712221d5d2ccf7',
+          confidentialAddress:
+            'el1qqtdlqfxu94x0hkktqwwkeucn3wxvfwtq2lm35kwh7k2vnrtszzcelhhk3vvrccwqc2kkpvvctat37ffvcncsj04dwjx4m2ze6',
+          derivationPath: "m/84'/0'/0'/1/5",
+        },
+        derivationPath: "m/84'/0'/0'/1/5",
+        publicKey:
+          '0212df6a58be8fc11396b413678a863c7b8a76abdcf2e1cae2fe4fe5818b93dd37',
+      });
+    });
+
     it('should return all the generated addresses', () => {
       const pubKey = new MasterPublicKey(validOpts);
       const addr0 = pubKey.getNextAddress();

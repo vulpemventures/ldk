@@ -8,11 +8,13 @@ import {
   networks,
   payments,
 } from 'liquidjs-lib';
-import { IdentityOpts, IdentityType } from '../src/identity/identity';
+import {
+  AddressInterface,
+  IdentityOpts,
+  IdentityType,
+  PrivateKey,
+} from '../src';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-
-import { AddressInterface } from './../src/types';
-import { PrivateKey } from './../src/identity/privatekey';
 
 const network = networks.regtest;
 
@@ -74,7 +76,7 @@ describe('Identity: Private key', () => {
     });
   });
 
-  describe('Mnemonic.isAbleToSign', () => {
+  describe('PrivateKey.isAbleToSign', () => {
     it('should return true', () => {
       const privKey = new PrivateKey(validOpts);
       assert.deepStrictEqual(privKey.isAbleToSign(), true);
