@@ -218,15 +218,14 @@ export class Mnemonic extends Identity implements IdentityInterface {
       blindingKeyPair.publicKey
     );
     // create the address generation object
+    const path = `${this.baseDerivationPath}/${isChange ? 1 : 0}/${index}`;
     const newAddressGeneration: AddressInterfaceExtended = {
       address: {
         confidentialAddress: confidentialAddress!,
         blindingPrivateKey: blindingKeyPair.privateKey!.toString('hex'),
-        derivationPath: `${this.baseDerivationPath}/${
-          isChange ? 1 : 0
-        }/${index}`,
+        derivationPath: path,
       },
-      derivationPath: `${this.baseDerivationPath}/${isChange ? 1 : 0}/${index}`,
+      derivationPath: path,
       signingPrivateKey: signingKeyPair.privateKey!.toString('hex'),
     };
     // return the generation data
