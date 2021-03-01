@@ -1,5 +1,10 @@
 import * as assert from 'assert';
-import { IdentityOpts, IdentityType } from '../src/identity/identity';
+import {
+  EsploraIdentityRestorer,
+  IdentityOpts,
+  IdentityType,
+  Mnemonic,
+} from '../src';
 import {
   Psbt,
   Transaction,
@@ -8,8 +13,6 @@ import {
   payments,
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-import { EsploraIdentityRestorer } from '../src/identity/identityRestorer';
-import { Mnemonic } from '../src/identity/mnemonic';
 import { fromSeed as bip32fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { fromSeed as slip77fromSeed } from 'slip77';
@@ -225,6 +228,23 @@ describe('Identity: Private key', () => {
   });
 
   describe('Mnemonic.getAddresses', () => {
+    it('should have private method getAddress return an AddressInterfaceExtended', () => {
+      const mnemonic = new Mnemonic(validOpts);
+      const addressExtended = mnemonic['getAddress'](false, 42);
+      assert.deepStrictEqual(addressExtended, {
+        address: {
+          blindingPrivateKey:
+            'a72f1d64dafd471bde9447f1358c3011961c318749d1b35cd34de8233abcc492',
+          confidentialAddress:
+            'el1qqtvm33xtfrnusggyarpjsj20hphwwlduvlwvvufk387rhu74u95snxpe2shf9zg2ck6ah3l2wterg0c0chxtyka5dpy37wshr',
+          derivationPath: "m/84'/0'/0'/0/42",
+        },
+        derivationPath: "m/84'/0'/0'/0/42",
+        signingPrivateKey:
+          '336af0763eb44969ad7e0ddd91bfc46d374fa26ffa231a4bfd1e587ddb5b3a8a',
+      });
+    });
+
     it('should return all the generated addresses', () => {
       const mnemonic = new Mnemonic(validOpts);
       const generated1 = mnemonic.getNextAddress();

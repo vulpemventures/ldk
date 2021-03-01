@@ -43,8 +43,10 @@ function getIndex(addrExtended: AddressInterfaceExtended) {
 }
 
 export class MasterPublicKey extends Identity implements IdentityInterface {
+  static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
   static INITIAL_INDEX: number = 0;
 
+  private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
   private scriptToAddressCache: BufferMap<
@@ -184,8 +186,11 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
       address: {
         confidentialAddress: confidentialAddress!,
         blindingPrivateKey: blindingKeyPair.privateKey!.toString('hex'),
+        derivationPath: `${this.baseDerivationPath}/${
+          isChange ? 1 : 0
+        }/${index}`,
       },
-      derivationPath: `${isChange ? 1 : 0}/${index}`,
+      derivationPath: `${this.baseDerivationPath}/${isChange ? 1 : 0}/${index}`,
       publicKey: publicKey.toString('hex'),
     };
     // return the generation data

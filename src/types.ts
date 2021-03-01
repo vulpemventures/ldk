@@ -8,6 +8,7 @@ import { TxOutput, confidential } from 'liquidjs-lib';
 export interface AddressInterface {
   confidentialAddress: string;
   blindingPrivateKey: string;
+  derivationPath?: string;
 }
 
 // define a type using to implement change's address strategy

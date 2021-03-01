@@ -122,6 +122,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
     return {
       confidentialAddress: this.confidentialAddress,
       blindingPrivateKey: this.blindingPrivateKey,
+      derivationPath: undefined,
     };
   }
 
@@ -179,6 +180,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
       {
         confidentialAddress: this.confidentialAddress,
         blindingPrivateKey: this.blindingPrivateKey,
+        derivationPath: undefined,
       },
     ];
   }
