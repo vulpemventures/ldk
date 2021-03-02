@@ -29,7 +29,7 @@ export interface EsploraTx {
   }>;
 }
 
-export interface EsploraUtxoInterface {
+export interface EsploraUtxo {
   txid: string;
   vout: number;
   status: {
