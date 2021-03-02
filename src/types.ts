@@ -34,6 +34,15 @@ export interface UtxoInterface {
   txid: string;
   vout: number;
   asset?: string;
+  assetcommitment?: string;
+  noncecommitment?: string;
+  valuecommitment?: string;
+  status?: {
+    block_hash: string;
+    block_height: number;
+    block_time: number;
+    confirmed: boolean;
+  };
   value?: number;
   prevout?: TxOutput;
   unblindData?: confidential.UnblindOutputResult;
