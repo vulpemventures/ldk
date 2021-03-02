@@ -93,7 +93,6 @@ describe('Identity: Master Pub Key', () => {
             'el1qqtdlqfxu94x0hkktqwwkeucn3wxvfwtq2lm35kwh7k2vnrtszzcelhhk3vvrccwqc2kkpvvctat37ffvcncsj04dwjx4m2ze6',
           derivationPath: "m/84'/0'/0'/1/5",
         },
-        derivationPath: "m/84'/0'/0'/1/5",
         publicKey:
           '0212df6a58be8fc11396b413678a863c7b8a76abdcf2e1cae2fe4fe5818b93dd37',
       });

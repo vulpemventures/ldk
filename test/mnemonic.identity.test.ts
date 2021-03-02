@@ -73,7 +73,7 @@ const unvalidMnemonicOpts: IdentityOpts = {
   },
 };
 
-describe('Identity: Private key', () => {
+describe('Identity: Mnemonic', () => {
   describe('Constructor', () => {
     const validMnemonic = new Mnemonic(validOpts);
 
@@ -239,9 +239,8 @@ describe('Identity: Private key', () => {
             'el1qqtvm33xtfrnusggyarpjsj20hphwwlduvlwvvufk387rhu74u95snxpe2shf9zg2ck6ah3l2wterg0c0chxtyka5dpy37wshr',
           derivationPath: "m/84'/0'/0'/0/42",
         },
-        derivationPath: "m/84'/0'/0'/0/42",
-        signingPrivateKey:
-          '336af0763eb44969ad7e0ddd91bfc46d374fa26ffa231a4bfd1e587ddb5b3a8a',
+        publicKey:
+          '03cc94a5ccfeafe3c6f9a15cc821ac197d1112f0c066673117b239524da6c66320',
       });
     });
 
