@@ -28,3 +28,17 @@ export interface EsploraTx {
     assetcommitment: string;
   }>;
 }
+
+export interface EsploraUtxoInterface {
+  txid: string;
+  vout: number;
+  status: {
+    confirmed: boolean;
+    block_height: number;
+    block_hash: string;
+    block_time: number;
+  };
+  valuecommitment: string;
+  assetcommitment: string;
+  noncecommitment: string;
+}

@@ -72,7 +72,7 @@ describe('esplora', () => {
       assert.deepStrictEqual(isBlindedUtxo(faucetUtxo!), true);
     });
 
-    it('should have fetchPrevoutAndTryToUnblindUtxo return correct utxo interface', async () => {
+    it('should return an UtxoInterface with extra esplora enriched fields if the UtxoInterface interface as input contains extra esplora enriched fields', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
           {
