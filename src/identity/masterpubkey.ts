@@ -29,12 +29,15 @@ function instanceOfMasterPublicKeyOptsValue(
 interface AddressInterfaceExtended {
   address: AddressInterface;
   publicKey: string;
-  derivationPath: string;
 }
 
 // util function that parse a derivation path and return the index
 function getIndex(addrExtended: AddressInterfaceExtended) {
-  const derivationPathSplitted = addrExtended.derivationPath.split('/');
+  const derivationPathSplitted = addrExtended.address.derivationPath?.split(
+    '/'
+  );
+  if (!derivationPathSplitted)
+    throw new Error('addressInterface should contain derivation path.');
   const index: number = parseInt(
     derivationPathSplitted[derivationPathSplitted.length - 1]
   );
@@ -43,15 +46,15 @@ function getIndex(addrExtended: AddressInterfaceExtended) {
 }
 
 export class MasterPublicKey extends Identity implements IdentityInterface {
-  static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
+  protected static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
   static INITIAL_INDEX: number = 0;
 
-  private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
-  private scriptToAddressCache: BufferMap<
+  protected scriptToAddressCache: BufferMap<
     AddressInterfaceExtended
   > = new BufferMap();
+  private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
 
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
@@ -132,7 +135,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    * Derives the script given as parameter to a keypair (SLIP77).
    * @param scriptPubKey script to derive.
    */
-  private getBlindingKeyPair(
+  protected getBlindingKeyPair(
     scriptPubKey: Buffer
   ): { publicKey: Buffer; privateKey: Buffer } {
     const { publicKey, privateKey } = this.masterBlindingKeyNode.derive(
@@ -189,7 +192,6 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         blindingPrivateKey: blindingKeyPair.privateKey!.toString('hex'),
         derivationPath: path,
       },
-      derivationPath: path,
       publicKey: publicKey.toString('hex'),
     };
     // return the generation data
@@ -217,7 +219,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     );
   }
 
-  signPset(_: string): string {
+  signPset(_: string): Promise<string> {
     throw new Error(
       'MasterPublicKey is a watch only identity. Use Mnemonic to sign transactions'
     );
