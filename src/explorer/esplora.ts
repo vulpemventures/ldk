@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { Transaction, TxOutput, confidential } from 'liquidjs-lib';
 import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
-import { EsploraTx } from './types';
+import { EsploraTx, EsploraUtxo } from './types';
 import axios from 'axios';
 
 export async function fetchBalances(
@@ -44,7 +44,10 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
 }
 
-export async function fetchUtxos(address: string, url: string): Promise<any[]> {
+export async function fetchUtxos(
+  address: string,
+  url: string
+): Promise<EsploraUtxo[]> {
   return (await axios.get(`${url}/address/${address}/utxo`)).data;
 }
 

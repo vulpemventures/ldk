@@ -1,8 +1,11 @@
 import { UtxoInterface } from './../dist/types.d';
+import * as assert from 'assert';
 import {
   fetchAndUnblindTxs,
   fetchAndUnblindUtxos,
-} from '../src/explorer/esplora';
+  fetchPrevoutAndTryToUnblindUtxo,
+  isBlindedUtxo,
+} from '../src';
 import {
   senderAddress,
   senderBlindingKey,
@@ -10,8 +13,6 @@ import {
   unconfidentialSenderAddress,
 } from './fixtures/wallet.keys';
 import { APIURL, faucet } from './_regtest';
-import { isBlindedUtxo } from '../src/utils';
-import * as assert from 'assert';
 
 jest.setTimeout(80000);
 
@@ -69,6 +70,53 @@ describe('esplora', () => {
 
       const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
       assert.deepStrictEqual(isBlindedUtxo(faucetUtxo!), true);
+    });
+
+    it('should return an UtxoInterface with extra esplora enriched fields if the UtxoInterface interface as input contains extra esplora enriched fields', async () => {
+      const senderUtxos = await fetchAndUnblindUtxos(
+        [
+          {
+            confidentialAddress: senderAddress,
+            blindingPrivateKey: senderBlindingKey,
+          },
+        ],
+        APIURL
+      );
+      const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
+      const utxoInterface = await fetchPrevoutAndTryToUnblindUtxo(
+        faucetUtxo as UtxoInterface,
+        senderBlindingKey,
+        APIURL
+      );
+      expect(utxoInterface).toMatchObject({
+        asset: expect.any(String),
+        assetcommitment: expect.any(String),
+        noncecommitment: expect.any(String),
+        prevout: {
+          asset: expect.any(Buffer),
+          nonce: expect.any(Buffer),
+          rangeProof: expect.any(Buffer),
+          script: expect.any(Buffer),
+          surjectionProof: expect.any(Buffer),
+          value: expect.any(Buffer),
+        },
+        status: {
+          block_hash: expect.any(String),
+          block_height: expect.any(Number),
+          block_time: expect.any(Number),
+          confirmed: expect.any(Boolean),
+        },
+        txid: expect.any(String),
+        unblindData: {
+          asset: expect.any(Buffer),
+          assetBlindingFactor: expect.any(Buffer),
+          value: '100000000',
+          valueBlindingFactor: expect.any(Buffer),
+        },
+        value: 100000000,
+        valuecommitment: expect.any(String),
+        vout: expect.any(Number),
+      });
     });
   });
 
