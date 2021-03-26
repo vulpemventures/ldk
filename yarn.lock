@@ -5457,10 +5457,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.7:
-  version "5.1.7"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.7.tgz#4d747b115d48fe2220e82942a4d8b01e4ce27410"
-  integrity sha512-eeAk0vFhqsONM7buCC+4y3jZJwIOFHbS/PiXc8Mci8h/1SsD4ysmMFSrENt10tt5lxxIcPbeeDda8PXANiIj/A==
+liquidjs-lib@^5.1.11:
+  version "5.1.11"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.11.tgz#de05eceb98b124e40acd1c3b64d5fd2601a6a580"
+  integrity sha512-VpPDhLiQqwXBPQAA9WXgPqFC++KW6fV/rauem5E+2uVeXKSKKydo21LKlHgzVRO23+MqBgeM9q3+fwI5zfhGRw==
   dependencies:
     axios "^0.19.2"
     bech32 "^1.1.2"
