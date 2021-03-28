@@ -1379,6 +1379,14 @@
     semver "^7.3.2"
     tsutils "^3.17.1"
 
+"@vulpemventures/secp256k1-zkp@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@vulpemventures/secp256k1-zkp/-/secp256k1-zkp-2.0.0.tgz#d1bb464f50fa3693e95126c0409d773f6d0b7497"
+  integrity sha512-LhWeEp9pDWYpuE5Lvvb8QRuxG/9cd+NTxNaAzrg+JT0sO11D7hyxyvSgnHkuTVT7FDdmmQQGZ6lkutfynE45rQ==
+  dependencies:
+    "@types/node" "^13.9.2"
+    long "^4.0.0"
+
 "@webassemblyjs/ast@1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@webassemblyjs/ast/-/ast-1.9.0.tgz#bd850604b4042459a5a41cd7d338cbed695ed964"
@@ -1828,13 +1836,6 @@ axe-core@^4.0.2:
   version "4.1.2"
   resolved "https://registry.yarnpkg.com/axe-core/-/axe-core-4.1.2.tgz#7cf783331320098bfbef620df3b3c770147bc224"
   integrity sha512-V+Nq70NxKhYt89ArVcaNL9FDryB3vQOd+BFXZIfO3RP6rwtj+2yqqqdHEkacutglPaZLkJeuXKCjCJDMGPtPqg==
-
-axios@^0.19.2:
-  version "0.19.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-0.19.2.tgz#3ea36c5d8818d0d5f8a8a97a6d36b86cdc00cb27"
-  integrity sha512-fjgm5MvRHLhx+osE2xoekY70AhARk3a6hkN+3Io1jc00jtquGvxYlKlsFUhmUET0V5te6CcZI7lcv2Ym61mjHA==
-  dependencies:
-    follow-redirects "1.5.10"
 
 axios@^0.21.1:
   version "0.21.1"
@@ -3032,13 +3033,6 @@ data-urls@^1.1.0:
     whatwg-mimetype "^2.2.0"
     whatwg-url "^7.0.0"
 
-debug@=3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-3.1.0.tgz#5bb5a0672628b64149566ba16819e61518c67261"
-  integrity sha512-OX8XqP7/1a9cqkxYw2yXss15f26NKWBpDXQd0/uK/KPqdQhxbPa994hnzjcE2VqQpDslf55723cKPUOGSmMY3g==
-  dependencies:
-    ms "2.0.0"
-
 debug@^2.2.0, debug@^2.3.3, debug@^2.6.9:
   version "2.6.9"
   resolved "https://registry.yarnpkg.com/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
@@ -3947,13 +3941,6 @@ flush-write-stream@^1.0.0:
   dependencies:
     inherits "^2.0.3"
     readable-stream "^2.3.6"
-
-follow-redirects@1.5.10:
-  version "1.5.10"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.5.10.tgz#7b7a9f9aea2fdff36786a94ff643ed07f4ff5e2a"
-  integrity sha512-0V5l4Cizzvqt5D44aTXbFZz+FtyXV1vrDN6qrelxtfYQKW0KO0W2T/hkE8xvGa/540LkZlkaUjO4ailYTFtHVQ==
-  dependencies:
-    debug "=3.1.0"
 
 follow-redirects@^1.10.0:
   version "1.13.3"
@@ -5457,12 +5444,12 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.11:
-  version "5.1.11"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.11.tgz#de05eceb98b124e40acd1c3b64d5fd2601a6a580"
-  integrity sha512-VpPDhLiQqwXBPQAA9WXgPqFC++KW6fV/rauem5E+2uVeXKSKKydo21LKlHgzVRO23+MqBgeM9q3+fwI5zfhGRw==
+liquidjs-lib@5.1.12:
+  version "5.1.12"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.12.tgz#4ab22d9c9ae5514b647eb4b011d76d13f1a097dd"
+  integrity sha512-v01gO9zokMzQ4qRQ/ts5POgTL1ACZUqYgGWC/GE9oe1YXwnSdkho6m4M1zDOJLFwuew2DJ+RcQW8sFNMnHvWwA==
   dependencies:
-    axios "^0.19.2"
+    "@vulpemventures/secp256k1-zkp" "^2.0.0"
     bech32 "^1.1.2"
     bip174 vulpemventures/bip174.git
     bip32 "^2.0.4"
@@ -5475,7 +5462,6 @@ liquidjs-lib@^5.1.11:
     merkle-lib "^2.0.10"
     pushdata-bitcoin "^1.0.1"
     randombytes "^2.0.1"
-    secp256k1-zkp "github:vulpemventures/secp256k1-zkp"
     tiny-secp256k1 "^1.1.1"
     typeforce "^1.11.3"
     varuint-bitcoin "^1.0.4"
@@ -7514,13 +7500,6 @@ schema-utils@^3.0.0:
     "@types/json-schema" "^7.0.6"
     ajv "^6.12.5"
     ajv-keywords "^3.5.2"
-
-"secp256k1-zkp@github:vulpemventures/secp256k1-zkp":
-  version "2.0.0"
-  resolved "https://codeload.github.com/vulpemventures/secp256k1-zkp/tar.gz/1b9fdde3758eccd01f602601fed451ced5103a93"
-  dependencies:
-    "@types/node" "^13.9.2"
-    long "^4.0.0"
 
 semver-compare@^1.0.0:
   version "1.0.0"
