@@ -13,6 +13,8 @@ import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
 import { EsploraTx, EsploraUtxo } from './types';
 import axios from 'axios';
 
+const ZERO = Buffer.alloc(32).toString('hex');
+
 export async function fetchBalances(
   address: string,
   blindPrivKey: string,
@@ -42,6 +44,13 @@ export async function fetchBalances(
 
 export async function fetchTxHex(txId: string, url: string): Promise<string> {
   return (await axios.get(`${url}/tx/${txId}/hex`)).data;
+}
+
+export async function fetchTx(txId: string, url: string): Promise<TxInterface> {
+  return esploraTxToTxInterface(
+    (await axios.get(`${url}/tx/${txId}`)).data,
+    url
+  );
 }
 
 export async function fetchUtxos(
@@ -155,7 +164,7 @@ export async function* fetchAndUnblindTxsGenerator(
       }
 
       txids.push(tx.txid);
-      yield unblindTransactionPrevoutsAndOutputs(tx, blindingKeyGetter);
+      yield unblindTransaction(tx, blindingKeyGetter);
       txIterator = await txsGenerator.next();
     }
   }
@@ -224,6 +233,8 @@ function txOutputToOutputInterface(
     asset: toAssetHash(txOutput.asset),
     value: toNumber(txOutput.value),
     script: txOutput.script.toString('hex'),
+    assetBlinder: ZERO,
+    valueBlinder: ZERO,
   };
 
   return unblindedOutput;
@@ -234,7 +245,7 @@ function txOutputToOutputInterface(
  * @param tx transaction to unblind
  * @param blindingPrivateKeys the privateKeys using to unblind the outputs.
  */
-async function unblindTransactionPrevoutsAndOutputs(
+export async function unblindTransaction(
   tx: TxInterface,
   blindingPrivateKeyGetter: BlindingKeyGetter
 ): Promise<TxInterface> {
@@ -300,6 +311,8 @@ export async function unblindOutput(
     asset: Buffer.from(unblindedResult.asset.reverse()).toString('hex'),
     value: parseInt(unblindedResult.value, 10),
     script: output.script,
+    assetBlinder: unblindedResult.assetBlindingFactor.toString('hex'),
+    valueBlinder: unblindedResult.valueBlindingFactor.toString('hex'),
   };
 
   return unblindedOutput;
@@ -427,4 +440,40 @@ export async function unblindUtxo(
     value: parseInt(unblindData.value, 10),
     unblindData,
   };
+}
+
+export function makeUnblindURL(
+  baseURL: string,
+  txID: string,
+  outputsBlinder: Array<{
+    value: number;
+    asset: string;
+    assetBlinder: string;
+    valueBlinder: string;
+  }>
+): string {
+  const outputsString = outputsBlinder
+    .map(
+      ({ value, asset, assetBlinder, valueBlinder }) =>
+        `${value},${asset},${valueBlinder},${assetBlinder}`
+    )
+    .join(',');
+  return `${baseURL}/tx/${txID}#blinded=${outputsString}`;
+}
+
+export async function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
+  const outputsData: Array<{
+    value: number;
+    asset: string;
+    assetBlinder: string;
+    valueBlinder: string;
+  }> = [];
+
+  for (const output of tx.vout) {
+    if (!isBlindedOutputInterface(output)) {
+      outputsData.push(output);
+    }
+  }
+
+  return makeUnblindURL(baseURL, tx.txid, outputsData);
 }
