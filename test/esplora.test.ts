@@ -4,6 +4,7 @@ import {
   fetchAndUnblindTxs,
   fetchAndUnblindUtxos,
   fetchPrevoutAndTryToUnblindUtxo,
+  getUnblindURLFromTx,
   isBlindedUtxo,
 } from '../src';
 import {

@@ -58,6 +58,8 @@ export interface UnblindedOutputInterface {
   script: string;
   value: number;
   asset: string;
+  valueBlinder: string;
+  assetBlinder: string;
 }
 
 export interface InputInterface {
