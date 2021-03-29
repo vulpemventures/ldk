@@ -163,8 +163,14 @@ export async function* fetchAndUnblindTxsGenerator(
         continue;
       }
 
-      txids.push(tx.txid);
-      yield unblindTransaction(tx, blindingKeyGetter);
+      try {
+        yield unblindTransaction(tx, blindingKeyGetter);
+        txids.push(tx.txid);
+      } catch (err) {
+        console.error(
+          `an error occurs during unblinding step for tx ${tx.txid}`
+        );
+      }
       txIterator = await txsGenerator.next();
     }
   }
