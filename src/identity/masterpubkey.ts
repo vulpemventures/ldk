@@ -108,7 +108,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
-      (script: Buffer) => this.getBlindingKeyPair(script),
+      (script: Buffer) => this.getBlindingKeyPair(script, true),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
@@ -136,8 +136,18 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    * @param scriptPubKey script to derive.
    */
   protected getBlindingKeyPair(
-    scriptPubKey: Buffer
+    scriptPubKey: Buffer,
+    checkScript: boolean = false
   ): { publicKey: Buffer; privateKey: Buffer } {
+    if (checkScript) {
+      const addressInterface = this.scriptToAddressCache.get(scriptPubKey);
+      if (!addressInterface) {
+        throw new Error(
+          `unknow blinding key for script ${scriptPubKey.toString('hex')}`
+        );
+      }
+    }
+
     const { publicKey, privateKey } = this.masterBlindingKeyNode.derive(
       scriptPubKey
     );

@@ -101,7 +101,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
-      (script: Buffer) => super.getBlindingKeyPair(script),
+      (script: Buffer) => super.getBlindingKeyPair(script, true),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
