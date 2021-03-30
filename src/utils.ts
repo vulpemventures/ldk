@@ -4,8 +4,14 @@ import {
   Transaction,
   confidential,
   networks,
+  TxOutput,
 } from 'liquidjs-lib';
-import { Outpoint, UtxoInterface } from './types';
+import {
+  BlindedOutputInterface,
+  Outpoint,
+  UnblindedOutputInterface,
+  UtxoInterface,
+} from './types';
 // @ts-ignore
 import b58 from 'bs58check';
 import { fromBase58 } from 'bip32';
@@ -189,4 +195,39 @@ export function isBlindedUtxo({ asset, value }: UtxoInterface): boolean {
 
 export function getNetwork(str?: string): Network {
   return str ? (networks as Record<string, Network>)[str] : networks.liquid;
+}
+
+/**
+ * take a blinded output and unblind it
+ * @param output blinded output
+ * @param BlindingPrivateKey blinding private key
+ */
+export async function unblindOutput(
+  output: BlindedOutputInterface,
+  BlindingPrivateKey: string
+): Promise<UnblindedOutputInterface> {
+  const txOutput: TxOutput = {
+    asset: output.blindedAsset,
+    value: output.blindedValue,
+    rangeProof: output.rangeProof,
+    surjectionProof: output.surjectionProof,
+    nonce: output.nonce,
+    script: Buffer.from(output.script, 'hex'),
+  };
+
+  const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
+  const unblindedResult = await confidential.unblindOutputWithKey(
+    txOutput,
+    blindPrivateKeyBuffer
+  );
+
+  const unblindedOutput: UnblindedOutputInterface = {
+    asset: Buffer.from(unblindedResult.asset.reverse()).toString('hex'),
+    value: parseInt(unblindedResult.value, 10),
+    script: output.script,
+    assetBlinder: unblindedResult.assetBlindingFactor.toString('hex'),
+    valueBlinder: unblindedResult.valueBlindingFactor.toString('hex'),
+  };
+
+  return unblindedOutput;
 }
