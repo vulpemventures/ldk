@@ -225,6 +225,45 @@ describe('Identity: Mnemonic', () => {
       );
       assert.deepStrictEqual(isValid, true);
     });
+
+    it('should throw an error if one of the output to blind does not contain blinding public key (and it is not an identity script)', async () => {
+      const mnemonic = new Mnemonic(validOpts);
+      const generated = mnemonic.getNextAddress();
+
+      await faucet(generated.confidentialAddress);
+      const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
+
+      const prevoutHex = await fetchTxHex(utxo.txid);
+      const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+      const script = Buffer.from(
+        '00140619adc71daf50734f660bb2ee9aef37825b81fe',
+        'hex'
+      ); // non wallet script
+
+      const pset: Psbt = new Psbt({ network })
+        .addInput({
+          hash: utxo.txid,
+          index: utxo.vout,
+          witnessUtxo: prevout,
+        })
+        .addOutputs([
+          {
+            nonce: Buffer.from('00', 'hex'),
+            value: confidential.satoshiToConfidentialValue(49999500),
+            script,
+            asset: network.assetHash,
+          },
+          {
+            nonce: Buffer.from('00', 'hex'),
+            value: confidential.satoshiToConfidentialValue(60000000),
+            script: Buffer.alloc(0),
+            asset: network.assetHash,
+          },
+        ]);
+
+      assert.rejects(mnemonic.blindPset(pset.toBase64(), [0]));
+    });
   });
 
   describe('Mnemonic.getAddresses', () => {
