@@ -13,10 +13,8 @@ import {
   UnblindedOutputInterface,
   UtxoInterface,
 } from '../src/types';
-import {
-  fetchAndUnblindTxsGenerator,
-  fetchAndUnblindUtxosGenerator,
-} from '../src/explorer/esplora';
+import { fetchAndUnblindTxsGenerator } from '../src/explorer/transaction';
+import { fetchAndUnblindUtxosGenerator } from '../src/explorer/utxos';
 
 jest.setTimeout(500000);
 
@@ -107,7 +105,8 @@ describe('Wallet - Transaction builder', () => {
         utxoV = await utxosGenerator.next();
       }
 
-      assert.strictEqual(utxosArray.length, utxoV.value);
+      assert.strictEqual(utxosArray.length, utxoV.value.numberOfUtxos);
+      assert.strictEqual(utxoV.value.errors.length, 0);
     });
   });
 

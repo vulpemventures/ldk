@@ -11,6 +11,8 @@ export * from './coinselection/greedy';
 
 export * from './explorer/types';
 export * from './explorer/esplora';
+export * from './explorer/transaction';
+export * from './explorer/utxos';
 
 export * from './transaction';
 export * from './wallet';
