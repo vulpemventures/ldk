@@ -36,41 +36,60 @@ export async function fetchBalances(
   ); // {} is the initial value of the storage
 }
 
+/**
+ * fetchAndUnblindUtxosGenerator returns the unblinded utxos associated with a set of addresses.
+ * @param addressesAndBlindingKeys the set of addresses with blinding key (if confidential)
+ * @param url esplora URL
+ * @param skip optional, using to skip blinding step
+ */
 export async function* fetchAndUnblindUtxosGenerator(
   addressesAndBlindingKeys: Array<AddressInterface>,
   url: string,
   skip?: (utxo: UtxoInterface) => boolean
-): AsyncGenerator<UtxoInterface, number, undefined> {
+): AsyncGenerator<
+  UtxoInterface,
+  { numberOfUtxos: number; errors: any[] },
+  undefined
+> {
   let numberOfUtxos = 0;
+  const errors = [];
 
   // the generator repeats the process for each addresses
   for (const {
     confidentialAddress,
     blindingPrivateKey,
   } of addressesAndBlindingKeys) {
-    const blindedUtxos = await fetchUtxos(confidentialAddress, url);
-    const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) => {
-      if (skip && skip(utxo)) {
-        return utxo;
+    try {
+      const blindedUtxos = await fetchUtxos(confidentialAddress, url);
+      const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) => {
+        if (skip && skip(utxo)) {
+          return utxo;
+        }
+
+        // this is a non blocking function, returning the base utxo if the unblind failed
+        return fetchPrevoutAndTryToUnblindUtxo(utxo, blindingPrivateKey, url);
+      });
+
+      // at each 'next' call, the generator will return the result of the next promise
+      for (const promise of unblindedUtxosPromises) {
+        const r = await promise;
+        yield r;
+        numberOfUtxos++;
       }
-
-      // this is a non blocking function, returning the base utxo if the unblind failed
-      return fetchPrevoutAndTryToUnblindUtxo(utxo, blindingPrivateKey, url);
-    });
-
-    // increase the number of utxos
-    numberOfUtxos += unblindedUtxosPromises.length;
-
-    // at each 'next' call, the generator will return the result of the next promise
-    for (const promise of unblindedUtxosPromises) {
-      const r = await promise;
-      yield r;
+    } catch (e) {
+      errors.push(e);
     }
   }
 
-  return numberOfUtxos;
+  return { numberOfUtxos, errors };
 }
 
+/**
+ * Aggregate generator's result.
+ * @param addressesAndBlindingKeys
+ * @param url
+ * @param skip optional
+ */
 export async function fetchAndUnblindUtxos(
   addressesAndBlindingKeys: Array<AddressInterface>,
   url: string,

@@ -12,8 +12,9 @@ import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
-import { fetchAndUnblindUtxos, fetchTxHex } from '../src/explorer/esplora';
+import { fetchTxHex } from '../src/explorer/esplora';
 import { psetToUnsignedHex } from '../src/utils';
+import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
 
 jest.setTimeout(50000);
 

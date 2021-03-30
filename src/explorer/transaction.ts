@@ -20,30 +20,30 @@ export async function* fetchAndUnblindTxsGenerator(
   blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string,
   skip?: (tx: TxInterface) => boolean
-): AsyncGenerator<TxInterface, void, undefined> {
-  const txids: string[] = [];
-  for (const address of addresses) {
-    const txsGenerator = fetchTxsGenerator(address, explorerUrl, skip);
-    let txIterator = await txsGenerator.next();
-    while (!txIterator.done) {
-      const tx = txIterator.value;
-      if (txids.includes(tx.txid)) {
-        txIterator = await txsGenerator.next();
-        continue;
-      }
+): AsyncGenerator<TxInterface, { txIDs: string[]; errors: any[] }, undefined> {
+  const txIDs: string[] = [];
+  const errors = [];
 
-      try {
+  for (const address of addresses) {
+    try {
+      const txsGenerator = fetchTxsGenerator(address, explorerUrl, skip);
+      let txIterator = await txsGenerator.next();
+      while (!txIterator.done) {
+        const tx = txIterator.value;
+        if (txIDs.includes(tx.txid)) {
+          txIterator = await txsGenerator.next();
+          continue;
+        }
+
         yield unblindTransaction(tx, blindingKeyGetter);
-        txids.push(tx.txid);
-      } catch (err) {
-        console.error(
-          `an error occurs during unblinding step for tx ${tx.txid}`
-        );
+        txIDs.push(tx.txid);
+        txIterator = await txsGenerator.next();
       }
-      txIterator = await txsGenerator.next();
+    } catch (err) {
+      errors.push(err);
     }
   }
-  return;
+  return { txIDs, errors };
 }
 
 /**

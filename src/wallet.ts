@@ -9,7 +9,7 @@ import {
 } from './types';
 import { getNetwork, toOutpoint } from './utils';
 import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
-import { fetchAndUnblindUtxos } from './explorer/esplora';
+import { fetchAndUnblindUtxos } from './explorer/utxos';
 
 /**
  * Wallet abstraction.
