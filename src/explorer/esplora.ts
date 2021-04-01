@@ -158,7 +158,7 @@ export function makeUnblindURL(
  * @param tx transaction to create the link for
  * @param baseURL base web Explorer URL
  */
-export async function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
+export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
   const outputsData: Array<{
     value: number;
     asset: string;
@@ -166,9 +166,18 @@ export async function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
     valueBlinder: string;
   }> = [];
 
+  const reverseHex = (blinder: string) =>
+    Buffer.from(blinder, 'hex')
+      .reverse()
+      .toString('hex');
+
   for (const output of tx.vout) {
-    if (!isBlindedOutputInterface(output)) {
-      outputsData.push(output);
+    if (!isBlindedOutputInterface(output) && output.script.length > 0) {
+      outputsData.push({
+        ...output,
+        assetBlinder: reverseHex(output.assetBlinder),
+        valueBlinder: reverseHex(output.valueBlinder),
+      });
     }
   }
 
