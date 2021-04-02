@@ -38,10 +38,10 @@ export interface IdentityInterface {
   type: IdentityType;
   restorer: IdentityRestorerInterface;
   isRestored: Promise<boolean>;
-  getNextAddress(): AddressInterface;
-  getNextChangeAddress(): AddressInterface;
+  getNextAddress(): AddressInterface | Promise<AddressInterface>;
+  getNextChangeAddress(): AddressInterface | Promise<AddressInterface>;
   signPset(psetBase64: string): string | Promise<string>;
-  getAddresses(): AddressInterface[];
+  getAddresses(): AddressInterface[] | Promise<AddressInterface[]>;
   getBlindingPrivateKey(script: string): string;
   isAbleToSign(): boolean;
   blindPset(

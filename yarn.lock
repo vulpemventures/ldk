@@ -2046,7 +2046,7 @@ bindings@^1.3.0, bindings@^1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
-"bip174@github:vulpemventures/bip174":
+bip174@vulpemventures/bip174.git:
   version "1.0.1"
   resolved "https://codeload.github.com/vulpemventures/bip174/tar.gz/d6a71254fa66b2ba84de80c67b7255ab65979c3b"
 
@@ -2094,9 +2094,9 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-"blech32@github:vulpemventures/blech32":
+blech32@vulpemventures/blech32.git:
   version "1.0.0"
-  resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/b42822d0496a27ed5a313395517e9029bcfccf2e"
+  resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/95595cf62f550905c3e312144f877c68ac128679"
 
 bluebird@^3.5.5:
   version "3.7.2"
@@ -5668,6 +5668,11 @@ map-visit@^1.0.0:
   integrity sha1-7Nyo8TFE5mDxtb1B8S80edmN+48=
   dependencies:
     object-visit "^1.0.0"
+
+marina-provider@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/marina-provider/-/marina-provider-1.0.0.tgz#dbd9897db117cc35d31755b41b4ea7054b7a3035"
+  integrity sha512-hpZGcH5D0ZVwPtRvWlv5BUw69ZnoQc4iCEVTI7/eUZAqoaUUzyp7OpDY/UTLoaRWo++4mTKHtAGps8pGmD05jw==
 
 md5.js@^1.3.4:
   version "1.3.5"

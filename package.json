@@ -83,6 +83,7 @@
     "bip39": "^3.0.3",
     "bs58check": "^2.1.2",
     "liquidjs-lib": "5.1.12",
+    "marina-provider": "^1.0.0",
     "slip77": "^0.1.1"
   }
 }
