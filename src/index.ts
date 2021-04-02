@@ -4,6 +4,7 @@ export * from './identity/identity';
 export * from './identity/mnemonic';
 export * from './identity/privatekey';
 export * from './identity/masterpubkey';
+export * from './identity/browserinject';
 export * from './identity/identityRestorer';
 
 export * from './coinselection/coinSelector';
