@@ -70,17 +70,17 @@ export class BrowserInject extends Identity implements IdentityInterface {
   getAddresses(): Promise<AddressInterface[]> {
     return this.provider.getAddresses();
   }
-  getBlindingPrivateKey(script: string): Promise<string> {
+  getBlindingPrivateKey(_: string): Promise<string> {
     throw new Error('Method not implemented.');
   }
   isAbleToSign(): boolean {
     return true;
   }
   blindPset(
-    psetBase64: string,
-    outputsIndexToBlind: number[],
-    outputsPubKeysByIndex?: Map<number, string>,
-    inputsBlindingDataLike?: Map<number, BlindingDataLike>
+    _: string,
+    __: number[],
+    ___?: Map<number, string>,
+    ____?: Map<number, BlindingDataLike>
   ): Promise<string> {
     throw new Error('Method not implemented.');
   }
