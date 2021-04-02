@@ -42,7 +42,7 @@ export interface IdentityInterface {
   getNextChangeAddress(): AddressInterface | Promise<AddressInterface>;
   signPset(psetBase64: string): string | Promise<string>;
   getAddresses(): AddressInterface[] | Promise<AddressInterface[]>;
-  getBlindingPrivateKey(script: string): string;
+  getBlindingPrivateKey(script: string): string | Promise<string>;
   isAbleToSign(): boolean;
   blindPset(
     // the pset to blind

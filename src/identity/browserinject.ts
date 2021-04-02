@@ -58,19 +58,19 @@ export class BrowserInject extends Identity implements IdentityInterface {
     this.provider = (window as any)[args.value.windowProvider];
   }
 
-  getNextAddress(): AddressInterface | Promise<AddressInterface> {
+  getNextAddress(): Promise<AddressInterface> {
     return this.provider.getNextAddress();
   }
-  getNextChangeAddress(): AddressInterface | Promise<AddressInterface> {
+  getNextChangeAddress(): Promise<AddressInterface> {
     return this.provider.getNextChangeAddress();
   }
-  signPset(psetBase64: string): string | Promise<string> {
+  signPset(psetBase64: string): Promise<string> {
     return this.provider.signTransaction(psetBase64);
   }
-  getAddresses(): AddressInterface[] | Promise<AddressInterface[]> {
+  getAddresses(): Promise<AddressInterface[]> {
     return this.provider.getAddresses();
   }
-  getBlindingPrivateKey(script: string): string {
+  getBlindingPrivateKey(script: string): Promise<string> {
     throw new Error('Method not implemented.');
   }
   isAbleToSign(): boolean {
