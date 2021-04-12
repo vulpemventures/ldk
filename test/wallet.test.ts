@@ -1,13 +1,9 @@
-import { networks } from 'liquidjs-lib';
+import { networks, address } from 'liquidjs-lib';
 import { APIURL, faucet } from './_regtest';
 import * as assert from 'assert';
+import { recipientAddress, sender } from './fixtures/wallet.keys';
 import {
-  senderAddress,
-  recipientAddress,
-  sender,
-  senderBlindKeyGetter,
-} from './fixtures/wallet.keys';
-import {
+  AddressInterface,
   isBlindedOutputInterface,
   TxInterface,
   UnblindedOutputInterface,
@@ -20,18 +16,28 @@ jest.setTimeout(500000);
 
 describe('Wallet - Transaction builder', () => {
   let faucetTxID: string;
+  let senderAddress: AddressInterface;
 
   beforeAll(async () => {
-    faucetTxID = await faucet(senderAddress);
+    senderAddress = await sender.getNextAddress();
+    faucetTxID = await faucet(senderAddress.confidentialAddress);
   });
 
   describe('FetchAndUnblindTx function', () => {
     let faucetTx: TxInterface;
 
     beforeAll(async () => {
-      const txs = await fetchAndUnblindTxsGenerator(
-        [senderAddress],
-        senderBlindKeyGetter,
+      const txs = fetchAndUnblindTxsGenerator(
+        [senderAddress.confidentialAddress],
+        (script: string) => {
+          if (
+            address
+              .toOutputScript(senderAddress.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return senderAddress.blindingPrivateKey;
+          } else return undefined;
+        },
         APIURL
       );
 
@@ -57,12 +63,19 @@ describe('Wallet - Transaction builder', () => {
     });
 
     it('should fetch all the transactions of an address & unblind the prevouts', async () => {
-      const txs = await fetchAndUnblindTxsGenerator(
-        [senderAddress],
-        senderBlindKeyGetter,
+      const txs = fetchAndUnblindTxsGenerator(
+        [senderAddress.confidentialAddress],
+        (script: string) => {
+          if (
+            address
+              .toOutputScript(senderAddress.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return senderAddress.blindingPrivateKey;
+          } else return undefined;
+        },
         APIURL
       );
-
       let faucetTx = (await txs.next()).value as TxInterface;
       while (faucetTx.txid !== faucetTxID) {
         faucetTx = (await txs.next()).value as TxInterface;
@@ -87,8 +100,8 @@ describe('Wallet - Transaction builder', () => {
       const utxosGenerator = fetchAndUnblindUtxosGenerator(
         [
           {
-            confidentialAddress: senderAddress,
-            blindingPrivateKey: sender.getNextAddress().blindingPrivateKey,
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: senderAddress.blindingPrivateKey,
           },
           {
             confidentialAddress: recipientAddress,
@@ -113,13 +126,16 @@ describe('Wallet - Transaction builder', () => {
   describe('fetchAndUnblindTxsGenerator function', () => {
     it('should return tx at each next iteration', async () => {
       const txsGenerator = fetchAndUnblindTxsGenerator(
-        [senderAddress],
-        senderBlindKeyGetter,
+        [senderAddress.confidentialAddress],
+        () => senderAddress.blindingPrivateKey,
         APIURL
       );
 
-      const firstTxIt = await txsGenerator.next();
-      assert.strictEqual(firstTxIt.done, false);
+      let tx = await txsGenerator.next();
+      while (!tx.done) {
+        tx = await txsGenerator.next();
+      }
+      assert.strictEqual(tx.done, true);
     });
   });
 });

@@ -98,25 +98,25 @@ describe('Identity: Master Pub Key', () => {
       });
     });
 
-    it('should return all the generated addresses', () => {
+    it('should return all the generated addresses', async () => {
       const pubKey = new MasterPublicKey(validOpts);
-      const addr0 = pubKey.getNextAddress();
-      const addr1 = pubKey.getNextAddress();
+      const addr0 = await pubKey.getNextAddress();
+      const addr1 = await pubKey.getNextAddress();
 
-      const addresses = pubKey.getAddresses();
+      const addresses = await pubKey.getAddresses();
 
       assert.deepStrictEqual(addresses.sort(), [addr0, addr1].sort());
     });
   });
 
   describe('MasterPubKey.getBlindingPrivateKey', () => {
-    it('should return privateKey according to slip77 spec', () => {
+    it('should return privateKey according to slip77 spec', async () => {
       const pubKey = new MasterPublicKey(validOpts);
 
       const {
         confidentialAddress,
         blindingPrivateKey,
-      } = pubKey.getNextAddress();
+      } = await pubKey.getNextAddress();
 
       const script: string = payments
         .p2wpkh({
@@ -126,7 +126,7 @@ describe('Identity: Master Pub Key', () => {
         .output!.toString('hex');
 
       assert.deepStrictEqual(
-        pubKey.getBlindingPrivateKey(script),
+        await pubKey.getBlindingPrivateKey(script),
         blindingPrivateKey
       );
     });
@@ -141,8 +141,8 @@ describe('Identity: Master Pub Key', () => {
       pubkey = new MasterPublicKey(validOpts);
       // faucet all the addresses
       for (let i = 0; i < numberOfAddresses; i++) {
-        const addr = pubkey.getNextAddress();
-        const changeAddr = pubkey.getNextChangeAddress();
+        const addr = await pubkey.getNextAddress();
+        const changeAddr = await pubkey.getNextChangeAddress();
         await faucet(addr.confidentialAddress);
         await faucet(changeAddr.confidentialAddress);
       }
@@ -156,25 +156,20 @@ describe('Identity: Master Pub Key', () => {
       await toRestorePubKey.isRestored;
     });
 
-    it('should restore already used addresses', () => {
+    it('should restore already used addresses', async () => {
+      const pubKeyAddrs = await pubkey.getAddresses();
+      const toRestoreAddrs = await toRestorePubKey.getAddresses();
       assert.deepStrictEqual(
-        pubkey
-          .getAddresses()
-          .map(a => a.confidentialAddress)
-          .sort(),
-        toRestorePubKey
-          .getAddresses()
-          .map(a => a.confidentialAddress)
-          .sort()
+        pubKeyAddrs.map(a => a.confidentialAddress).sort(),
+        toRestoreAddrs.map(a => a.confidentialAddress).sort()
       );
     });
 
-    it('should update the index when restored', () => {
-      const addressesKnown = toRestorePubKey
-        .getAddresses()
-        .map(a => a.confidentialAddress);
+    it('should update the index when restored', async () => {
+      const addrs = await toRestorePubKey.getAddresses();
+      const addressesKnown = addrs.map(a => a.confidentialAddress);
 
-      const next = toRestorePubKey.getNextAddress();
+      const next = await toRestorePubKey.getNextAddress();
       const nextIsAlreadyKnown = addressesKnown.includes(
         next.confidentialAddress
       );
@@ -182,12 +177,11 @@ describe('Identity: Master Pub Key', () => {
       assert.deepStrictEqual(nextIsAlreadyKnown, false);
     });
 
-    it('should update the change index when restored', () => {
-      const addressesKnown = toRestorePubKey
-        .getAddresses()
-        .map(a => a.confidentialAddress);
+    it('should update the change index when restored', async () => {
+      const addrs = await toRestorePubKey.getAddresses();
+      const addressesKnown = addrs.map(a => a.confidentialAddress);
 
-      const next = toRestorePubKey.getNextChangeAddress();
+      const next = await toRestorePubKey.getNextChangeAddress();
       const nextIsAlreadyKnown = addressesKnown.includes(
         next.confidentialAddress
       );

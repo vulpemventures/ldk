@@ -1,26 +1,30 @@
+import { address } from 'liquidjs-lib';
 import { UtxoInterface } from './../dist/types.d';
 import * as assert from 'assert';
 import {
+  AddressInterface,
   fetchAndUnblindTxs,
   fetchAndUnblindUtxos,
   fetchPrevoutAndTryToUnblindUtxo,
   isBlindedUtxo,
 } from '../src';
-import {
-  senderAddress,
-  senderBlindingKey,
-  senderBlindKeyGetter,
-  unconfidentialSenderAddress,
-} from './fixtures/wallet.keys';
 import { APIURL, faucet } from './_regtest';
+import { sender } from './fixtures/wallet.keys';
 
 jest.setTimeout(80000);
 
 describe('esplora', () => {
   let txid: string;
+  let senderAddress: AddressInterface;
+  let unconfidentialSenderAddress: string;
 
   beforeAll(async () => {
-    txid = await faucet(senderAddress);
+    senderAddress = await sender.getNextAddress();
+    unconfidentialSenderAddress = address.fromConfidential(
+      senderAddress.confidentialAddress
+    ).unconfidentialAddress;
+
+    txid = await faucet(senderAddress.confidentialAddress);
     await faucet(unconfidentialSenderAddress);
   });
 
@@ -29,8 +33,8 @@ describe('esplora', () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
           {
-            confidentialAddress: senderAddress,
-            blindingPrivateKey: senderBlindingKey,
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: senderAddress.blindingPrivateKey,
           },
         ],
         APIURL
@@ -44,8 +48,8 @@ describe('esplora', () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
           {
-            confidentialAddress: senderAddress,
-            blindingPrivateKey: senderBlindingKey,
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: senderAddress.blindingPrivateKey,
           },
         ],
         APIURL
@@ -59,8 +63,8 @@ describe('esplora', () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
           {
-            confidentialAddress: senderAddress,
-            blindingPrivateKey: senderBlindingKey,
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: senderAddress.blindingPrivateKey,
           },
         ],
         APIURL,
@@ -76,8 +80,8 @@ describe('esplora', () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         [
           {
-            confidentialAddress: senderAddress,
-            blindingPrivateKey: senderBlindingKey,
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: senderAddress.blindingPrivateKey,
           },
         ],
         APIURL
@@ -85,7 +89,7 @@ describe('esplora', () => {
       const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
       const utxoInterface = await fetchPrevoutAndTryToUnblindUtxo(
         faucetUtxo as UtxoInterface,
-        senderBlindingKey,
+        senderAddress.blindingPrivateKey,
         APIURL
       );
       expect(utxoInterface).toMatchObject({
@@ -123,8 +127,16 @@ describe('esplora', () => {
   describe('fetchAndUnblindTxs', () => {
     it('should return txs if the blinding key is provided', async () => {
       const senderTxs = await fetchAndUnblindTxs(
-        [senderAddress],
-        senderBlindKeyGetter,
+        [senderAddress.confidentialAddress],
+        (script: string) => {
+          if (
+            address
+              .toOutputScript(senderAddress.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return senderAddress.blindingPrivateKey;
+          } else return undefined;
+        },
         APIURL
       );
 
@@ -134,8 +146,8 @@ describe('esplora', () => {
 
     it('should skip transaction specified by skip function (and does not return it)', async () => {
       const senderTxs = await fetchAndUnblindTxs(
-        [senderAddress],
-        senderBlindKeyGetter,
+        [senderAddress.confidentialAddress],
+        () => senderAddress.blindingPrivateKey,
         APIURL,
         tx => tx.txid === txid
       );
@@ -146,8 +158,16 @@ describe('esplora', () => {
 
     it('should work with duplicate addresses', async () => {
       const senderTxs = await fetchAndUnblindTxs(
-        [senderAddress, senderAddress],
-        senderBlindKeyGetter,
+        [senderAddress.confidentialAddress],
+        (script: string) => {
+          if (
+            address
+              .toOutputScript(senderAddress.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return senderAddress.blindingPrivateKey;
+          } else return undefined;
+        },
         APIURL
       );
 

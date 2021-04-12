@@ -1,9 +1,6 @@
-import { networks, payments, ECPair, address } from 'liquidjs-lib';
+import { networks, payments, ECPair } from 'liquidjs-lib';
 import { PrivateKey } from '../../src/identity/privatekey';
 import { IdentityType } from '../../src/identity/identity';
-import { walletFromAddresses } from '../../src/wallet';
-import { BlindingKeyGetter } from '../../src/types';
-import { APIURL } from '../_regtest';
 
 const network = networks.regtest;
 // generate a random keyPair for bob
@@ -26,24 +23,6 @@ export const sender = new PrivateKey({
   },
 });
 
-export const senderBlindKeyGetter: BlindingKeyGetter = (script: string) => {
-  try {
-    return sender.getBlindingPrivateKey(script);
-  } catch (_) {
-    return undefined;
-  }
-};
-
-export const senderAddress = sender.getNextAddress().confidentialAddress;
-export const unconfidentialSenderAddress = address.fromConfidential(
-  senderAddress
-).unconfidentialAddress;
-export const senderBlindingKey = sender.getNextAddress().blindingPrivateKey;
-export const senderWallet = walletFromAddresses(
-  sender.getAddresses(),
-  APIURL,
-  'regtest'
-);
 // this is random address for who is receiving the withdrawal
 export const recipientAddress = payments.p2wpkh({
   pubkey: keyPair2.publicKey,
