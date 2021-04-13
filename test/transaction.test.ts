@@ -1,12 +1,6 @@
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { networks, Psbt, Transaction } from 'liquidjs-lib';
-import {
-  recipientAddress,
-  senderAddress,
-  senderWallet,
-  sender,
-  senderBlindingKey,
-} from './fixtures/wallet.keys';
+import { recipientAddress, sender } from './fixtures/wallet.keys';
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
 import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
@@ -15,14 +9,29 @@ import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
 import { psetToUnsignedHex } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
+import { walletFromAddresses, WalletInterface } from '../src';
 
 jest.setTimeout(50000);
+
+let senderWallet: WalletInterface;
 
 describe('buildTx', () => {
   let USDT: string = '';
   let args: BuildTxArgs;
+  let senderAddress: string = '';
+  let senderBlindingKey: string = '';
 
   beforeAll(async () => {
+    const addrI = await sender.getNextAddress();
+    senderAddress = addrI.confidentialAddress;
+    senderBlindingKey = addrI.blindingPrivateKey;
+
+    senderWallet = await walletFromAddresses(
+      await sender.getAddresses(),
+      APIURL,
+      'regtest'
+    );
+
     await faucet(senderAddress);
     // mint and fund with USDT
     const minted = await mint(senderAddress, 100);

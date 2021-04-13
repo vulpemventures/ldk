@@ -135,9 +135,9 @@ describe('Identity: Private key', () => {
   });
 
   describe('PrivateKey.getAddresses', () => {
-    it("should return the PrivateKey instance p2wpkh's address and blindPrivKey", () => {
+    it("should return the PrivateKey instance p2wpkh's address and blindPrivKey", async () => {
       const privateKey = new PrivateKey(validOpts);
-      const addr: AddressInterface = privateKey.getAddresses()[0];
+      const addr: AddressInterface = (await privateKey.getAddresses())[0];
       assert.deepStrictEqual(
         p2wpkh.confidentialAddress,
         addr.confidentialAddress
@@ -150,12 +150,11 @@ describe('Identity: Private key', () => {
   });
 
   describe('PrivateKey.getBlindingPrivateKey', () => {
-    it('should return the private blinding key associated with the PrivateKey instance confidential address', () => {
+    it('should return the private blinding key associated with the PrivateKey instance confidential address', async () => {
       const privateKey = new PrivateKey(validOpts);
-      const {
-        confidentialAddress,
-        blindingPrivateKey,
-      } = privateKey.getAddresses()[0];
+      const { confidentialAddress, blindingPrivateKey } = (
+        await privateKey.getAddresses()
+      )[0];
       const script: string = payments
         .p2wpkh({
           confidentialAddress,
@@ -163,7 +162,7 @@ describe('Identity: Private key', () => {
         })
         .output!.toString('hex');
       assert.deepStrictEqual(
-        privateKey.getBlindingPrivateKey(script),
+        await privateKey.getBlindingPrivateKey(script),
         blindingPrivateKey
       );
     });
@@ -171,7 +170,7 @@ describe('Identity: Private key', () => {
     it('should throw an error if the script is not the PrivateKey scriptPubKey', () => {
       const privateKey = new PrivateKey(validOpts);
       const notTheGoodScript = 'bbb4659bedb5d3d3c7ab12d7f85323c3a1b6c060efbe';
-      assert.throws(() => privateKey.getBlindingPrivateKey(notTheGoodScript));
+      assert.rejects(() => privateKey.getBlindingPrivateKey(notTheGoodScript));
     });
   });
 });

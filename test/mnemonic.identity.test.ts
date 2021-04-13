@@ -124,7 +124,7 @@ describe('Identity: Mnemonic', () => {
   describe('Mnemonic.signPset', () => {
     it('should sign the inputs of the previously generated addresses', async () => {
       const mnemonic = new Mnemonic(validOpts);
-      const generated = mnemonic.getNextAddress();
+      const generated = await mnemonic.getNextAddress();
 
       await faucet(generated.confidentialAddress);
       const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
@@ -182,7 +182,7 @@ describe('Identity: Mnemonic', () => {
   describe('Mnemonic.blindPset', () => {
     it('should blind the transaction', async () => {
       const mnemonic = new Mnemonic(validOpts);
-      const generated = mnemonic.getNextAddress();
+      const generated = await mnemonic.getNextAddress();
 
       await faucet(generated.confidentialAddress);
       const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
@@ -228,7 +228,7 @@ describe('Identity: Mnemonic', () => {
 
     it('should throw an error if one of the output to blind does not contain blinding public key (and it is not an identity script)', async () => {
       const mnemonic = new Mnemonic(validOpts);
-      const generated = mnemonic.getNextAddress();
+      const generated = await mnemonic.getNextAddress();
 
       await faucet(generated.confidentialAddress);
       const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
@@ -283,21 +283,24 @@ describe('Identity: Mnemonic', () => {
       });
     });
 
-    it('should return all the generated addresses', () => {
+    it('should return all the generated addresses', async () => {
       const mnemonic = new Mnemonic(validOpts);
-      const generated1 = mnemonic.getNextAddress();
-      const generated2 = mnemonic.getNextAddress();
-      assert.deepStrictEqual([generated1, generated2], mnemonic.getAddresses());
+      const generated1 = await mnemonic.getNextAddress();
+      const generated2 = await mnemonic.getNextAddress();
+      assert.deepStrictEqual(
+        [generated1, generated2],
+        await mnemonic.getAddresses()
+      );
     });
   });
 
   describe('Mnemonic.getBlindingPrivateKey', () => {
-    it('should return the privateKey according to slip77 spec', () => {
+    it('should return the privateKey according to slip77 spec', async () => {
       const mnemonic = new Mnemonic(validOpts);
       const {
         confidentialAddress,
         blindingPrivateKey,
-      } = mnemonic.getNextAddress();
+      } = await mnemonic.getNextAddress();
 
       const script: string = payments
         .p2wpkh({
@@ -307,7 +310,7 @@ describe('Identity: Mnemonic', () => {
         .output!.toString('hex');
 
       assert.deepStrictEqual(
-        mnemonic.getBlindingPrivateKey(script),
+        await mnemonic.getBlindingPrivateKey(script),
         blindingPrivateKey
       );
     });
@@ -322,8 +325,8 @@ describe('Identity: Mnemonic', () => {
       mnemonic = new Mnemonic(validOpts);
       // faucet all the addresses
       for (let i = 0; i < numberOfAddresses; i++) {
-        const addr = mnemonic.getNextAddress();
-        const changeAddr = mnemonic.getNextChangeAddress();
+        const addr = await mnemonic.getNextAddress();
+        const changeAddr = await mnemonic.getNextChangeAddress();
         await faucet(addr.confidentialAddress);
         await faucet(changeAddr.confidentialAddress);
       }
@@ -337,25 +340,20 @@ describe('Identity: Mnemonic', () => {
       await toRestoreMnemonic.isRestored;
     });
 
-    it('should restore already used addresses', () => {
+    it('should restore already used addresses', async () => {
+      const addrs = await mnemonic.getAddresses();
+      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
       assert.deepStrictEqual(
-        mnemonic
-          .getAddresses()
-          .map(a => a.confidentialAddress)
-          .sort(),
-        toRestoreMnemonic
-          .getAddresses()
-          .map(a => a.confidentialAddress)
-          .sort()
+        addrs.map(a => a.confidentialAddress).sort(),
+        toRestoreAddrs.map(a => a.confidentialAddress).sort()
       );
     });
 
-    it('should update the index when restored', () => {
-      const addressesKnown = toRestoreMnemonic
-        .getAddresses()
-        .map(a => a.confidentialAddress);
+    it('should update the index when restored', async () => {
+      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
+      const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
 
-      const next = toRestoreMnemonic.getNextAddress();
+      const next = await toRestoreMnemonic.getNextAddress();
       const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
         next.confidentialAddress
       );
@@ -363,12 +361,11 @@ describe('Identity: Mnemonic', () => {
       assert.deepStrictEqual(nextIsAlreadyKnownByMnemonic, false);
     });
 
-    it('should update the change index when restored', () => {
-      const addressesKnown = toRestoreMnemonic
-        .getAddresses()
-        .map(a => a.confidentialAddress);
+    it('should update the change index when restored', async () => {
+      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
+      const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
 
-      const next = toRestoreMnemonic.getNextChangeAddress();
+      const next = await toRestoreMnemonic.getNextChangeAddress();
       const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
         next.confidentialAddress
       );

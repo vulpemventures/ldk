@@ -126,15 +126,15 @@ export class PrivateKey extends Identity implements IdentityInterface {
     };
   }
 
-  getNextAddress(): AddressInterface {
+  async getNextAddress(): Promise<AddressInterface> {
     return this.getAddress();
   }
 
-  getNextChangeAddress(): AddressInterface {
+  async getNextChangeAddress(): Promise<AddressInterface> {
     return this.getAddress();
   }
 
-  getBlindingPrivateKey(script: string): string {
+  async getBlindingPrivateKey(script: string): Promise<string> {
     const scriptPubKeyBuffer = Buffer.from(script, 'hex');
     if (!scriptPubKeyBuffer.equals(this.scriptPubKey)) {
       throw new Error('The script is not PrivateKey.scriptPubKey.');
@@ -175,7 +175,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
   /**
    * for private key: only returns one confidential address & the associated blindingPrivKey.
    */
-  getAddresses(): AddressInterface[] {
+  async getAddresses(): Promise<AddressInterface[]> {
     return [
       {
         confidentialAddress: this.confidentialAddress,

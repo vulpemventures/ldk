@@ -156,7 +156,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   }
 
   // returns all the addresses generated
-  getAddresses(): AddressInterface[] {
+  async getAddresses(): Promise<AddressInterface[]> {
     return super.getAddresses();
   }
 }

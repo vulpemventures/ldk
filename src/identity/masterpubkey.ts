@@ -208,21 +208,21 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     return newAddressGeneration;
   }
 
-  getNextAddress(): AddressInterface {
+  async getNextAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(false, this.index);
     this.persistAddressToCache(addr);
     this.index += 1;
     return addr.address;
   }
 
-  getNextChangeAddress(): AddressInterface {
+  async getNextChangeAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(true, this.changeIndex);
     this.persistAddressToCache(addr);
     this.changeIndex += 1;
     return addr.address;
   }
 
-  getBlindingPrivateKey(script: string): string {
+  async getBlindingPrivateKey(script: string): Promise<string> {
     const scriptPubKeyBuffer = Buffer.from(script, 'hex');
     return this.getBlindingKeyPair(scriptPubKeyBuffer).privateKey.toString(
       'hex'
@@ -236,7 +236,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   }
 
   // returns all the addresses generated
-  getAddresses(): AddressInterface[] {
+  async getAddresses(): Promise<AddressInterface[]> {
     return this.scriptToAddressCache
       .values()
       .map(addrExtended => addrExtended.address);
