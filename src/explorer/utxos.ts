@@ -1,4 +1,4 @@
-import { confidential, Transaction } from 'liquidjs-lib';
+import { confidential, Transaction, ECPair, address } from 'liquidjs-lib';
 import { AddressInterface, UtxoInterface } from '../types';
 import { fetchTxHex, fetchUtxos } from './esplora';
 import { isConfidentialOutput } from '../utils';
@@ -60,27 +60,40 @@ export async function* fetchAndUnblindUtxosGenerator(
     blindingPrivateKey,
   } of addressesAndBlindingKeys) {
     try {
+      // check the blinding private key
+      if (blindingPrivateKey.length > 0) {
+        const blindingKeyPair = ECPair.fromPrivateKey(
+          Buffer.from(blindingPrivateKey, 'hex')
+        );
+        const addressPublicKey = address.fromConfidential(confidentialAddress)
+          .blindingKey;
+        if (!blindingKeyPair.publicKey.equals(addressPublicKey)) {
+          throw new Error('wrong blinding private key');
+        }
+      }
+
+      // fetch the unspents
       const blindedUtxos = await fetchUtxos(confidentialAddress, url);
-      const unblindedUtxosPromises = blindedUtxos.map((utxo: UtxoInterface) => {
+
+      // set up the unblind function
+      const skipOrUnblind = async (utxo: UtxoInterface) => {
         if (skip && skip(utxo)) {
           return utxo;
         }
-
         // this is a non blocking function, returning the base utxo if the unblind failed
         return fetchPrevoutAndTryToUnblindUtxo(utxo, blindingPrivateKey, url);
-      });
+      };
 
       // at each 'next' call, the generator will return the result of the next promise
-      for (const promise of unblindedUtxosPromises) {
-        const r = await promise;
-        yield r;
+      for (const blindedUtxo of blindedUtxos) {
+        const utxo = await skipOrUnblind(blindedUtxo);
+        yield utxo;
         numberOfUtxos++;
       }
     } catch (e) {
       errors.push(e);
     }
   }
-
   return { numberOfUtxos, errors };
 }
 
