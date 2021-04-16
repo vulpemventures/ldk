@@ -1,4 +1,4 @@
-import { address } from 'liquidjs-lib';
+import { address, ECPair } from 'liquidjs-lib';
 import { UtxoInterface } from './../dist/types.d';
 import * as assert from 'assert';
 import {
@@ -42,6 +42,19 @@ describe('esplora', () => {
 
       const withPrevouts = senderUtxos.filter(u => u.prevout);
       assert.deepStrictEqual(withPrevouts.length, senderUtxos.length);
+    });
+
+    it('should fetch the utxos, even if wrong blinding key is provided', async () => {
+      const senderUtxos = await fetchAndUnblindUtxos(
+        [
+          {
+            confidentialAddress: senderAddress.confidentialAddress,
+            blindingPrivateKey: ECPair.makeRandom().privateKey!.toString('hex'),
+          },
+        ],
+        APIURL
+      );
+      assert.deepStrictEqual(senderUtxos.length, 0);
     });
 
     it('should unblind utxos if the blinding key is provided', async () => {
