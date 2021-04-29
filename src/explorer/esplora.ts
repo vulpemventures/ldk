@@ -172,7 +172,7 @@ export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
       .toString('hex');
 
   for (const output of tx.vout) {
-    if (!isBlindedOutputInterface(output) && output.script.length > 0) {
+    if (output.script.length > 0 && !isBlindedOutputInterface(output)) {
       outputsData.push({
         ...output,
         assetBlinder: reverseHex(output.assetBlinder),
