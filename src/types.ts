@@ -37,6 +37,8 @@ export interface UtxoInterface {
   value?: number;
   prevout?: TxOutput;
   unblindData?: confidential.UnblindOutputResult;
+  redeemScript?: Buffer;
+  witnessScript?: Buffer;
 }
 
 export interface BlindedOutputInterface {
