@@ -1,4 +1,5 @@
 import axios from 'axios';
+import UnblindError from '../error/unblind-error';
 import {
   BlindingKeyGetter,
   isBlindedOutputInterface,
@@ -35,7 +36,13 @@ export async function* fetchAndUnblindTxsGenerator(
           continue;
         }
 
-        yield unblindTransaction(tx, blindingKeyGetter);
+        const { unblindedTx, errors: errs } = await unblindTransaction(
+          tx,
+          blindingKeyGetter
+        );
+        errors.push(...errs);
+        yield unblindedTx;
+
         txIDs.push(tx.txid);
         txIterator = await txsGenerator.next();
       }
@@ -127,8 +134,9 @@ async function* fetchTxsGenerator(
 export async function unblindTransaction(
   tx: TxInterface,
   blindingPrivateKeyGetter: BlindingKeyGetter
-): Promise<TxInterface> {
+): Promise<{ unblindedTx: TxInterface; errors: UnblindError[] }> {
   const promises: Promise<void>[] = [];
+  const errors: UnblindError[] = [];
 
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
@@ -137,8 +145,18 @@ export async function unblindTransaction(
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(prevout.script);
         if (blindingKey) {
-          const unblinded = await unblindOutput(prevout, blindingKey);
-          tx.vin[inputIndex].prevout = unblinded;
+          try {
+            const unblinded = await unblindOutput(prevout, blindingKey);
+            tx.vin[inputIndex].prevout = unblinded;
+          } catch (_) {
+            errors.push(
+              new UnblindError(
+                tx.vin[inputIndex].txid,
+                tx.vin[inputIndex].vout,
+                blindingKey
+              )
+            );
+          }
         }
       };
 
@@ -153,8 +171,12 @@ export async function unblindTransaction(
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(output.script);
         if (blindingKey) {
-          const unblinded = await unblindOutput(output, blindingKey);
-          tx.vout[outputIndex] = unblinded;
+          try {
+            const unblinded = await unblindOutput(output, blindingKey);
+            tx.vout[outputIndex] = unblinded;
+          } catch (err) {
+            errors.push(new UnblindError(tx.txid, outputIndex, blindingKey));
+          }
         }
       };
 
@@ -164,7 +186,7 @@ export async function unblindTransaction(
 
   await Promise.all(promises);
 
-  return tx;
+  return { unblindedTx: tx, errors };
 }
 
 async function fetch25newestTxsForAddress(

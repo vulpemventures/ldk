@@ -2,6 +2,7 @@ import { confidential, Transaction, ECPair, address } from 'liquidjs-lib';
 import { AddressInterface, UtxoInterface } from '../types';
 import { fetchTxHex, fetchUtxos } from './esplora';
 import { isConfidentialOutput } from '../utils';
+import UnblindError from '../error/unblind-error';
 
 /**
  * Fetch balances for a given address
@@ -48,7 +49,7 @@ export async function* fetchAndUnblindUtxosGenerator(
   skip?: (utxo: UtxoInterface) => boolean
 ): AsyncGenerator<
   UtxoInterface,
-  { numberOfUtxos: number; errors: any[] },
+  { numberOfUtxos: number; errors: Error[] },
   undefined
 > {
   let numberOfUtxos = 0;
@@ -75,19 +76,20 @@ export async function* fetchAndUnblindUtxosGenerator(
       // fetch the unspents
       const blindedUtxos = await fetchUtxos(confidentialAddress, url);
 
-      // set up the unblind function
-      const skipOrUnblind = async (utxo: UtxoInterface) => {
-        if (skip && skip(utxo)) {
-          return utxo;
-        }
-        // this is a non blocking function, returning the base utxo if the unblind failed
-        return fetchPrevoutAndTryToUnblindUtxo(utxo, blindingPrivateKey, url);
-      };
-
       // at each 'next' call, the generator will return the result of the next promise
       for (const blindedUtxo of blindedUtxos) {
-        const utxo = await skipOrUnblind(blindedUtxo);
-        yield utxo;
+        if (skip && skip(blindedUtxo)) {
+          yield blindedUtxo;
+          continue;
+        }
+
+        const { unblindedUtxo, error } = await fetchPrevoutAndTryToUnblindUtxo(
+          blindedUtxo,
+          blindingPrivateKey,
+          url
+        );
+        errors.push(error);
+        yield unblindedUtxo;
         numberOfUtxos++;
       }
     } catch (e) {
@@ -150,12 +152,14 @@ export async function fetchPrevoutAndTryToUnblindUtxo(
   utxo: UtxoInterface,
   blindPrivKey: string,
   url: string
-): Promise<UtxoInterface> {
+): Promise<{ unblindedUtxo: UtxoInterface; error?: UnblindError }> {
   if (!utxo.prevout) utxo = await utxoWithPrevout(utxo, url);
   try {
-    return unblindUtxo(utxo, blindPrivKey);
+    const unblindedUtxo = await unblindUtxo(utxo, blindPrivKey);
+    return { unblindedUtxo };
   } catch (_) {
-    return utxo;
+    const error = new UnblindError(utxo.txid, utxo.vout, blindPrivKey);
+    return { unblindedUtxo: utxo, error };
   }
 }
 
@@ -181,7 +185,6 @@ export async function unblindUtxo(
     utxo.prevout,
     Buffer.from(blindPrivKey, 'hex')
   );
-
   const unblindAsset = Buffer.alloc(32);
   unblindData.asset.copy(unblindAsset);
 
