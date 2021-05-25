@@ -105,7 +105,7 @@ describe('esplora', () => {
         senderAddress.blindingPrivateKey,
         APIURL
       );
-      expect(utxoInterface).toMatchObject({
+      expect(utxoInterface.unblindedUtxo).toMatchObject({
         asset: expect.any(String),
         assetcommitment: expect.any(String),
         noncecommitment: expect.any(String),

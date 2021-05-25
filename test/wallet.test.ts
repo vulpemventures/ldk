@@ -119,7 +119,7 @@ describe('Wallet - Transaction builder', () => {
       }
 
       assert.strictEqual(utxosArray.length, utxoV.value.numberOfUtxos);
-      assert.strictEqual(utxoV.value.errors.length, 0);
+      assert.strictEqual(utxoV.value.errors.filter(e => e).length, 0);
     });
   });
 
