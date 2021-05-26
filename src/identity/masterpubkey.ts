@@ -309,7 +309,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         // generate addresses to test
         const addressesToTest = await this.generateSetOfAddresses(
           index,
-          NOT_USED_ADDRESSES_LIMIT - counter,
+          NOT_USED_ADDRESSES_LIMIT,
           change
         );
         // test all addresses asynchronously using restorer.
