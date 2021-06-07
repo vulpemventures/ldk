@@ -3,6 +3,7 @@ import {
   IdentityOpts,
   IdentityType,
   Mnemonic,
+  MnemonicOpts,
   mnemonicRestorerFromEsplora,
 } from '../src';
 import {
@@ -21,16 +22,16 @@ const network = networks.regtest;
 
 jest.setTimeout(500_000);
 
-const validOpts: IdentityOpts = {
+const validOpts: IdentityOpts<MnemonicOpts> = {
   chain: 'regtest',
   type: IdentityType.Mnemonic,
-  value: {
+  opts: {
     mnemonic:
       'turn manual grain tobacco pluck onion off chief drive amount slice forward',
   },
 };
 
-const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.value.mnemonic);
+const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
 const masterPrivateKeyFromValidMnemonic = bip32fromSeed(
   seedFromValidMnemonic,
   network
@@ -39,36 +40,31 @@ const masterBlindingKeyFromValidMnemonic = slip77fromSeed(
   seedFromValidMnemonic
 );
 
-const validOptsFrench: IdentityOpts = {
+const validOptsFrench: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: {
+  opts: {
     mnemonic:
       'mutuel ourson soupape vertu atelier dynastie silicium absolu océan légume pyramide skier météore tulipe alchimie élargir gourmand étaler saboter cocotier aisance mairie jeton créditer',
     language: 'french',
   },
 };
 
-const unvalidLanguageOpts: IdentityOpts = {
+const unvalidLanguageOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: {
-    ...validOpts.value,
+  opts: {
+    ...validOpts.opts,
     language: 'corsican',
   },
 };
 
-const unvalidTypeOpts: IdentityOpts = {
+const unvalidTypeOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
   type: IdentityType.PrivateKey,
 };
 
-const unvalidValueOpts: IdentityOpts = {
+const unvalidMnemonicOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: { vulpem: 'company', language: 'italian' },
-};
-
-const unvalidMnemonicOpts: IdentityOpts = {
-  ...validOpts,
-  value: {
+  opts: {
     mnemonic: 'tbh nigiri is awesome for Liquid / bitcoin unit testing',
   },
 };
@@ -99,10 +95,6 @@ describe('Identity: Mnemonic', () => {
 
     it('should throw an error if type is not IdentityType.Mnemonic', () => {
       assert.throws(() => new Mnemonic(unvalidTypeOpts));
-    });
-
-    it('should throw an error if value of IdentityOpts is not of type {mnemonic: string; language?: string;}', () => {
-      assert.throws(() => new Mnemonic(unvalidValueOpts));
     });
 
     it('should throw an error if the language is unvalid (i.e has no wordlist available)', () => {

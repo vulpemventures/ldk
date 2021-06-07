@@ -57,10 +57,10 @@ export interface IdentityInterface {
  * @member type the identity type @see IdentityType .
  * @member value the data used to create the Identity. depends of the type.
  */
-export interface IdentityOpts {
+export interface IdentityOpts<optsT> {
   chain: string;
   type: number;
-  value: any;
+  opts: optsT;
 }
 
 /**
@@ -70,7 +70,7 @@ export default class Identity {
   network: Network;
   type: IdentityType;
 
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<any>) {
     if (!args.chain || !networks.hasOwnProperty(args.chain)) {
       throw new Error('Network is missing or not valid');
     }

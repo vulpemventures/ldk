@@ -5,6 +5,8 @@ import {
   Mnemonic,
   fromXpub,
   masterPubKeyRestorerFromEsplora,
+  MasterPublicKeyOpts,
+  MnemonicOpts,
 } from '../src';
 import * as assert from 'assert';
 import { networks, payments } from 'liquidjs-lib';
@@ -12,10 +14,10 @@ import { faucet } from './_regtest';
 
 jest.setTimeout(60000);
 
-const validOpts: IdentityOpts = {
+const validOpts: IdentityOpts<MasterPublicKeyOpts> = {
   chain: 'regtest',
   type: IdentityType.MasterPublicKey,
-  value: {
+  opts: {
     masterPublicKey: fromXpub(
       'tpubD6NzVbkrYhZ4XzWjD4v6Q3aNJzvGYFrCNvL5FvWkpE5yBwXwzPeUAF7KrdUKQ4feKGquMXJNn5dkm3xL8eFyDjSrD1C5s5Byh3ZTiBU1wHd',
       'regtest'
@@ -25,26 +27,17 @@ const validOpts: IdentityOpts = {
   },
 };
 
-const invalidKeysOpts: IdentityOpts = {
+const invalidKeysOpts: IdentityOpts<MasterPublicKeyOpts> = {
   ...validOpts,
-  value: {
+  opts: {
     masterPublicKey: "I'm not a good pub key",
     masterBlindingKey: "i'm not a hex encoded blindingkey éç",
   },
 };
 
-const wrongTypeOpts: IdentityOpts = {
+const wrongTypeOpts: IdentityOpts<MasterPublicKeyOpts> = {
   ...validOpts,
   type: IdentityType.Mnemonic,
-};
-
-const invalidValueFormat: IdentityOpts = {
-  ...validOpts,
-  value: {
-    notMasterPubKey:
-      'xpub6CpihtY9HVc1jNJWCiXnRbpXm5BgVNKqZMsM4XqpDcQigJr6AHNwaForLZ3kkisDcRoaXSUms6DJNhxFtQGeZfWAQWCZQe1esNetx5Wqe4M',
-    notMasterBlindKey: '0000000001211200000000000000000000000000000',
-  },
 };
 
 describe('Identity: Master Pub Key', () => {
@@ -56,10 +49,6 @@ describe('Identity: Master Pub Key', () => {
 
     it('should throw an error if the identity type is not IdentityType.MasterPubKey', () => {
       assert.throws(() => new MasterPublicKey(wrongTypeOpts));
-    });
-
-    it('should throw an error if the args value has not the good format', () => {
-      assert.throws(() => new MasterPublicKey(invalidValueFormat));
     });
 
     it('should throw an error if the masterPublicKey and masterBlindingKey are not valid key', () => {
@@ -190,10 +179,10 @@ describe('Identity: Master Pub Key', () => {
 
   describe('MasterPubKey X Mnemonic', () => {
     it('should generate same addresses than Mnemonic', () => {
-      const mnemonicValidOpts: IdentityOpts = {
+      const mnemonicValidOpts: IdentityOpts<MnemonicOpts> = {
         chain: 'regtest',
         type: IdentityType.Mnemonic,
-        value: {
+        opts: {
           mnemonic:
             'pause quantum three welcome become episode tackle achieve predict mimic share task onion vapor announce exist inner fortune stamp crucial angle neither manage denial',
         },
@@ -202,7 +191,7 @@ describe('Identity: Master Pub Key', () => {
       const mnemonic = new Mnemonic(mnemonicValidOpts);
       const pubkey = new MasterPublicKey({
         ...validOpts,
-        value: {
+        opts: {
           masterBlindingKey: mnemonic.masterBlindingKey,
           masterPublicKey: mnemonic.masterPublicKey,
         },

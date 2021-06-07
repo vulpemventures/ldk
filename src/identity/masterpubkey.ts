@@ -15,15 +15,9 @@ import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
 import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
 
-export interface MasterPublicKeyOptsValue {
+export interface MasterPublicKeyOpts {
   masterPublicKey: string;
   masterBlindingKey: string;
-}
-
-function instanceOfMasterPublicKeyOptsValue(
-  value: any
-): value is MasterPublicKeyOptsValue {
-  return 'masterPublicKey' in value && 'masterBlindingKey' in value;
 }
 
 interface AddressInterfaceExtended {
@@ -45,10 +39,10 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
 
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<MasterPublicKeyOpts>) {
     super(args);
 
-    const xpub = toXpub(args.value.masterPublicKey);
+    const xpub = toXpub(args.opts.masterPublicKey);
 
     // check the identity type
     if (args.type !== IdentityType.MasterPublicKey) {
@@ -56,24 +50,19 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         'The identity arguments have not the MasterPublicKey type.'
       );
     }
-    // check the arguments
-    if (!instanceOfMasterPublicKeyOptsValue(args.value)) {
-      throw new Error(
-        'The value of IdentityOpts is not valid for MasterPublicKey Identity.'
-      );
-    }
+
     // validate xpub
     if (!isValidXpub(xpub)) {
       throw new Error('Master public key is not valid');
     }
     // validate master blinding key
-    if (!isValidExtendedBlindKey(args.value.masterBlindingKey)) {
+    if (!isValidExtendedBlindKey(args.opts.masterBlindingKey)) {
       throw new Error('Master blinding key is not valid');
     }
 
     this.masterPublicKeyNode = fromBase58(xpub);
     this.masterBlindingKeyNode = fromMasterBlindingKey(
-      args.value.masterBlindingKey
+      args.opts.masterBlindingKey
     );
   }
 
