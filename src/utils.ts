@@ -7,6 +7,7 @@ import {
   TxOutput,
 } from 'liquidjs-lib';
 import {
+  AddressInterface,
   BlindedOutputInterface,
   Outpoint,
   UnblindedOutputInterface,
@@ -230,4 +231,15 @@ export async function unblindOutput(
   };
 
   return unblindedOutput;
+}
+
+// util function that parse a derivation path and return the index
+export function getIndexFromAddress(addr: AddressInterface) {
+  if (!addr.derivationPath) {
+    throw new Error('need derivation path to be defined');
+  }
+
+  const derivationPathSplitted = addr.derivationPath.split('/');
+
+  return parseInt(derivationPathSplitted[derivationPathSplitted.length - 1]);
 }

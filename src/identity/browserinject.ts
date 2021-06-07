@@ -27,9 +27,6 @@ export class BrowserInject extends Identity implements IdentityInterface {
   // here we force MarinaProvider since there aren't other Liquid injected API specification available as TypeScript interface yet.
   private provider: MarinaProvider;
 
-  // for inject, is restored always return true (there is only one address to generate)
-  readonly isRestored: Promise<boolean> = new Promise(() => true);
-
   constructor(args: IdentityOpts) {
     super(args);
 

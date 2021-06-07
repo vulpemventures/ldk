@@ -5,7 +5,6 @@ export * from './identity/mnemonic';
 export * from './identity/privatekey';
 export * from './identity/masterpubkey';
 export * from './identity/browserinject';
-export * from './identity/identityRestorer';
 
 export * from './coinselection/coinSelector';
 export * from './coinselection/greedy';
@@ -19,3 +18,6 @@ export * from './transaction';
 export * from './wallet';
 export * from './utils';
 export * from './types';
+
+export * from './restorer/mnemonic-restorer';
+export * from './restorer/restorer';

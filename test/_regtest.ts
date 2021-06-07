@@ -37,7 +37,6 @@ export async function faucet(address: string): Promise<string> {
       } catch (ignore) {}
     }
   } catch (e) {
-    console.error(e);
     throw e;
   }
 }

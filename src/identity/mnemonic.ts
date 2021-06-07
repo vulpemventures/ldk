@@ -46,11 +46,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     }
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
-    if (args.value.language) {
-      bip39.setDefaultWordlist(args.value.language);
-    } else {
-      bip39.setDefaultWordlist('english');
-    }
+    bip39.setDefaultWordlist(args.value.language || 'english');
 
     // validate the mnemonic
     if (!bip39.validateMnemonic(args.value.mnemonic)) {

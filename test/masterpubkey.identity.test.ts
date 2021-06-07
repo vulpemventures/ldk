@@ -1,10 +1,10 @@
 import {
-  EsploraIdentityRestorer,
   IdentityOpts,
   IdentityType,
   MasterPublicKey,
   Mnemonic,
   fromXpub,
+  masterPubKeyRestorerFromEsplora,
 } from '../src';
 import * as assert from 'assert';
 import { networks, payments } from 'liquidjs-lib';
@@ -134,7 +134,7 @@ describe('Identity: Master Pub Key', () => {
 
   describe('MasterPubKey.restore', () => {
     let pubkey: MasterPublicKey;
-    let toRestorePubKey: MasterPublicKey;
+    let restoredPubKey: MasterPublicKey;
 
     beforeAll(async () => {
       const numberOfAddresses = 2;
@@ -147,18 +147,16 @@ describe('Identity: Master Pub Key', () => {
         await faucet(changeAddr.confidentialAddress);
       }
 
-      toRestorePubKey = new MasterPublicKey({
-        ...validOpts,
-        initializeFromRestorer: true,
-        restorer: new EsploraIdentityRestorer('http://localhost:3001'),
+      const toRestorePubKey = new MasterPublicKey({ ...validOpts });
+      restoredPubKey = await masterPubKeyRestorerFromEsplora(toRestorePubKey)({
+        gapLimit: 20,
+        esploraURL: 'http://localhost:3001',
       });
-
-      await toRestorePubKey.isRestored;
     });
 
     it('should restore already used addresses', async () => {
       const pubKeyAddrs = await pubkey.getAddresses();
-      const toRestoreAddrs = await toRestorePubKey.getAddresses();
+      const toRestoreAddrs = await restoredPubKey.getAddresses();
       assert.deepStrictEqual(
         pubKeyAddrs.map(a => a.confidentialAddress).sort(),
         toRestoreAddrs.map(a => a.confidentialAddress).sort()
@@ -166,10 +164,10 @@ describe('Identity: Master Pub Key', () => {
     });
 
     it('should update the index when restored', async () => {
-      const addrs = await toRestorePubKey.getAddresses();
+      const addrs = await restoredPubKey.getAddresses();
       const addressesKnown = addrs.map(a => a.confidentialAddress);
 
-      const next = await toRestorePubKey.getNextAddress();
+      const next = await restoredPubKey.getNextAddress();
       const nextIsAlreadyKnown = addressesKnown.includes(
         next.confidentialAddress
       );
@@ -178,10 +176,10 @@ describe('Identity: Master Pub Key', () => {
     });
 
     it('should update the change index when restored', async () => {
-      const addrs = await toRestorePubKey.getAddresses();
+      const addrs = await restoredPubKey.getAddresses();
       const addressesKnown = addrs.map(a => a.confidentialAddress);
 
-      const next = await toRestorePubKey.getNextChangeAddress();
+      const next = await restoredPubKey.getNextChangeAddress();
       const nextIsAlreadyKnown = addressesKnown.includes(
         next.confidentialAddress
       );
