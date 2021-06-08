@@ -17,7 +17,7 @@ export interface InjectOpts {
 
 export class BrowserInject extends Identity implements IdentityInterface {
   // here we force MarinaProvider since there aren't other Liquid injected API specification available as TypeScript interface yet.
-  private provider: MarinaProvider;
+  protected provider: MarinaProvider;
 
   constructor(args: IdentityOpts<InjectOpts>) {
     super(args);
