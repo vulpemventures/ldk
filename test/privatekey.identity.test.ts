@@ -13,6 +13,7 @@ import {
   IdentityOpts,
   IdentityType,
   PrivateKey,
+  PrivateKeyOpts,
 } from '../src';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 
@@ -21,35 +22,30 @@ const network = networks.regtest;
 // increase default timeout of jest
 jest.setTimeout(15000);
 
-const validOpts: IdentityOpts = {
+const validOpts: IdentityOpts<PrivateKeyOpts> = {
   chain: 'regtest',
   type: IdentityType.PrivateKey,
-  value: {
+  opts: {
     signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
     blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
   },
 };
 
-const unvalidTypeOpts: IdentityOpts = {
+const unvalidTypeOpts: IdentityOpts<PrivateKeyOpts> = {
   ...validOpts,
   type: IdentityType.Mnemonic,
 };
 
-const unvalidValueOpts: IdentityOpts = {
+const unvalidWIF: IdentityOpts<PrivateKeyOpts> = {
   ...validOpts,
-  value: { notSigningKey: 'xxx', vulpem: 'company' },
-};
-
-const unvalidWIF: IdentityOpts = {
-  ...validOpts,
-  value: {
+  opts: {
     signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
-    blindingKey: 'invalidWIF',
+    blindingKeyWIF: 'invalidWIF',
   },
 };
 
-const keypair = ECPair.fromWIF(validOpts.value.signingKeyWIF, network);
-const keypair2 = ECPair.fromWIF(validOpts.value.blindingKeyWIF, network);
+const keypair = ECPair.fromWIF(validOpts.opts.signingKeyWIF, network);
+const keypair2 = ECPair.fromWIF(validOpts.opts.blindingKeyWIF, network);
 const p2wpkh = payments.p2wpkh({
   pubkey: keypair.publicKey!,
   blindkey: keypair2.publicKey!,
@@ -65,10 +61,6 @@ describe('Identity: Private key', () => {
 
     it('should throw an error if type is not IdentityType.PrivateKey', () => {
       assert.throws(() => new PrivateKey(unvalidTypeOpts));
-    });
-
-    it('should throw an error if value of IdentityOpts is not of type {signingKeyWIF: string; blindingKeyWIF: string;}', () => {
-      assert.throws(() => new PrivateKey(unvalidValueOpts));
     });
 
     it('should throw an error if signingKey AND/OR blindingKey are not WIF encoded string', () => {

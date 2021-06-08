@@ -12,19 +12,9 @@ import { AddressInterface } from '../types';
  * @member signingKeyWIF a valid private key WIF encoded.
  * @member blindingKeyWIF a valid private key WIF encoded.
  */
-export interface PrivateKeyOptsValue {
+export interface PrivateKeyOpts {
   signingKeyWIF: string;
   blindingKeyWIF: string;
-}
-
-/**
- * A type guard function for PrivateKeyOptsValue
- * @see PrivateKeyOptsValue
- */
-function instanceOfPrivateKeyOptsValue(
-  value: any
-): value is PrivateKeyOptsValue {
-  return 'signingKeyWIF' in value && 'blindingKeyWIF' in value;
 }
 
 /**
@@ -45,10 +35,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
   private blindingPrivateKey: string;
   private scriptPubKey: Buffer;
 
-  // for privateKey, is restored always return true (there is only one address to generate)
-  readonly isRestored: Promise<boolean> = new Promise(() => true);
-
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<PrivateKeyOpts>) {
     super(args);
 
     // checks the args type.
@@ -56,18 +43,11 @@ export class PrivateKey extends Identity implements IdentityInterface {
       throw new Error('The identity arguments have not the PrivateKey type.');
     }
 
-    // checks if args.value is an instance of PrivateKeyOptsValue interface.
-    if (!instanceOfPrivateKeyOptsValue(args.value)) {
-      throw new Error(
-        'The value of IdentityOpts is not valid for PrivateKey Identity.'
-      );
-    }
-
     // decode signing key pair from WIF
-    this.signingKeyPair = this.decodeFromWif(args.value.signingKeyWIF);
+    this.signingKeyPair = this.decodeFromWif(args.opts.signingKeyWIF);
 
     // decode blinding key pair from WIF
-    this.blindingKeyPair = this.decodeFromWif(args.value.blindingKeyWIF);
+    this.blindingKeyPair = this.decodeFromWif(args.opts.blindingKeyWIF);
 
     // create payment
     const p2wpkh = payments.p2wpkh({

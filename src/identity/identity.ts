@@ -1,8 +1,4 @@
 import {
-  EsploraIdentityRestorer,
-  IdentityRestorerInterface,
-} from './identityRestorer';
-import {
   Network,
   Transaction,
   networks,
@@ -36,8 +32,6 @@ export enum IdentityType {
 export interface IdentityInterface {
   network: Network;
   type: IdentityType;
-  restorer: IdentityRestorerInterface;
-  isRestored: Promise<boolean>;
   getNextAddress(): Promise<AddressInterface>;
   getNextChangeAddress(): Promise<AddressInterface>;
   signPset(psetBase64: string): Promise<string>;
@@ -63,25 +57,20 @@ export interface IdentityInterface {
  * @member type the identity type @see IdentityType .
  * @member value the data used to create the Identity. depends of the type.
  */
-export interface IdentityOpts {
+export interface IdentityOpts<optsT> {
   chain: string;
   type: number;
-  value: any;
-  initializeFromRestorer?: boolean;
-  restorer?: IdentityRestorerInterface;
+  opts: optsT;
 }
 
 /**
  * Abstract class for Identity.
  */
 export default class Identity {
-  static DEFAULT_RESTORER: IdentityRestorerInterface = new EsploraIdentityRestorer();
-
   network: Network;
   type: IdentityType;
-  restorer: IdentityRestorerInterface;
 
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<any>) {
     if (!args.chain || !networks.hasOwnProperty(args.chain)) {
       throw new Error('Network is missing or not valid');
     }
@@ -92,13 +81,6 @@ export default class Identity {
 
     this.network = (networks as Record<string, Network>)[args.chain];
     this.type = args.type;
-
-    // set the restorer if the user specified it.
-    if (args.restorer) {
-      this.restorer = args.restorer;
-    } else {
-      this.restorer = Identity.DEFAULT_RESTORER;
-    }
   }
 
   async blindPsetWithBlindKeysGetter(

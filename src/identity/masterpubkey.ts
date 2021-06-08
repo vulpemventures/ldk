@@ -15,34 +15,14 @@ import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
 import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
 
-export interface MasterPublicKeyOptsValue {
+export interface MasterPublicKeyOpts {
   masterPublicKey: string;
   masterBlindingKey: string;
-}
-
-function instanceOfMasterPublicKeyOptsValue(
-  value: any
-): value is MasterPublicKeyOptsValue {
-  return 'masterPublicKey' in value && 'masterBlindingKey' in value;
 }
 
 interface AddressInterfaceExtended {
   address: AddressInterface;
   publicKey: string;
-}
-
-// util function that parse a derivation path and return the index
-function getIndex(addrExtended: AddressInterfaceExtended) {
-  const derivationPathSplitted = addrExtended.address.derivationPath?.split(
-    '/'
-  );
-  if (!derivationPathSplitted)
-    throw new Error('addressInterface should contain derivation path.');
-  const index: number = parseInt(
-    derivationPathSplitted[derivationPathSplitted.length - 1]
-  );
-
-  return index;
 }
 
 export class MasterPublicKey extends Identity implements IdentityInterface {
@@ -59,12 +39,10 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
 
-  readonly isRestored: Promise<boolean>;
-
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<MasterPublicKeyOpts>) {
     super(args);
 
-    const xpub = toXpub(args.value.masterPublicKey);
+    const xpub = toXpub(args.opts.masterPublicKey);
 
     // check the identity type
     if (args.type !== IdentityType.MasterPublicKey) {
@@ -72,33 +50,20 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         'The identity arguments have not the MasterPublicKey type.'
       );
     }
-    // check the arguments
-    if (!instanceOfMasterPublicKeyOptsValue(args.value)) {
-      throw new Error(
-        'The value of IdentityOpts is not valid for MasterPublicKey Identity.'
-      );
-    }
+
     // validate xpub
     if (!isValidXpub(xpub)) {
       throw new Error('Master public key is not valid');
     }
     // validate master blinding key
-    if (!isValidExtendedBlindKey(args.value.masterBlindingKey)) {
+    if (!isValidExtendedBlindKey(args.opts.masterBlindingKey)) {
       throw new Error('Master blinding key is not valid');
     }
 
     this.masterPublicKeyNode = fromBase58(xpub);
     this.masterBlindingKeyNode = fromMasterBlindingKey(
-      args.value.masterBlindingKey
+      args.opts.masterBlindingKey
     );
-
-    this.isRestored = new Promise(() => true);
-    if (args.initializeFromRestorer) {
-      // restore from restorer
-      this.isRestored = this.restore().catch((reason: any) => {
-        throw new Error(`Error during restoration step: ${reason}`);
-      });
-    }
   }
 
   async blindPset(
@@ -173,16 +138,19 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   }
 
   // store the generation inside local cache
-  private persistAddressToCache(address: AddressInterfaceExtended): void {
+  persistAddressToCache(
+    address: AddressInterfaceExtended,
+    isChange: boolean
+  ): void {
     const publicKeyBuffer = Buffer.from(address.publicKey, 'hex');
     const script = this.scriptFromPublicKey(publicKeyBuffer);
     this.scriptToAddressCache.set(script, address);
+
+    if (isChange) this.changeIndex += 1;
+    else this.index += 1;
   }
 
-  private getAddress(
-    isChange: boolean,
-    index: number
-  ): AddressInterfaceExtended {
+  getAddress(isChange: boolean, index: number): AddressInterfaceExtended {
     // get the next key pair
     const publicKey = this.derivePublicKeyWithIndex(isChange, index);
     // use the public key to compute the scriptPubKey
@@ -210,15 +178,13 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
   async getNextAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(false, this.index);
-    this.persistAddressToCache(addr);
-    this.index += 1;
+    this.persistAddressToCache(addr, false);
     return addr.address;
   }
 
   async getNextChangeAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(true, this.changeIndex);
-    this.persistAddressToCache(addr);
-    this.changeIndex += 1;
+    this.persistAddressToCache(addr, true);
     return addr.address;
   }
 
@@ -240,117 +206,5 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     return this.scriptToAddressCache
       .values()
       .map(addrExtended => addrExtended.address);
-  }
-
-  // RESTORATION PART
-
-  /**
-   * generate a range of addresses asynchronously.
-   * @param fromIndex generation will begin at index `fromIndex`
-   * @param numberToGenerate number of addresses to generate.
-   */
-  private async generateSetOfAddresses(
-    fromIndex: number,
-    numberToGenerate: number,
-    change: boolean
-  ): Promise<AddressInterfaceExtended[]> {
-    // asynchronous getAddress function
-    const getAddressAsync = async (
-      index: number
-    ): Promise<AddressInterfaceExtended> => {
-      return this.getAddress(change, index);
-    };
-
-    // index of addresses to generate.
-    const indexToGenerate = Array.from(
-      { length: numberToGenerate },
-      (_, i) => i + fromIndex
-    );
-
-    // return a promise when all addresses are generated.
-    return Promise.all(indexToGenerate.map(getAddressAsync));
-  }
-
-  private async checkAddressesWithRestorer(
-    addresses: AddressInterfaceExtended[]
-  ): Promise<boolean[]> {
-    const confidentialAddresses: string[] = addresses.map(
-      addrI => addrI.address.confidentialAddress
-    );
-
-    const results: boolean[] = await this.restorer.addressesHaveBeenUsed(
-      confidentialAddresses
-    );
-
-    return results;
-  }
-
-  private async restoreAddresses(): Promise<AddressInterfaceExtended[]> {
-    const NOT_USED_ADDRESSES_LIMIT = 20;
-    let restoredAddresses: AddressInterfaceExtended[] = [];
-
-    for (let i = 0; i < 2; i++) {
-      const change = i === 1;
-      let counter = 0;
-      let index = 0;
-
-      const usedAddresses: AddressInterfaceExtended[] = [];
-      const incrementOrResetCounter = (
-        addresses: AddressInterfaceExtended[]
-      ) => (hasBeenUsed: boolean, index: number) => {
-        counter++;
-        if (hasBeenUsed) {
-          counter = 0;
-          usedAddresses.push(addresses[index]);
-        }
-      };
-
-      while (counter < NOT_USED_ADDRESSES_LIMIT) {
-        // generate addresses to test
-        const addressesToTest = await this.generateSetOfAddresses(
-          index,
-          NOT_USED_ADDRESSES_LIMIT,
-          change
-        );
-        // test all addresses asynchronously using restorer.
-        const hasBeenUsedArray: boolean[] = await this.checkAddressesWithRestorer(
-          addressesToTest
-        );
-
-        // iterate through array
-        // if address has been used before = push to restoredAddresses array
-        // else increment counter
-        hasBeenUsedArray.forEach(incrementOrResetCounter(addressesToTest));
-        index += NOT_USED_ADDRESSES_LIMIT;
-      }
-
-      // Set the index
-      const allIndex = usedAddresses.map(getIndex);
-      if (!change) {
-        this.index =
-          allIndex.length > 0
-            ? Math.max(...allIndex) + 1
-            : MasterPublicKey.INITIAL_INDEX;
-      } else {
-        this.changeIndex =
-          allIndex.length > 0
-            ? Math.max(...allIndex) + 1
-            : MasterPublicKey.INITIAL_INDEX;
-      }
-      restoredAddresses = restoredAddresses.concat(usedAddresses);
-    }
-
-    // return the restored address
-    return restoredAddresses;
-  }
-
-  /**
-   * Restore try to (1) generate and verify a range of addresses & (2) persist the address to the instance cache.
-   * Then it returns true if everything is ok.
-   */
-  private async restore(): Promise<boolean> {
-    const restoredAddresses = await this.restoreAddresses();
-    restoredAddresses.forEach(addr => this.persistAddressToCache(addr));
-    return true;
   }
 }

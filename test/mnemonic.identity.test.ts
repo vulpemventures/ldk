@@ -1,9 +1,10 @@
 import * as assert from 'assert';
 import {
-  EsploraIdentityRestorer,
   IdentityOpts,
   IdentityType,
   Mnemonic,
+  MnemonicOpts,
+  mnemonicRestorerFromEsplora,
 } from '../src';
 import {
   Psbt,
@@ -19,18 +20,18 @@ import { fromSeed as slip77fromSeed } from 'slip77';
 
 const network = networks.regtest;
 
-jest.setTimeout(60000);
+jest.setTimeout(500_000);
 
-const validOpts: IdentityOpts = {
+const validOpts: IdentityOpts<MnemonicOpts> = {
   chain: 'regtest',
   type: IdentityType.Mnemonic,
-  value: {
+  opts: {
     mnemonic:
-      'pause quantum three welcome become episode tackle achieve predict mimic share task onion vapor announce exist inner fortune stamp crucial angle neither manage denial',
+      'turn manual grain tobacco pluck onion off chief drive amount slice forward',
   },
 };
 
-const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.value.mnemonic);
+const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
 const masterPrivateKeyFromValidMnemonic = bip32fromSeed(
   seedFromValidMnemonic,
   network
@@ -39,36 +40,31 @@ const masterBlindingKeyFromValidMnemonic = slip77fromSeed(
   seedFromValidMnemonic
 );
 
-const validOptsFrench: IdentityOpts = {
+const validOptsFrench: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: {
+  opts: {
     mnemonic:
       'mutuel ourson soupape vertu atelier dynastie silicium absolu océan légume pyramide skier météore tulipe alchimie élargir gourmand étaler saboter cocotier aisance mairie jeton créditer',
     language: 'french',
   },
 };
 
-const unvalidLanguageOpts: IdentityOpts = {
+const unvalidLanguageOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: {
-    ...validOpts.value,
+  opts: {
+    ...validOpts.opts,
     language: 'corsican',
   },
 };
 
-const unvalidTypeOpts: IdentityOpts = {
+const unvalidTypeOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
   type: IdentityType.PrivateKey,
 };
 
-const unvalidValueOpts: IdentityOpts = {
+const unvalidMnemonicOpts: IdentityOpts<MnemonicOpts> = {
   ...validOpts,
-  value: { vulpem: 'company', language: 'italian' },
-};
-
-const unvalidMnemonicOpts: IdentityOpts = {
-  ...validOpts,
-  value: {
+  opts: {
     mnemonic: 'tbh nigiri is awesome for Liquid / bitcoin unit testing',
   },
 };
@@ -99,10 +95,6 @@ describe('Identity: Mnemonic', () => {
 
     it('should throw an error if type is not IdentityType.Mnemonic', () => {
       assert.throws(() => new Mnemonic(unvalidTypeOpts));
-    });
-
-    it('should throw an error if value of IdentityOpts is not of type {mnemonic: string; language?: string;}', () => {
-      assert.throws(() => new Mnemonic(unvalidValueOpts));
     });
 
     it('should throw an error if the language is unvalid (i.e has no wordlist available)', () => {
@@ -273,13 +265,13 @@ describe('Identity: Mnemonic', () => {
       assert.deepStrictEqual(addressExtended, {
         address: {
           blindingPrivateKey:
-            'a72f1d64dafd471bde9447f1358c3011961c318749d1b35cd34de8233abcc492',
+            '3ca8245e4b3e938cfe78ae124767b3e277ac7eb786cc9b305750efb7a2da150c',
           confidentialAddress:
-            'el1qqtvm33xtfrnusggyarpjsj20hphwwlduvlwvvufk387rhu74u95snxpe2shf9zg2ck6ah3l2wterg0c0chxtyka5dpy37wshr',
+            'el1qqwk073ahg84zn02x4l6rvwdrtrpgs9ufukgppqshs3hhvq0e9e8rzdsths666g8h5xhxj696axjydx83ep2jj3wtxx5cl8gcp',
           derivationPath: "m/84'/0'/0'/0/42",
         },
         publicKey:
-          '03cc94a5ccfeafe3c6f9a15cc821ac197d1112f0c066673117b239524da6c66320',
+          '0212c8b6bea7e0061f41d16ec5b4c18f51335e133f3f4037af66d058c6e3bc9ecb',
       });
     });
 
@@ -316,33 +308,35 @@ describe('Identity: Mnemonic', () => {
     });
   });
 
-  describe('Mnemonic.restore', () => {
+  describe('Mnemonic restoration', () => {
     let mnemonic: Mnemonic;
-    let toRestoreMnemonic: Mnemonic;
+    let restoredMnemonic: Mnemonic;
 
     beforeAll(async () => {
-      const numberOfAddresses = 2;
+      const numberOfAddresses = 28;
       mnemonic = new Mnemonic(validOpts);
       // faucet all the addresses
       for (let i = 0; i < numberOfAddresses; i++) {
         const addr = await mnemonic.getNextAddress();
         const changeAddr = await mnemonic.getNextChangeAddress();
-        await faucet(addr.confidentialAddress);
-        await faucet(changeAddr.confidentialAddress);
+        if (i === 27) {
+          await faucet(addr.confidentialAddress);
+          await faucet(changeAddr.confidentialAddress);
+        }
       }
 
-      toRestoreMnemonic = new Mnemonic({
+      const toRestoreMnemonic = new Mnemonic({
         ...validOpts,
-        initializeFromRestorer: true,
-        restorer: new EsploraIdentityRestorer('http://localhost:3001'),
       });
-
-      await toRestoreMnemonic.isRestored;
+      restoredMnemonic = await mnemonicRestorerFromEsplora(toRestoreMnemonic)({
+        gapLimit: 30,
+        esploraURL: 'http://localhost:3001',
+      });
     });
 
     it('should restore already used addresses', async () => {
       const addrs = await mnemonic.getAddresses();
-      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
+      const toRestoreAddrs = await restoredMnemonic.getAddresses();
       assert.deepStrictEqual(
         addrs.map(a => a.confidentialAddress).sort(),
         toRestoreAddrs.map(a => a.confidentialAddress).sort()
@@ -350,10 +344,10 @@ describe('Identity: Mnemonic', () => {
     });
 
     it('should update the index when restored', async () => {
-      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
+      const toRestoreAddrs = await restoredMnemonic.getAddresses();
       const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
 
-      const next = await toRestoreMnemonic.getNextAddress();
+      const next = await restoredMnemonic.getNextAddress();
       const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
         next.confidentialAddress
       );
@@ -362,10 +356,10 @@ describe('Identity: Mnemonic', () => {
     });
 
     it('should update the change index when restored', async () => {
-      const toRestoreAddrs = await toRestoreMnemonic.getAddresses();
+      const toRestoreAddrs = await restoredMnemonic.getAddresses();
       const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
 
-      const next = await toRestoreMnemonic.getNextChangeAddress();
+      const next = await restoredMnemonic.getNextChangeAddress();
       const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
         next.confidentialAddress
       );

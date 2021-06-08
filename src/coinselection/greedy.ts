@@ -110,7 +110,7 @@ function selectUtxos(
     }
   }
 
-  throw new Error('not enough utxos in wallet to found: ' + targetAmount);
+  throw new Error('not enough utxos in wallet to fund: ' + targetAmount);
 }
 
 function groupBy(xs: Array<any>, key: string) {

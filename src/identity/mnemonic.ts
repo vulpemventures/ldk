@@ -8,13 +8,9 @@ import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
 import { AddressInterface } from '../types';
 
-export interface MnemonicOptsValue {
+export interface MnemonicOpts {
   mnemonic: string;
   language?: string;
-}
-
-function instanceOfMnemonicOptsValue(value: any): value is MnemonicOptsValue {
-  return 'mnemonic' in value;
 }
 
 /**
@@ -33,32 +29,23 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   public masterPublicKey: string;
   public masterBlindingKey: string;
 
-  constructor(args: IdentityOpts) {
+  constructor(args: IdentityOpts<MnemonicOpts>) {
     // check the identity type
     if (args.type !== IdentityType.Mnemonic) {
       throw new Error('The identity arguments have not the Mnemonic type.');
     }
-    // check the arguments
-    if (!instanceOfMnemonicOptsValue(args.value)) {
-      throw new Error(
-        'The value of IdentityOpts is not valid for Mnemonic Identity.'
-      );
-    }
+
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
-    if (args.value.language) {
-      bip39.setDefaultWordlist(args.value.language);
-    } else {
-      bip39.setDefaultWordlist('english');
-    }
+    bip39.setDefaultWordlist(args.opts.language || 'english');
 
     // validate the mnemonic
-    if (!bip39.validateMnemonic(args.value.mnemonic)) {
+    if (!bip39.validateMnemonic(args.opts.mnemonic)) {
       throw new Error('Mnemonic is not valid.');
     }
 
     // retreive the wallet's seed from mnemonic
-    const walletSeed = bip39.mnemonicToSeedSync(args.value.mnemonic);
+    const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
     // generate the master private key from the wallet seed
     const network = (networks as Record<string, Network>)[args.chain];
     const masterPrivateKeyNode = bip32fromSeed(walletSeed, network);
@@ -82,7 +69,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     super({
       ...args,
       type: IdentityType.MasterPublicKey,
-      value: {
+      opts: {
         masterPublicKey,
         masterBlindingKey,
       },
