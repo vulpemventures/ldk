@@ -88,7 +88,8 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
-      (script: Buffer) => super.getBlindingKeyPair(script, true),
+      (script: Buffer) =>
+        super.getBlindingKeyPair(script.toString('hex'), true),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
@@ -121,9 +122,9 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     for (let index = 0; index < pset.data.inputs.length; index++) {
       const input = pset.data.inputs[index];
       if (input.witnessUtxo) {
-        const addressGeneration = this.scriptToAddressCache.get(
-          input.witnessUtxo.script
-        );
+        const addressGeneration = this.scriptToAddressCache[
+          input.witnessUtxo.script.toString('hex')
+        ];
 
         if (addressGeneration) {
           // if there is an address generated for the input script: build the signing key pair.

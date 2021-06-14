@@ -42,7 +42,7 @@ describe('Wallet - Transaction builder', () => {
       );
 
       faucetTx = (await txs.next()).value as TxInterface;
-      while (faucetTx.txid !== faucetTxID) {
+      while (faucetTx.txid && faucetTx.txid !== faucetTxID) {
         faucetTx = (await txs.next()).value as TxInterface;
       }
     });

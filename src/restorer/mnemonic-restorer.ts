@@ -1,6 +1,5 @@
 import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
-import { IdentityInterface } from '../identity/identity';
 import { Restorer } from './restorer';
 import axios from 'axios';
 import { getIndexFromAddress } from '../utils';
@@ -32,12 +31,13 @@ function restorerFromEsplora<R extends MasterPublicKey>(
       while (counter < gapLimit) {
         const addr = nextAddrFunc(index);
         const addrHasTxs = await addressHasBeenUsed(addr, esploraURL);
-        index++;
 
         if (addrHasTxs) {
           maxIndex = index;
           counter = 0;
         } else counter++;
+
+        index++;
       }
 
       return maxIndex;
@@ -88,22 +88,22 @@ export interface StateRestorerOpts {
   maxInternalIndex: number;
 }
 
-function restorerFromState<R extends IdentityInterface>(
+function restorerFromState<R extends MasterPublicKey>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
   return async ({ maxExternalIndex, maxInternalIndex }) => {
-    for (let i = 0; i < maxExternalIndex; i++) {
+    for (let i = 0; i < maxExternalIndex + 1; i++) {
       const address = await identity.getNextAddress();
       const index = getIndexFromAddress(address);
-      if (index === maxExternalIndex) {
+      if (index >= maxExternalIndex) {
         break;
       }
     }
 
-    for (let i = 0; i < maxInternalIndex; i++) {
+    for (let i = 0; i < maxInternalIndex + 1; i++) {
       const address = await identity.getNextChangeAddress();
       const index = getIndexFromAddress(address);
-      if (index === maxInternalIndex) {
+      if (index >= maxInternalIndex) {
         break;
       }
     }

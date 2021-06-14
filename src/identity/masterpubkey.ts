@@ -1,11 +1,6 @@
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { BIP32Interface, fromBase58 } from 'bip32';
-import {
-  BufferMap,
-  isValidExtendedBlindKey,
-  isValidXpub,
-  toXpub,
-} from '../utils';
+import { isValidExtendedBlindKey, isValidXpub, toXpub } from '../utils';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
@@ -31,9 +26,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
-  protected scriptToAddressCache: BufferMap<
-    AddressInterfaceExtended
-  > = new BufferMap();
+  protected scriptToAddressCache: Record<string, AddressInterfaceExtended> = {};
   private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
 
   readonly masterPublicKeyNode: BIP32Interface;
@@ -73,7 +66,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     inputsBlindingDataLike?: Map<number, BlindingDataLike>
   ): Promise<string> {
     return super.blindPsetWithBlindKeysGetter(
-      (script: Buffer) => this.getBlindingKeyPair(script, true),
+      (script: Buffer) => this.getBlindingKeyPair(script.toString('hex'), true),
       psetBase64,
       outputsToBlind,
       outputsPubKeys,
@@ -101,15 +94,13 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    * @param scriptPubKey script to derive.
    */
   protected getBlindingKeyPair(
-    scriptPubKey: Buffer,
+    scriptPubKey: string,
     checkScript: boolean = false
   ): { publicKey: Buffer; privateKey: Buffer } {
     if (checkScript) {
-      const addressInterface = this.scriptToAddressCache.get(scriptPubKey);
+      const addressInterface = this.scriptToAddressCache[scriptPubKey];
       if (!addressInterface) {
-        throw new Error(
-          `unknow blinding key for script ${scriptPubKey.toString('hex')}`
-        );
+        throw new Error(`unknow blinding key for script ${scriptPubKey}`);
       }
     }
 
@@ -119,11 +110,13 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     return { publicKey: publicKey!, privateKey: privateKey! };
   }
 
-  private scriptFromPublicKey(publicKey: Buffer): Buffer {
-    return payments.p2wpkh({
-      pubkey: publicKey,
-      network: this.network,
-    }).output!;
+  private scriptFromPublicKey(publicKey: Buffer): string {
+    return payments
+      .p2wpkh({
+        pubkey: publicKey,
+        network: this.network,
+      })
+      .output!.toString('hex');
   }
 
   private createConfidentialAddress(
@@ -138,23 +131,18 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   }
 
   // store the generation inside local cache
-  persistAddressToCache(
-    address: AddressInterfaceExtended,
-    isChange: boolean
-  ): void {
+  persistAddressToCache(address: AddressInterfaceExtended): void {
     const publicKeyBuffer = Buffer.from(address.publicKey, 'hex');
     const script = this.scriptFromPublicKey(publicKeyBuffer);
-    this.scriptToAddressCache.set(script, address);
 
-    if (isChange) this.changeIndex += 1;
-    else this.index += 1;
+    this.scriptToAddressCache[script] = address;
   }
 
   getAddress(isChange: boolean, index: number): AddressInterfaceExtended {
     // get the next key pair
     const publicKey = this.derivePublicKeyWithIndex(isChange, index);
     // use the public key to compute the scriptPubKey
-    const script: Buffer = this.scriptFromPublicKey(publicKey);
+    const script = this.scriptFromPublicKey(publicKey);
     // generate the blindKeyPair from the scriptPubKey
     const blindingKeyPair = this.getBlindingKeyPair(script);
     // with blindingPublicKey & signingPublicKey, generate the confidential address
@@ -178,21 +166,20 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
   async getNextAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(false, this.index);
-    this.persistAddressToCache(addr, false);
+    this.persistAddressToCache(addr);
+    this.index = this.index + 1;
     return addr.address;
   }
 
   async getNextChangeAddress(): Promise<AddressInterface> {
     const addr = this.getAddress(true, this.changeIndex);
-    this.persistAddressToCache(addr, true);
+    this.persistAddressToCache(addr);
+    this.changeIndex = this.changeIndex + 1;
     return addr.address;
   }
 
   async getBlindingPrivateKey(script: string): Promise<string> {
-    const scriptPubKeyBuffer = Buffer.from(script, 'hex');
-    return this.getBlindingKeyPair(scriptPubKeyBuffer).privateKey.toString(
-      'hex'
-    );
+    return this.getBlindingKeyPair(script).privateKey.toString('hex');
   }
 
   signPset(_: string): Promise<string> {
@@ -203,8 +190,8 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
 
   // returns all the addresses generated
   async getAddresses(): Promise<AddressInterface[]> {
-    return this.scriptToAddressCache
-      .values()
-      .map(addrExtended => addrExtended.address);
+    return Object.values(this.scriptToAddressCache).map(
+      addrExtended => addrExtended.address
+    );
   }
 }

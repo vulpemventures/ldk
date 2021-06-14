@@ -1,3 +1,4 @@
+import { Restorer } from './../src/restorer/restorer';
 import * as assert from 'assert';
 import {
   IdentityOpts,
@@ -5,6 +6,8 @@ import {
   Mnemonic,
   MnemonicOpts,
   mnemonicRestorerFromEsplora,
+  mnemonicRestorerFromState,
+  StateRestorerOpts,
 } from '../src';
 import {
   Psbt,
@@ -307,64 +310,96 @@ describe('Identity: Mnemonic', () => {
       );
     });
   });
-
   describe('Mnemonic restoration', () => {
-    let mnemonic: Mnemonic;
-    let restoredMnemonic: Mnemonic;
+    describe('Mnemonic restoration (from Esplora)', () => {
+      let mnemonic: Mnemonic;
+      let restoredMnemonic: Mnemonic;
 
-    beforeAll(async () => {
-      const numberOfAddresses = 28;
-      mnemonic = new Mnemonic(validOpts);
-      // faucet all the addresses
-      for (let i = 0; i < numberOfAddresses; i++) {
-        const addr = await mnemonic.getNextAddress();
-        const changeAddr = await mnemonic.getNextChangeAddress();
-        if (i === 27) {
-          await faucet(addr.confidentialAddress);
-          await faucet(changeAddr.confidentialAddress);
+      beforeAll(async () => {
+        const numberOfAddresses = 21;
+        mnemonic = new Mnemonic(validOpts);
+        // faucet all the addresses
+        for (let i = 0; i < numberOfAddresses; i++) {
+          const addr = await mnemonic.getNextAddress();
+          const changeAddr = await mnemonic.getNextChangeAddress();
+          if (i === numberOfAddresses - 1) {
+            await faucet(addr.confidentialAddress);
+            await faucet(changeAddr.confidentialAddress);
+          }
         }
-      }
-
-      const toRestoreMnemonic = new Mnemonic({
-        ...validOpts,
+        const toRestoreMnemonic = new Mnemonic({
+          ...validOpts,
+        });
+        restoredMnemonic = await mnemonicRestorerFromEsplora(toRestoreMnemonic)(
+          {
+            gapLimit: 30,
+            esploraURL: 'http://localhost:3001',
+          }
+        );
       });
-      restoredMnemonic = await mnemonicRestorerFromEsplora(toRestoreMnemonic)({
-        gapLimit: 30,
-        esploraURL: 'http://localhost:3001',
+
+      it('should restore already used addresses', async () => {
+        const addrs = await mnemonic.getAddresses();
+        const restored = await restoredMnemonic.getAddresses();
+        assert.deepStrictEqual(addrs.length, restored.length);
+      });
+
+      it('should update the index when restored', async () => {
+        const toRestoreAddrs = await restoredMnemonic.getAddresses();
+        const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
+
+        const next = await restoredMnemonic.getNextAddress();
+        const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
+          next.confidentialAddress
+        );
+
+        assert.deepStrictEqual(nextIsAlreadyKnownByMnemonic, false);
+      });
+
+      it('should update the change index when restored', async () => {
+        const toRestoreAddrs = await restoredMnemonic.getAddresses();
+        const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
+
+        const next = await restoredMnemonic.getNextChangeAddress();
+        const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
+          next.confidentialAddress
+        );
+
+        assert.deepStrictEqual(nextIsAlreadyKnownByMnemonic, false);
       });
     });
 
-    it('should restore already used addresses', async () => {
-      const addrs = await mnemonic.getAddresses();
-      const toRestoreAddrs = await restoredMnemonic.getAddresses();
-      assert.deepStrictEqual(
-        addrs.map(a => a.confidentialAddress).sort(),
-        toRestoreAddrs.map(a => a.confidentialAddress).sort()
-      );
-    });
+    describe('Mnemonic restoration (from State)', () => {
+      let restorer: Restorer<StateRestorerOpts, Mnemonic> = args => {
+        const toRestoreMnemonic = new Mnemonic({
+          ...validOpts,
+        });
+        return mnemonicRestorerFromState(toRestoreMnemonic)(args);
+      };
 
-    it('should update the index when restored', async () => {
-      const toRestoreAddrs = await restoredMnemonic.getAddresses();
-      const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
+      it('should update the index when restored', async () => {
+        const restored = await restorer({
+          maxExternalIndex: 15,
+          maxInternalIndex: 4,
+        });
 
-      const next = await restoredMnemonic.getNextAddress();
-      const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
-        next.confidentialAddress
-      );
+        assert.deepStrictEqual(
+          (await restored.getNextAddress()).derivationPath,
+          "m/84'/0'/0'/0/16"
+        );
+      });
 
-      assert.deepStrictEqual(nextIsAlreadyKnownByMnemonic, false);
-    });
+      it('should update the change index when restored', async () => {
+        const restored = await restorer({
+          maxExternalIndex: 15,
+          maxInternalIndex: 4,
+        });
 
-    it('should update the change index when restored', async () => {
-      const toRestoreAddrs = await restoredMnemonic.getAddresses();
-      const addressesKnown = toRestoreAddrs.map(a => a.confidentialAddress);
-
-      const next = await restoredMnemonic.getNextChangeAddress();
-      const nextIsAlreadyKnownByMnemonic = addressesKnown.includes(
-        next.confidentialAddress
-      );
-
-      assert.deepStrictEqual(nextIsAlreadyKnownByMnemonic, false);
+        assert.deepStrictEqual(
+          (await restored.getNextChangeAddress()).derivationPath,
+          "m/84'/0'/0'/1/5"
+        );
+      });
     });
   });
 });

@@ -10,7 +10,7 @@ import {
 } from '../src';
 import * as assert from 'assert';
 import { networks, payments } from 'liquidjs-lib';
-import { faucet } from './_regtest';
+import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
@@ -135,6 +135,7 @@ describe('Identity: Master Pub Key', () => {
         await faucet(addr.confidentialAddress);
         await faucet(changeAddr.confidentialAddress);
       }
+      await sleep(3000);
 
       const toRestorePubKey = new MasterPublicKey({ ...validOpts });
       restoredPubKey = await masterPubKeyRestorerFromEsplora(toRestorePubKey)({
@@ -147,8 +148,8 @@ describe('Identity: Master Pub Key', () => {
       const pubKeyAddrs = await pubkey.getAddresses();
       const toRestoreAddrs = await restoredPubKey.getAddresses();
       assert.deepStrictEqual(
-        pubKeyAddrs.map(a => a.confidentialAddress).sort(),
-        toRestoreAddrs.map(a => a.confidentialAddress).sort()
+        toRestoreAddrs.map(a => a.confidentialAddress).sort(),
+        pubKeyAddrs.map(a => a.confidentialAddress).sort()
       );
     });
 
