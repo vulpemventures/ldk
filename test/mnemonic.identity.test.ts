@@ -379,8 +379,8 @@ describe('Identity: Mnemonic', () => {
 
       it('should update the index when restored', async () => {
         const restored = await restorer({
-          maxExternalIndex: 15,
-          maxInternalIndex: 4,
+          lastUsedExternalIndex: 15,
+          lastUsedInternalIndex: 4,
         });
 
         assert.deepStrictEqual(
@@ -391,8 +391,8 @@ describe('Identity: Mnemonic', () => {
 
       it('should update the change index when restored', async () => {
         const restored = await restorer({
-          maxExternalIndex: 15,
-          maxInternalIndex: 4,
+          lastUsedExternalIndex: 15,
+          lastUsedInternalIndex: 4,
         });
 
         assert.deepStrictEqual(
