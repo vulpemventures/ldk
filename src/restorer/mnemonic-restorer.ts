@@ -1,6 +1,5 @@
 import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
-import { IdentityInterface } from '../identity/identity';
 import { Restorer } from './restorer';
 import axios from 'axios';
 import { getIndexFromAddress } from '../utils';
@@ -32,28 +31,32 @@ function restorerFromEsplora<R extends MasterPublicKey>(
       while (counter < gapLimit) {
         const addr = nextAddrFunc(index);
         const addrHasTxs = await addressHasBeenUsed(addr, esploraURL);
-        index++;
 
         if (addrHasTxs) {
           maxIndex = index;
           counter = 0;
         } else counter++;
+
+        index++;
       }
 
       return maxIndex;
     };
 
-    const maxExternalIndex = await restoreFunc(
+    const lastUsedExternalIndex = await restoreFunc(
       (index: number) =>
         identity.getAddress(false, index).address.confidentialAddress
     );
 
-    const maxInternalIndex = await restoreFunc(
+    const lastUsedInternalIndex = await restoreFunc(
       (index: number) =>
         identity.getAddress(true, index).address.confidentialAddress
     );
 
-    return restorerFromState(identity)({ maxExternalIndex, maxInternalIndex });
+    return restorerFromState(identity)({
+      lastUsedExternalIndex,
+      lastUsedInternalIndex,
+    });
   };
 }
 
@@ -84,26 +87,26 @@ export function masterPubKeyRestorerFromEsplora(toRestore: MasterPublicKey) {
 // From state
 
 export interface StateRestorerOpts {
-  maxExternalIndex: number;
-  maxInternalIndex: number;
+  lastUsedExternalIndex: number;
+  lastUsedInternalIndex: number;
 }
 
-function restorerFromState<R extends IdentityInterface>(
+function restorerFromState<R extends MasterPublicKey>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
-  return async ({ maxExternalIndex, maxInternalIndex }) => {
-    for (let i = 0; i < maxExternalIndex; i++) {
+  return async ({ lastUsedExternalIndex, lastUsedInternalIndex }) => {
+    for (let i = 0; i < lastUsedExternalIndex + 1; i++) {
       const address = await identity.getNextAddress();
       const index = getIndexFromAddress(address);
-      if (index === maxExternalIndex) {
+      if (index >= lastUsedExternalIndex) {
         break;
       }
     }
 
-    for (let i = 0; i < maxInternalIndex; i++) {
+    for (let i = 0; i < lastUsedInternalIndex + 1; i++) {
       const address = await identity.getNextChangeAddress();
       const index = getIndexFromAddress(address);
-      if (index === maxInternalIndex) {
+      if (index >= lastUsedInternalIndex) {
         break;
       }
     }
