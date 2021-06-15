@@ -22,35 +22,45 @@ function restorerFromEsplora<R extends MasterPublicKey>(
     gapLimit = 20,
   }) => {
     const restoreFunc = async function(
-      nextAddrFunc: (index: number) => string
-    ): Promise<number> {
+      nextAddrFunc: (index?: number) => string | undefined
+    ): Promise<number | undefined> {
       let counter = 0;
       let index = 0;
-      let maxIndex = 0;
+      let maxIndex = undefined;
 
       while (counter < gapLimit) {
         const addr = nextAddrFunc(index);
+        if (addr === undefined) break;
         const addrHasTxs = await addressHasBeenUsed(addr, esploraURL);
-
         if (addrHasTxs) {
           maxIndex = index;
           counter = 0;
-        } else counter++;
-
+        } else {
+          counter++;
+        }
         index++;
       }
-
       return maxIndex;
     };
 
     const lastUsedExternalIndex = await restoreFunc(
-      (index: number) =>
-        identity.getAddress(false, index).address.confidentialAddress
+      (index?: number) => {
+        if (index !== undefined) {
+          return identity.getAddress(false, index).address.confidentialAddress
+        } else {
+          return undefined
+        }
+      }
     );
 
     const lastUsedInternalIndex = await restoreFunc(
-      (index: number) =>
-        identity.getAddress(true, index).address.confidentialAddress
+      (index?: number) => {
+        if (index !== undefined) {
+          return identity.getAddress(true, index).address.confidentialAddress
+        } else {
+          return undefined
+        }
+      }
     );
 
     return restorerFromState(identity)({
@@ -65,7 +75,7 @@ async function addressHasBeenUsed(
   esploraURL: string
 ): Promise<boolean> {
   const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
-  return data.length > 0 ? true : false;
+  return data.length > 0;
 }
 
 /**
