@@ -43,25 +43,21 @@ function restorerFromEsplora<R extends MasterPublicKey>(
       return maxIndex;
     };
 
-    const lastUsedExternalIndex = await restoreFunc(
-      (index?: number) => {
-        if (index !== undefined) {
-          return identity.getAddress(false, index).address.confidentialAddress
-        } else {
-          return undefined
-        }
+    const lastUsedExternalIndex = await restoreFunc((index?: number) => {
+      if (index !== undefined) {
+        return identity.getAddress(false, index).address.confidentialAddress;
+      } else {
+        return undefined;
       }
-    );
+    });
 
-    const lastUsedInternalIndex = await restoreFunc(
-      (index?: number) => {
-        if (index !== undefined) {
-          return identity.getAddress(true, index).address.confidentialAddress
-        } else {
-          return undefined
-        }
+    const lastUsedInternalIndex = await restoreFunc((index?: number) => {
+      if (index !== undefined) {
+        return identity.getAddress(true, index).address.confidentialAddress;
+      } else {
+        return undefined;
       }
-    );
+    });
 
     return restorerFromState(identity)({
       lastUsedExternalIndex,
