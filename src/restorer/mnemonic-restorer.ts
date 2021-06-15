@@ -87,27 +87,31 @@ export function masterPubKeyRestorerFromEsplora(toRestore: MasterPublicKey) {
 // From state
 
 export interface StateRestorerOpts {
-  lastUsedExternalIndex: number;
-  lastUsedInternalIndex: number;
+  lastUsedExternalIndex?: number;
+  lastUsedInternalIndex?: number;
 }
 
 function restorerFromState<R extends MasterPublicKey>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
   return async ({ lastUsedExternalIndex, lastUsedInternalIndex }) => {
-    for (let i = 0; i < lastUsedExternalIndex + 1; i++) {
-      const address = await identity.getNextAddress();
-      const index = getIndexFromAddress(address);
-      if (index >= lastUsedExternalIndex) {
-        break;
+    if (lastUsedExternalIndex !== undefined) {
+      for (let i = 0; i < lastUsedExternalIndex + 1; i++) {
+        const address = await identity.getNextAddress();
+        const index = getIndexFromAddress(address);
+        if (index >= lastUsedExternalIndex) {
+          break;
+        }
       }
     }
 
-    for (let i = 0; i < lastUsedInternalIndex + 1; i++) {
-      const address = await identity.getNextChangeAddress();
-      const index = getIndexFromAddress(address);
-      if (index >= lastUsedInternalIndex) {
-        break;
+    if (lastUsedInternalIndex !== undefined) {
+      for (let i = 0; i < lastUsedInternalIndex + 1; i++) {
+        const address = await identity.getNextChangeAddress();
+        const index = getIndexFromAddress(address);
+        if (index >= lastUsedInternalIndex) {
+          break;
+        }
       }
     }
 
