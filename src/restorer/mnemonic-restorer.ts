@@ -23,35 +23,32 @@ function restorerFromEsplora<R extends MasterPublicKey>(
   }) => {
     const restoreFunc = async function(
       nextAddrFunc: (index: number) => string
-    ): Promise<number> {
+    ): Promise<number | undefined> {
       let counter = 0;
       let index = 0;
-      let maxIndex = 0;
+      let maxIndex = undefined;
 
       while (counter < gapLimit) {
         const addr = nextAddrFunc(index);
         const addrHasTxs = await addressHasBeenUsed(addr, esploraURL);
-
         if (addrHasTxs) {
           maxIndex = index;
           counter = 0;
-        } else counter++;
-
+        } else {
+          counter++;
+        }
         index++;
       }
-
       return maxIndex;
     };
 
-    const lastUsedExternalIndex = await restoreFunc(
-      (index: number) =>
-        identity.getAddress(false, index).address.confidentialAddress
-    );
+    const lastUsedExternalIndex = await restoreFunc((index: number) => {
+      return identity.getAddress(false, index).address.confidentialAddress;
+    });
 
-    const lastUsedInternalIndex = await restoreFunc(
-      (index: number) =>
-        identity.getAddress(true, index).address.confidentialAddress
-    );
+    const lastUsedInternalIndex = await restoreFunc((index: number) => {
+      return identity.getAddress(true, index).address.confidentialAddress;
+    });
 
     return restorerFromState(identity)({
       lastUsedExternalIndex,
@@ -65,7 +62,7 @@ async function addressHasBeenUsed(
   esploraURL: string
 ): Promise<boolean> {
   const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
-  return data.length > 0 ? true : false;
+  return data.length > 0;
 }
 
 /**
@@ -87,27 +84,31 @@ export function masterPubKeyRestorerFromEsplora(toRestore: MasterPublicKey) {
 // From state
 
 export interface StateRestorerOpts {
-  lastUsedExternalIndex: number;
-  lastUsedInternalIndex: number;
+  lastUsedExternalIndex?: number;
+  lastUsedInternalIndex?: number;
 }
 
 function restorerFromState<R extends MasterPublicKey>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
   return async ({ lastUsedExternalIndex, lastUsedInternalIndex }) => {
-    for (let i = 0; i < lastUsedExternalIndex + 1; i++) {
-      const address = await identity.getNextAddress();
-      const index = getIndexFromAddress(address);
-      if (index >= lastUsedExternalIndex) {
-        break;
+    if (lastUsedExternalIndex !== undefined) {
+      for (let i = 0; i < lastUsedExternalIndex + 1; i++) {
+        const address = await identity.getNextAddress();
+        const index = getIndexFromAddress(address);
+        if (index >= lastUsedExternalIndex) {
+          break;
+        }
       }
     }
 
-    for (let i = 0; i < lastUsedInternalIndex + 1; i++) {
-      const address = await identity.getNextChangeAddress();
-      const index = getIndexFromAddress(address);
-      if (index >= lastUsedInternalIndex) {
-        break;
+    if (lastUsedInternalIndex !== undefined) {
+      for (let i = 0; i < lastUsedInternalIndex + 1; i++) {
+        const address = await identity.getNextChangeAddress();
+        const index = getIndexFromAddress(address);
+        if (index >= lastUsedInternalIndex) {
+          break;
+        }
       }
     }
 
