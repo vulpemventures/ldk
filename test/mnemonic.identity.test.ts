@@ -400,6 +400,51 @@ describe('Identity: Mnemonic', () => {
           "m/84'/0'/0'/1/5"
         );
       });
+
+      it('should update indexes when no internalIndex', async () => {
+        const restored = await restorer({
+          lastUsedExternalIndex: 10,
+        });
+        assert.deepStrictEqual(
+          (await restored.getNextAddress()).derivationPath,
+          "m/84'/0'/0'/0/11"
+        );
+        assert.deepStrictEqual(
+          (await restored.getNextChangeAddress()).derivationPath,
+          "m/84'/0'/0'/1/0"
+        );
+      });
+
+      it('should update indexes when no externalIndex', async () => {
+        const restored = await restorer({
+          lastUsedInternalIndex: 10,
+        });
+        assert.deepStrictEqual(
+          (await restored.getNextAddress()).derivationPath,
+          "m/84'/0'/0'/0/0"
+        );
+        assert.deepStrictEqual(
+          (await restored.getNextChangeAddress()).derivationPath,
+          "m/84'/0'/0'/1/11"
+        );
+      });
+
+      it('should update indexes when no internalIndex and externalIndex', async () => {
+        const restored = await restorer({});
+        assert.deepStrictEqual(
+          (await restored.getNextAddress()).derivationPath,
+          "m/84'/0'/0'/0/0"
+        );
+        assert.deepStrictEqual(
+          (await restored.getNextChangeAddress()).derivationPath,
+          "m/84'/0'/0'/1/0"
+        );
+      });
+
+      it('should not return addresses when no internalIndex and externalIndex', async () => {
+        const restored = await restorer({});
+        assert.deepStrictEqual(await restored.getAddresses(), []);
+      });
     });
   });
 });
