@@ -22,7 +22,7 @@ function restorerFromEsplora<R extends MasterPublicKey>(
     gapLimit = 20,
   }) => {
     const restoreFunc = async function(
-      nextAddrFunc: (index?: number) => string | undefined
+      nextAddrFunc: (index: number) => string
     ): Promise<number | undefined> {
       let counter = 0;
       let index = 0;
@@ -30,7 +30,6 @@ function restorerFromEsplora<R extends MasterPublicKey>(
 
       while (counter < gapLimit) {
         const addr = nextAddrFunc(index);
-        if (addr === undefined) break;
         const addrHasTxs = await addressHasBeenUsed(addr, esploraURL);
         if (addrHasTxs) {
           maxIndex = index;
@@ -43,20 +42,12 @@ function restorerFromEsplora<R extends MasterPublicKey>(
       return maxIndex;
     };
 
-    const lastUsedExternalIndex = await restoreFunc((index?: number) => {
-      if (index !== undefined) {
-        return identity.getAddress(false, index).address.confidentialAddress;
-      } else {
-        return undefined;
-      }
+    const lastUsedExternalIndex = await restoreFunc((index: number) => {
+      return identity.getAddress(false, index).address.confidentialAddress;
     });
 
-    const lastUsedInternalIndex = await restoreFunc((index?: number) => {
-      if (index !== undefined) {
-        return identity.getAddress(true, index).address.confidentialAddress;
-      } else {
-        return undefined;
-      }
+    const lastUsedInternalIndex = await restoreFunc((index: number) => {
+      return identity.getAddress(true, index).address.confidentialAddress;
     });
 
     return restorerFromState(identity)({
