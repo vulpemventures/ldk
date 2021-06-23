@@ -116,7 +116,9 @@ describe('Identity: Private key', () => {
         ]);
 
       const privateKey = new PrivateKey(validOpts);
+      console.log(pset.toBase64());
       const signedBase64 = await privateKey.signPset(pset.toBase64());
+      console.log(signedBase64);
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid: boolean = false;
       assert.doesNotThrow(
