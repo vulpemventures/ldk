@@ -6,7 +6,10 @@ export function sleep(ms: number): Promise<any> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export async function fetchUtxos(address: string, txid?: string): Promise<any> {
+export async function fetchUtxos(
+  address: string,
+  txid?: string
+): Promise<Array<any>> {
   try {
     let utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
     if (txid) {

@@ -15,6 +15,7 @@ import {
   confidential,
   networks,
   payments,
+  address,
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import { fromSeed as bip32fromSeed } from 'bip32';
@@ -121,33 +122,25 @@ describe('Identity: Mnemonic', () => {
       const mnemonic = new Mnemonic(validOpts);
       const generated = await mnemonic.getNextAddress();
 
-      await faucet(generated.confidentialAddress);
-      const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
+      const { unconfidentialAddress } = address.fromConfidential(
+        generated.confidentialAddress
+      );
+      const txid = await faucet(unconfidentialAddress);
+      const utxo = (await fetchUtxos(unconfidentialAddress)).find(
+        u => u.txid === txid
+      );
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
-      const unblindedUtxo = await confidential.unblindOutputWithKey(
-        prevout,
-        Buffer.from(generated.blindingPrivateKey, 'hex')
-      );
 
-      const script: Buffer = payments.p2wpkh({
-        confidentialAddress: generated.confidentialAddress,
-        network,
-      }).output!;
+      const script: Buffer = address.toOutputScript(unconfidentialAddress);
+      console.log(prevout);
 
       const pset: Psbt = new Psbt({ network })
         .addInput({
           hash: utxo.txid,
           index: utxo.vout,
-          witnessUtxo: {
-            nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(
-              parseInt(unblindedUtxo.value, 10)
-            ),
-            asset: unblindedUtxo.asset,
-            script,
-          },
+          witnessUtxo: prevout,
         })
         .addOutputs([
           {
