@@ -2057,10 +2057,10 @@ bindings@^1.3.0, bindings@^1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
-bip174-liquid@^1.0.1-liquid:
-  version "1.0.1-liquid"
-  resolved "https://registry.yarnpkg.com/bip174-liquid/-/bip174-liquid-1.0.1-liquid.tgz#87c3219758cbdcd7064414022c751466b8d32ffe"
-  integrity sha512-yumrdEXAcUqugbvV4phelr8150OkDXZZcMOY/kmKxKVsfjT4WVywAzKzHSAA6ZlfcI4UXK+JpCEjgCW3GgKSfQ==
+bip174-liquid@^1.0.2-liquid:
+  version "1.0.2-liquid"
+  resolved "https://registry.yarnpkg.com/bip174-liquid/-/bip174-liquid-1.0.2-liquid.tgz#b056cbc783efc6c411112b925e74aeb3c6742978"
+  integrity sha512-0Iv8nBIjL9R1W5pamPcocgEhyoX+p/1r98nSbXWp5Px7NJq/LIZ6qPW6u5GpiLKBYER12GSUYg8lClthst36aA==
 
 bip32@^2.0.4, bip32@^2.0.6:
   version "2.0.6"
@@ -2106,9 +2106,9 @@ bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-"blech32@github:vulpemventures/blech32":
+blech32@vulpemventures/blech32.git:
   version "1.0.0"
-  resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/95595cf62f550905c3e312144f877c68ac128679"
+  resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/1c9acd89bdd2a2a5016fb942cf7d898579f84c8d"
 
 bluebird@^3.5.5:
   version "3.7.2"
@@ -5430,14 +5430,13 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.13:
+liquidjs-lib@louisinger/liquidjs-lib#bump-bip174:
   version "5.1.13"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.13.tgz#3a3d8f8951ac5daf943056c8b2be3db007a738d8"
-  integrity sha512-36S30HKdJxd/8+pNdkuZS6EmH0C3gvDk379KGWtUKRvyVY1ku046tMbJT3n7s8a6zwzmA62EsP8HDNAA/h21DA==
+  resolved "https://codeload.github.com/louisinger/liquidjs-lib/tar.gz/ab3206aee2e54e2c4dc0d743f2a097acbde4b0de"
   dependencies:
     "@vulpemventures/secp256k1-zkp" "^2.0.0"
     bech32 "^1.1.2"
-    bip174-liquid "^1.0.1-liquid"
+    bip174-liquid "^1.0.2-liquid"
     bip32 "^2.0.4"
     bip66 "^1.1.0"
     bitcoin-ops "^1.4.0"
