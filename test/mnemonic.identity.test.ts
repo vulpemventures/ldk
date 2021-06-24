@@ -15,11 +15,14 @@ import {
   confidential,
   networks,
   payments,
+  address,
+  TxOutput,
 } from 'liquidjs-lib';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import { fromSeed as bip32fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { fromSeed as slip77fromSeed } from 'slip77';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 
 const network = networks.regtest;
 
@@ -121,33 +124,24 @@ describe('Identity: Mnemonic', () => {
       const mnemonic = new Mnemonic(validOpts);
       const generated = await mnemonic.getNextAddress();
 
-      await faucet(generated.confidentialAddress);
-      const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
+      const { unconfidentialAddress } = address.fromConfidential(
+        generated.confidentialAddress
+      );
+      const txid = await faucet(unconfidentialAddress);
+      const utxo = (await fetchUtxos(unconfidentialAddress)).find(
+        u => u.txid === txid
+      );
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
-      const unblindedUtxo = await confidential.unblindOutputWithKey(
-        prevout,
-        Buffer.from(generated.blindingPrivateKey, 'hex')
-      );
 
-      const script: Buffer = payments.p2wpkh({
-        confidentialAddress: generated.confidentialAddress,
-        network,
-      }).output!;
+      const script: Buffer = address.toOutputScript(unconfidentialAddress);
 
       const pset: Psbt = new Psbt({ network })
         .addInput({
           hash: utxo.txid,
           index: utxo.vout,
-          witnessUtxo: {
-            nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(
-              parseInt(unblindedUtxo.value, 10)
-            ),
-            asset: unblindedUtxo.asset,
-            script,
-          },
+          witnessUtxo: prevout,
         })
         .addOutputs([
           {
@@ -179,11 +173,20 @@ describe('Identity: Mnemonic', () => {
       const mnemonic = new Mnemonic(validOpts);
       const generated = await mnemonic.getNextAddress();
 
-      await faucet(generated.confidentialAddress);
-      const utxo = (await fetchUtxos(generated.confidentialAddress))[0];
+      const txid = await faucet(generated.confidentialAddress);
+      const utxo = (await fetchUtxos(generated.confidentialAddress)).find(
+        u => u.txid === txid
+      );
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+      const unblindedPrevout = await confidential.unblindOutputWithKey(
+        prevout as TxOutput,
+        Buffer.from(
+          await mnemonic.getBlindingPrivateKey(prevout.script.toString('hex')),
+          'hex'
+        )
+      );
 
       const script: Buffer = payments.p2wpkh({
         confidentialAddress: generated.confidentialAddress,
@@ -211,7 +214,12 @@ describe('Identity: Mnemonic', () => {
           },
         ]);
 
-      const blindBase64 = await mnemonic.blindPset(pset.toBase64(), [0]);
+      const blindBase64 = await mnemonic.blindPset(
+        pset.toBase64(),
+        [0],
+        undefined,
+        new Map<number, BlindingDataLike>().set(0, unblindedPrevout)
+      );
       const signedBase64 = await mnemonic.signPset(blindBase64);
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid: boolean = false;
