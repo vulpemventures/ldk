@@ -82,7 +82,7 @@
     "bip32": "^2.0.6",
     "bip39": "^3.0.3",
     "bs58check": "^2.1.2",
-    "liquidjs-lib": "5.1.14-rc.0",
+    "liquidjs-lib": "louisinger/liquidjs-lib#bump-bip174",
     "marina-provider": "^1.0.0",
     "slip77": "^0.1.1"
   }
