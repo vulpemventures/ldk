@@ -419,6 +419,7 @@ describe('Identity: Mnemonic', () => {
         const restored = await restorer({
           lastUsedInternalIndex: 10,
         });
+
         assert.deepStrictEqual(
           (await restored.getNextAddress()).derivationPath,
           "m/84'/0'/0'/0/0"
