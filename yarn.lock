@@ -2144,7 +2144,7 @@ bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-"blech32@github:vulpemventures/blech32":
+blech32@vulpemventures/blech32.git:
   version "1.0.0"
   resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/1c9acd89bdd2a2a5016fb942cf7d898579f84c8d"
 
