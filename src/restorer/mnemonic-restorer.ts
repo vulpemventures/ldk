@@ -28,10 +28,11 @@ function restorerFromEsplora<R extends MasterPublicKey>(
       let maxIndex: number | undefined = undefined;
 
       while (counter < gapLimit) {
+        const cpyNext = next;
         // generate a set of addresses from next to (next + gapLimit - 1)
         const addrs = await Promise.all(
           Array.from(Array(gapLimit).keys())
-            .map(i => i + next)
+            .map(i => i + cpyNext)
             .map(getAddrFunc)
         );
 
