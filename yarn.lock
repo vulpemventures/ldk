@@ -2095,9 +2095,10 @@ bindings@^1.3.0, bindings@^1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
-bip174-liquid@louisinger/bip174#hotfix:
-  version "1.0.2-liquid"
-  resolved "https://codeload.github.com/louisinger/bip174/tar.gz/b2629bb28833157ca5eaa770e9ffeec2e4ea4f25"
+bip174-liquid@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/bip174-liquid/-/bip174-liquid-1.0.3.tgz#5009444091da80277c45ee90c255d7919646f907"
+  integrity sha512-e69sC0Cq2tBJuhG2+wieXv40DN13YBR/wbIjZp4Mqwpar5vQm8Ldqijdd6N33XG7LtfvQi/zKm5fSzdPY/9mgw==
 
 bip32@^2.0.4, bip32@^2.0.6:
   version "2.0.6"
@@ -2143,7 +2144,7 @@ bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blech32@vulpemventures/blech32.git:
+"blech32@github:vulpemventures/blech32":
   version "1.0.0"
   resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/1c9acd89bdd2a2a5016fb942cf7d898579f84c8d"
 
@@ -5360,13 +5361,14 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@louisinger/liquidjs-lib#bump-bip174:
-  version "5.1.13"
-  resolved "https://codeload.github.com/louisinger/liquidjs-lib/tar.gz/f1576ad8317e826bde62b3efe8fce4f001a37ddf"
+liquidjs-lib@^5.1.14:
+  version "5.1.14"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.14.tgz#105ab9cdc6c5723897d516d83e726424a2de8e25"
+  integrity sha512-Qwskr6J3+XeItzMG3c/mly0zMmGA9XYM10sBrlnc5/dwAENrUAof7AqWjBDEUk2GuVaEvpSUT+m2wO+vMrP8bQ==
   dependencies:
     "@vulpemventures/secp256k1-zkp" "^2.0.0"
     bech32 "^1.1.2"
-    bip174-liquid louisinger/bip174#hotfix
+    bip174-liquid "^1.0.3"
     bip32 "^2.0.4"
     bip66 "^1.1.0"
     bitcoin-ops "^1.4.0"
