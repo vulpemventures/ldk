@@ -88,7 +88,7 @@ export async function* fetchAndUnblindUtxosGenerator(
           blindingPrivateKey,
           url
         );
-        errors.push(error);
+        if (error) errors.push(error);
         yield unblindedUtxo;
         numberOfUtxos++;
       }
