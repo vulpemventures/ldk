@@ -58,8 +58,10 @@ export async function esploraTxToTxInterface(
   const inputVouts: number[] = [];
 
   for (const input of esploraTx.vin) {
-    inputTxIds.push(input.txid);
-    inputVouts.push(input.vout);
+    if (!input.is_pegin) {
+      inputTxIds.push(input.txid);
+      inputVouts.push(input.vout);
+    }
   }
 
   const prevoutTxHexs = await Promise.all(
