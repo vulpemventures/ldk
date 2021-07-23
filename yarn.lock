@@ -2144,7 +2144,7 @@ bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blech32@vulpemventures/blech32.git:
+"blech32@github:vulpemventures/blech32":
   version "1.0.0"
   resolved "https://codeload.github.com/vulpemventures/blech32/tar.gz/1c9acd89bdd2a2a5016fb942cf7d898579f84c8d"
 
@@ -5361,10 +5361,9 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.14:
+"liquidjs-lib@https://github.com/louisinger/liquidjs-lib.git#blech32":
   version "5.1.14"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.1.14.tgz#105ab9cdc6c5723897d516d83e726424a2de8e25"
-  integrity sha512-Qwskr6J3+XeItzMG3c/mly0zMmGA9XYM10sBrlnc5/dwAENrUAof7AqWjBDEUk2GuVaEvpSUT+m2wO+vMrP8bQ==
+  resolved "https://github.com/louisinger/liquidjs-lib.git#330286883971a829df6fedbe6679234c0fd0d359"
   dependencies:
     "@vulpemventures/secp256k1-zkp" "^2.0.0"
     bech32 "^1.1.2"
@@ -5372,7 +5371,7 @@ liquidjs-lib@^5.1.14:
     bip32 "^2.0.4"
     bip66 "^1.1.0"
     bitcoin-ops "^1.4.0"
-    blech32 vulpemventures/blech32.git
+    blech32 "github:vulpemventures/blech32"
     bs58check "^2.0.0"
     create-hash "^1.1.0"
     create-hmac "^1.1.3"
