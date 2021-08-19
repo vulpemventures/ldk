@@ -58,18 +58,24 @@ export async function esploraTxToTxInterface(
   const inputVouts: number[] = [];
 
   for (const input of esploraTx.vin) {
-    if (!input.is_pegin) {
-      inputTxIds.push(input.txid);
-      inputVouts.push(input.vout);
-    }
+    inputTxIds.push(input.txid);
+    inputVouts.push(input.vout);
   }
 
   const prevoutTxHexs = await Promise.all(
-    inputTxIds.map(txid => fetchTxHex(txid, explorerUrl))
+    inputTxIds.map((txid, index) => {
+      if (!esploraTx.vin[index].is_pegin) return fetchTxHex(txid, explorerUrl);
+      return Promise.resolve(undefined); // return undefined in case of pegin
+    })
   );
 
-  const prevoutAsOutput = prevoutTxHexs.map((hex: string, index: number) =>
-    txOutputToOutputInterface(Transaction.fromHex(hex).outs[inputVouts[index]])
+  const prevoutAsOutput = prevoutTxHexs.map(
+    (hex: string | undefined, index: number) => {
+      if (!hex) return undefined;
+      return txOutputToOutputInterface(
+        Transaction.fromHex(hex).outs[inputVouts[index]]
+      );
+    }
   );
 
   const txInputs: InputInterface[] = inputTxIds.map(
@@ -78,6 +84,7 @@ export async function esploraTxToTxInterface(
         prevout: prevoutAsOutput[index],
         txid: txid,
         vout: inputVouts[index],
+        isPegin: esploraTx.vin[index].is_pegin,
       };
     }
   );
