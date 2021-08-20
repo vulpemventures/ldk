@@ -67,7 +67,8 @@ export interface UnblindedOutputInterface {
 export interface InputInterface {
   txid: string;
   vout: number;
-  prevout: BlindedOutputInterface | UnblindedOutputInterface;
+  prevout?: BlindedOutputInterface | UnblindedOutputInterface;
+  isPegin: boolean;
 }
 
 export interface TxInterface {
