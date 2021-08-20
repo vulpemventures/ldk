@@ -141,7 +141,7 @@ export async function unblindTransaction(
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
     const prevout = tx.vin[inputIndex].prevout;
-    if (isBlindedOutputInterface(prevout)) {
+    if (prevout && isBlindedOutputInterface(prevout)) {
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(prevout.script);
         if (blindingKey) {
