@@ -1,5 +1,5 @@
 {
-  "version": "0.3.10",
+  "version": "0.3.11",
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -82,7 +82,7 @@
     "bip32": "^2.0.6",
     "bip39": "^3.0.3",
     "bs58check": "^2.1.2",
-    "liquidjs-lib": "^5.1.15",
+    "liquidjs-lib": "^5.1.17",
     "marina-provider": "^1.0.0",
     "slip77": "^0.1.1"
   }
