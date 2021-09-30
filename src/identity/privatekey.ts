@@ -6,6 +6,7 @@ import Identity, {
   IdentityType,
 } from './identity';
 import { AddressInterface } from '../types';
+import { checkIdentityType } from '../utils';
 
 /**
  * This interface describes the shape of the value arguments used in contructor.
@@ -39,9 +40,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
     super(args);
 
     // checks the args type.
-    if (args.type !== IdentityType.PrivateKey) {
-      throw new Error('The identity arguments have not the PrivateKey type.');
-    }
+    checkIdentityType(args.type, IdentityType.PrivateKey);
 
     // decode signing key pair from WIF
     this.signingKeyPair = this.decodeFromWif(args.opts.signingKeyWIF);

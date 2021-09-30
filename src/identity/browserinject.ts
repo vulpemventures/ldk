@@ -2,6 +2,7 @@ import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 // @ts-ignore
 import { MarinaProvider } from 'marina-provider';
 import { AddressInterface } from '../types';
+import { checkIdentityType } from '../utils';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
@@ -24,9 +25,7 @@ export class BrowserInject extends Identity implements IdentityInterface {
     super(args);
 
     // checks the args type.
-    if (args.type !== IdentityType.Inject) {
-      throw new Error('The identity arguments have not the Inject type.');
-    }
+    checkIdentityType(args.type, IdentityType.Inject);
 
     //checks if we are in the brower and if the provider is injected in the dom
     if (

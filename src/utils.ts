@@ -17,6 +17,7 @@ import {
 import b58 from 'bs58check';
 import { fromBase58 } from 'bip32';
 import { fromMasterBlindingKey } from 'slip77';
+import { IdentityType } from '.';
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -242,4 +243,12 @@ export function getIndexFromAddress(addr: AddressInterface) {
   const derivationPathSplitted = addr.derivationPath.split('/');
 
   return parseInt(derivationPathSplitted[derivationPathSplitted.length - 1]);
+}
+
+// throws an error if actual is not expect
+export function checkIdentityType(actual: IdentityType, expect: IdentityType) {
+  if (actual !== expect)
+    throw new Error(
+      `Incorrect Identity type: need ${expect} and get ${actual}.`
+    );
 }

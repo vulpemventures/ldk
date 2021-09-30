@@ -1,6 +1,11 @@
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { BIP32Interface, fromBase58 } from 'bip32';
-import { isValidExtendedBlindKey, isValidXpub, toXpub } from '../utils';
+import {
+  checkIdentityType,
+  isValidExtendedBlindKey,
+  isValidXpub,
+  toXpub,
+} from '../utils';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
@@ -38,11 +43,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     const xpub = toXpub(args.opts.masterPublicKey);
 
     // check the identity type
-    if (args.type !== IdentityType.MasterPublicKey) {
-      throw new Error(
-        'The identity arguments have not the MasterPublicKey type.'
-      );
-    }
+    checkIdentityType(args.type, IdentityType.MasterPublicKey);
 
     // validate xpub
     if (!isValidXpub(xpub)) {

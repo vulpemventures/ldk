@@ -20,6 +20,8 @@ export enum IdentityType {
   Inject,
   Ledger,
   Trezor,
+  MultisigWatchOnly,
+  Multisig,
 }
 
 /**

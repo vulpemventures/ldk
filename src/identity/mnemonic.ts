@@ -2,7 +2,7 @@ import { MasterPublicKey } from './masterpubkey';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import * as bip39 from 'bip39';
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
-import { fromXpub } from '../utils';
+import { checkIdentityType, fromXpub } from '../utils';
 import { ECPair, Psbt, bip32, networks, Network } from 'liquidjs-lib';
 import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
@@ -31,9 +31,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
   constructor(args: IdentityOpts<MnemonicOpts>) {
     // check the identity type
-    if (args.type !== IdentityType.Mnemonic) {
-      throw new Error('The identity arguments have not the Mnemonic type.');
-    }
+    checkIdentityType(args.type, IdentityType.Mnemonic);
 
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
