@@ -18,7 +18,7 @@ import b58 from 'bs58check';
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { fromMasterBlindingKey } from 'slip77';
 import { IdentityType } from '.';
-import { validateMnemonic } from 'bip39';
+import { setDefaultWordlist, validateMnemonic } from 'bip39';
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -254,7 +254,8 @@ export function checkIdentityType(actual: IdentityType, expect: IdentityType) {
     );
 }
 
-export function checkMnemonic(mnemonic: string) {
+export function checkMnemonic(mnemonic: string, language?: string) {
+  if (language) setDefaultWordlist(language);
   if (!validateMnemonic(mnemonic)) throw new Error('Mnemonic is not valid.');
 }
 

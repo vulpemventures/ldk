@@ -32,11 +32,10 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
   constructor(args: IdentityOpts<MnemonicOpts>) {
     checkIdentityType(args.type, IdentityType.Mnemonic);
-    checkMnemonic(args.opts.mnemonic);
-
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
     bip39.setDefaultWordlist(args.opts.language || 'english');
+    checkMnemonic(args.opts.mnemonic);
 
     // retreive the wallet's seed from mnemonic
     const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
