@@ -1,3 +1,6 @@
+import * as assert from 'assert';
+import { networks, payments } from 'liquidjs-lib';
+
 import {
   IdentityOpts,
   IdentityType,
@@ -8,8 +11,7 @@ import {
   MasterPublicKeyOpts,
   MnemonicOpts,
 } from '../src';
-import * as assert from 'assert';
-import { networks, payments } from 'liquidjs-lib';
+
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);

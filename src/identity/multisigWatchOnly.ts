@@ -1,17 +1,22 @@
-import { BIP32Interface, fromBase58 } from 'bip32';
+import { BIP32Interface, fromBase58, fromPublicKey, fromSeed } from 'bip32';
+import { mnemonicToSeedSync } from 'bip39';
+import { networks } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
-import { AddressInterface, CosignerMultisig, MultisigPayment } from '../types';
 import {
-  checkIdentityType,
-  checkMasterPublicKey,
-  cosignerToXPub,
-} from '../utils';
-import Identity, {
-  IdentityInterface,
-  IdentityOpts,
-  IdentityType,
-} from './identity';
+  AddressInterface,
+  MultisigPayment,
+  CosignerMultisig,
+  XPub,
+} from '../types';
+import { IdentityType } from '../types';
+import { checkIdentityType, checkMasterPublicKey, toXpub } from '../utils';
+
+import { IdentityInterface, IdentityOpts } from './identity';
+import { Identity } from './identity';
+
+export const DEFAULT_BASE_DERIVATION_PATH = "m/48'/0'/0'/2'"; // --> bip48
 
 /**
  * the public keys required to sign are defined by cosignersPublicKeys (xpub)
@@ -23,8 +28,8 @@ export interface MultisigWatchOnlyOpts {
 }
 
 export class MultisigWatchOnly extends Identity implements IdentityInterface {
-  private nextIndex: number = 0;
-  private nextChangeIndex: number = 0;
+  private nextIndex = 0;
+  private nextChangeIndex = 0;
 
   static EXTERNAL_INDEX = 0;
   static INTERNAL_INDEX = 1; // change addresses
@@ -138,4 +143,19 @@ function checkRequiredSignature(required: number, cosignersLength: number) {
       `number of required signatures must be > 0 and <= ${cosignersLength}`
     );
   }
+}
+
+function cosignerToXPub(
+  cosigner: CosignerMultisig,
+  network: networks.Network
+): XPub {
+  if (typeof cosigner === 'string') return cosigner;
+
+  const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
+  const baseNode = fromSeed(walletSeed, network).derivePath(
+    cosigner.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH
+  );
+  return toXpub(
+    fromPublicKey(baseNode.publicKey, baseNode.chainCode, network).toBase58()
+  );
 }

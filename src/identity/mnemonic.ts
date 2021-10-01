@@ -1,11 +1,14 @@
-import { MasterPublicKey } from './masterpubkey';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
-import * as bip39 from 'bip39';
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
-import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
+import * as bip39 from 'bip39';
 import { ECPair, Psbt, bip32, networks, Network } from 'liquidjs-lib';
-import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
+
+import { IdentityType } from '../types';
+import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
+
+import { IdentityInterface, IdentityOpts } from './identity';
+import { MasterPublicKey } from './masterpubkey';
 
 export interface MnemonicOpts {
   mnemonic: string;
@@ -112,7 +115,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
   async signPset(psetBase64: string): Promise<string> {
     const pset = Psbt.fromBase64(psetBase64);
-    const signInputPromises: Array<Promise<void>> = [];
+    const signInputPromises: Promise<void>[] = [];
 
     for (let index = 0; index < pset.data.inputs.length; index++) {
       const input = pset.data.inputs[index];

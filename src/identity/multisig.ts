@@ -1,17 +1,22 @@
 import { BIP32Interface, fromPublicKey, fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { address, ECPair, Network, networks, Psbt } from 'liquidjs-lib';
-import { SignerMultisig } from '../types';
+
+import { IdentityType, SignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
-import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
-import { MultisigWatchOnly, MultisigWatchOnlyOpts } from './multisigWatchOnly';
+
+import { IdentityInterface, IdentityOpts } from './identity';
+import {
+  DEFAULT_BASE_DERIVATION_PATH,
+  MultisigWatchOnly,
+  MultisigWatchOnlyOpts,
+} from './multisigWatchOnly';
 
 export type MultisigOpts = {
   signer: SignerMultisig;
 } & MultisigWatchOnlyOpts;
 
 export class Multisig extends MultisigWatchOnly implements IdentityInterface {
-  static DEFAULT_BASE_DERIVATION_PATH = "m/48'/0'/0'/2'"; // --> bip48
   readonly baseDerivationPath: string;
   readonly baseNode: BIP32Interface;
   readonly scriptToPath: Record<string, string>;
@@ -25,8 +30,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
     const masterPrivateKeyNode = fromSeed(walletSeed, network);
 
     const baseNode = masterPrivateKeyNode.derivePath(
-      args.opts.signer.baseDerivationPath ||
-        Multisig.DEFAULT_BASE_DERIVATION_PATH
+      args.opts.signer.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH
     );
 
     super({
@@ -39,8 +43,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
     });
 
     this.baseDerivationPath =
-      args.opts.signer.baseDerivationPath ||
-      Multisig.DEFAULT_BASE_DERIVATION_PATH;
+      args.opts.signer.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH;
     this.baseNode = baseNode;
     this.scriptToPath = {};
   }
@@ -69,7 +72,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
   async signPset(psetBase64: string): Promise<string> {
     const pset = Psbt.fromBase64(psetBase64);
-    const signInputPromises: Array<Promise<void>> = [];
+    const signInputPromises: Promise<void>[] = [];
 
     for (let index = 0; index < pset.data.inputs.length; index++) {
       const input = pset.data.inputs[index];

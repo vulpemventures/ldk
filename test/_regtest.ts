@@ -9,7 +9,7 @@ export function sleep(ms: number): Promise<any> {
 export async function fetchUtxos(
   address: string,
   txid?: string
-): Promise<Array<any>> {
+): Promise<any[]> {
   try {
     let utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
     if (txid) {

@@ -1,10 +1,12 @@
+import { address as laddress } from 'liquidjs-lib';
+
 import { CoinSelector } from './coinselection/coinSelector';
 import {
   UtxoInterface,
   ChangeAddressFromAssetGetter,
   RecipientInterface,
 } from './types';
-import { Psbt, address as laddress } from 'liquidjs-lib';
+import { decodePset } from './utils';
 
 export interface BuildTxArgs {
   psetBase64: string;
@@ -76,7 +78,7 @@ export function buildTx(args: BuildTxArgs): string {
 
   const pset = decodePset(psetBase64);
   const nbInputs = pset.data.inputs.length + inputs.length;
-  let nbOutputs =
+  const nbOutputs =
     pset.data.outputs.length + recipients.length + changeOutputs.length;
 
   const feeAssetHash = laddress.getNetwork(recipients[0].address).assetHash;
@@ -87,7 +89,7 @@ export function buildTx(args: BuildTxArgs): string {
     out => out.asset === feeAssetHash
   );
 
-  let diff =
+  const diff =
     changeIndexLBTC === -1
       ? 0 - fee.value
       : changeOutputs[changeIndexLBTC].value - fee.value;
@@ -170,16 +172,6 @@ export function addToTx(
   }
 
   return pset.toBase64();
-}
-
-export function decodePset(psetBase64: string): Psbt {
-  let pset: Psbt;
-  try {
-    pset = Psbt.fromBase64(psetBase64);
-  } catch (ignore) {
-    throw new Error('Invalid pset');
-  }
-  return pset;
 }
 
 // estimate segwit transaction size in bytes depending on number of inputs and outputs

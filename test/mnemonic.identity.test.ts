@@ -1,14 +1,6 @@
-import { Restorer } from './../src/restorer/restorer';
 import * as assert from 'assert';
-import {
-  IdentityOpts,
-  IdentityType,
-  Mnemonic,
-  MnemonicOpts,
-  mnemonicRestorerFromEsplora,
-  mnemonicRestorerFromState,
-  StateRestorerOpts,
-} from '../src';
+import { fromSeed as bip32fromSeed } from 'bip32';
+import { mnemonicToSeedSync } from 'bip39';
 import {
   Psbt,
   Transaction,
@@ -18,11 +10,21 @@ import {
   address,
   TxOutput,
 } from 'liquidjs-lib';
-import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-import { fromSeed as bip32fromSeed } from 'bip32';
-import { mnemonicToSeedSync } from 'bip39';
-import { fromSeed as slip77fromSeed } from 'slip77';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { fromSeed as slip77fromSeed } from 'slip77';
+
+import {
+  IdentityOpts,
+  IdentityType,
+  Mnemonic,
+  MnemonicOpts,
+  mnemonicRestorerFromEsplora,
+  mnemonicRestorerFromState,
+  StateRestorerOpts,
+} from '../src';
+
+import { Restorer } from './../src/restorer/restorer';
+import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 
 const network = networks.regtest;
 
@@ -160,7 +162,7 @@ describe('Identity: Mnemonic', () => {
 
       const signedBase64 = await mnemonic.signPset(pset.toBase64());
       const signedPsbt = Psbt.fromBase64(signedBase64);
-      let isValid: boolean = false;
+      let isValid = false;
       assert.doesNotThrow(
         () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
       );
@@ -222,7 +224,7 @@ describe('Identity: Mnemonic', () => {
       );
       const signedBase64 = await mnemonic.signPset(blindBase64);
       const signedPsbt = Psbt.fromBase64(signedBase64);
-      let isValid: boolean = false;
+      let isValid = false;
       assert.doesNotThrow(
         () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
       );
@@ -378,7 +380,7 @@ describe('Identity: Mnemonic', () => {
     });
 
     describe('Mnemonic restoration (from State)', () => {
-      let restorer: Restorer<StateRestorerOpts, Mnemonic> = args => {
+      const restorer: Restorer<StateRestorerOpts, Mnemonic> = args => {
         const toRestoreMnemonic = new Mnemonic({
           ...validOpts,
         });

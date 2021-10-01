@@ -1,25 +1,27 @@
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
-import { networks, Psbt, Transaction } from 'liquidjs-lib';
-import { recipientAddress, sender } from './fixtures/wallet.keys';
-import { APIURL, broadcastTx, faucet, mint } from './_regtest';
-import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
 import * as assert from 'assert';
-import { RecipientInterface } from '../src/types';
+import { networks, Psbt, Transaction } from 'liquidjs-lib';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+
+import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
-import { psetToUnsignedHex } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
-import { walletFromAddresses, WalletInterface } from '../src';
+import { buildTx, BuildTxArgs } from '../src/transaction';
+import { RecipientInterface } from '../src/types';
+import { psetToUnsignedHex, decodePset } from '../src/utils';
+
+import { APIURL, broadcastTx, faucet, mint } from './_regtest';
+import { recipientAddress, sender } from './fixtures/wallet.keys';
 
 jest.setTimeout(50000);
 
 let senderWallet: WalletInterface;
 
 describe('buildTx', () => {
-  let USDT: string = '';
+  let USDT = '';
   let args: BuildTxArgs;
-  let senderAddress: string = '';
-  let senderBlindingKey: string = '';
+  let senderAddress = '';
+  let senderBlindingKey = '';
 
   beforeAll(async () => {
     const addrI = await sender.getNextAddress();

@@ -1,4 +1,5 @@
 import { isBlindedUtxo } from '../utils';
+
 import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
@@ -113,7 +114,7 @@ function selectUtxos(
   throw new Error('not enough utxos in wallet to fund: ' + targetAmount);
 }
 
-function groupBy(xs: Array<any>, key: string) {
+function groupBy(xs: any[], key: string) {
   return xs.reduce(function(rv, x) {
     (rv[x[key]] = rv[x[key]] || []).push(x);
     return rv;

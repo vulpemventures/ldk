@@ -1,5 +1,8 @@
-import { CoinSelector } from './coinselection/coinSelector';
 import { Network, Psbt } from 'liquidjs-lib';
+
+import { CoinSelector } from './coinselection/coinSelector';
+import { fetchAndUnblindUtxos } from './explorer/utxos';
+import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
 import {
   AddressInterface,
   UtxoInterface,
@@ -8,8 +11,6 @@ import {
   ChangeAddressFromAssetGetter,
 } from './types';
 import { getNetwork, toOutpoint } from './utils';
-import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
-import { fetchAndUnblindUtxos } from './explorer/utxos';
 
 /**
  * Wallet abstraction.

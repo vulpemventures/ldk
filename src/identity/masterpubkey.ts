@@ -1,19 +1,17 @@
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { BIP32Interface, fromBase58 } from 'bip32';
+import { payments } from 'liquidjs-lib';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+
+import { AddressInterface, IdentityType } from '../types';
 import {
   checkIdentityType,
   isValidExtendedBlindKey,
   isValidXpub,
   toXpub,
 } from '../utils';
-import Identity, {
-  IdentityInterface,
-  IdentityOpts,
-  IdentityType,
-} from './identity';
-import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-import { AddressInterface } from '../types';
-import { payments } from 'liquidjs-lib';
+
+import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 export interface MasterPublicKeyOpts {
   masterPublicKey: string;
@@ -27,8 +25,8 @@ interface AddressInterfaceExtended {
 }
 
 export class MasterPublicKey extends Identity implements IdentityInterface {
-  protected static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
-  static INITIAL_INDEX: number = 0;
+  protected static INITIAL_BASE_PATH = "m/84'/0'/0'";
+  static INITIAL_INDEX = 0;
 
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
@@ -99,7 +97,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    */
   protected getBlindingKeyPair(
     scriptPubKey: string,
-    checkScript: boolean = false
+    checkScript = false
   ): { publicKey: Buffer; privateKey: Buffer } {
     if (checkScript) {
       const addressInterface = this.scriptToAddressCache[scriptPubKey];

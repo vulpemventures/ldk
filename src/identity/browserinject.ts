@@ -1,13 +1,11 @@
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 // @ts-ignore
 import { MarinaProvider } from 'marina-provider';
-import { AddressInterface } from '../types';
+
+import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
-import Identity, {
-  IdentityInterface,
-  IdentityOpts,
-  IdentityType,
-} from './identity';
+
+import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 /**
  * This interface describes the shape of the value arguments used in contructor.

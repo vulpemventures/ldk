@@ -1,12 +1,5 @@
-import {
-  IdentityOpts,
-  IdentityType,
-  Mnemonic,
-  MultisigOpts,
-  Multisig,
-  multisigFromEsplora,
-} from '../src';
 import * as assert from 'assert';
+import { generateMnemonic } from 'bip39';
 import {
   networks,
   address,
@@ -15,15 +8,25 @@ import {
   confidential,
   TxOutput,
 } from 'liquidjs-lib';
-import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
-import { generateMnemonic } from 'bip39';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+
+import {
+  IdentityOpts,
+  IdentityType,
+  Mnemonic,
+  MultisigOpts,
+  Multisig,
+  multisigFromEsplora,
+  DEFAULT_BASE_DERIVATION_PATH,
+} from '../src';
+
+import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
 const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest', Multisig.DEFAULT_BASE_DERIVATION_PATH),
-  Mnemonic.Random('regtest', Multisig.DEFAULT_BASE_DERIVATION_PATH),
+  Mnemonic.Random('regtest', DEFAULT_BASE_DERIVATION_PATH),
+  Mnemonic.Random('regtest', DEFAULT_BASE_DERIVATION_PATH),
 ];
 
 const validOpts: IdentityOpts<MultisigOpts> = {
@@ -32,7 +35,7 @@ const validOpts: IdentityOpts<MultisigOpts> = {
   opts: {
     signer: {
       mnemonic: generateMnemonic(),
-      baseDerivationPath: Multisig.DEFAULT_BASE_DERIVATION_PATH,
+      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
     }, // 1 signer
     cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
     requiredSignatures: 2, // need 2 signatures among 3 pubkeys
@@ -44,7 +47,7 @@ const invalidOpts: IdentityOpts<MultisigOpts> = {
   opts: {
     signer: {
       mnemonic: generateMnemonic(),
-      baseDerivationPath: Multisig.DEFAULT_BASE_DERIVATION_PATH,
+      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
     }, // 1 signer
     cosigners: cosigners.map(m => m.getXPub()),
     requiredSignatures: 10000000,
@@ -127,7 +130,7 @@ describe('Identity:  Multisig', () => {
       signedBase64 = await signer2.signPset(signedBase64);
 
       const signedPsbt = Psbt.fromBase64(signedBase64);
-      let isValid: boolean = false;
+      let isValid = false;
       assert.doesNotThrow(
         () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
       );
@@ -191,7 +194,7 @@ describe('Identity:  Multisig', () => {
       );
       const signedBase64 = await multisig.signPset(blindBase64);
       const signedPsbt = Psbt.fromBase64(signedBase64);
-      let isValid: boolean = false;
+      let isValid = false;
       assert.doesNotThrow(
         () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
       );

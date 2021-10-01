@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import UnblindError from '../error/unblind-error';
 import {
   BlindingKeyGetter,
@@ -6,6 +7,7 @@ import {
   TxInterface,
 } from '../types';
 import { unblindOutput } from '../utils';
+
 import { esploraTxToTxInterface } from './esplora';
 import { EsploraTx } from './types';
 
@@ -21,9 +23,13 @@ export async function* fetchAndUnblindTxsGenerator(
   blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string,
   skip?: (tx: TxInterface) => boolean
-): AsyncGenerator<TxInterface, { txIDs: string[]; errors: any[] }, undefined> {
+): AsyncGenerator<
+  TxInterface,
+  { txIDs: string[]; errors: Error[] },
+  undefined
+> {
   const txIDs: string[] = [];
-  const errors = [];
+  const errors: Error[] = [];
 
   for (const address of addresses) {
     try {
@@ -47,7 +53,15 @@ export async function* fetchAndUnblindTxsGenerator(
         txIterator = await txsGenerator.next();
       }
     } catch (err) {
-      errors.push(err);
+      if (err instanceof Error) {
+        errors.push(err);
+      }
+
+      if (typeof err === 'string') {
+        errors.push(new Error(err));
+      }
+
+      errors.push(new Error('unknow error'));
     }
   }
   return { txIDs, errors };
@@ -72,7 +86,8 @@ export async function fetchAndUnblindTxs(
     explorerUrl,
     skip
   );
-  const txs: Array<TxInterface> = [];
+
+  const txs: TxInterface[] = [];
 
   let iterator = await generator.next();
   while (!iterator.done) {
@@ -95,7 +110,7 @@ async function* fetchTxsGenerator(
 ): AsyncGenerator<TxInterface, number, undefined> {
   let lastSeenTxid = undefined;
   let newTxs: EsploraTx[] = [];
-  let numberOfTxs: number = 0;
+  let numberOfTxs = 0;
 
   do {
     // fetch up to 25 txs
@@ -116,7 +131,7 @@ async function* fetchTxsGenerator(
 
     for (const tx of txs) {
       const transaction = await tx;
-      if (skip && skip(transaction)) {
+      if (skip?.(transaction)) {
         continue;
       }
       yield transaction;

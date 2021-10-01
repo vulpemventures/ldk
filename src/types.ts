@@ -1,6 +1,20 @@
 import { TxOutput, confidential } from 'liquidjs-lib';
 
 /**
+ * Enumeration of all the Identity types.
+ */
+export enum IdentityType {
+  PrivateKey = 1,
+  Mnemonic,
+  MasterPublicKey,
+  Inject,
+  Ledger,
+  Trezor,
+  MultisigWatchOnly,
+  Multisig,
+}
+
+/**
  * Defines the shape of the object returned by the getAdresses's method.
  * @member confidentialAddress the confidential address.
  * @member blindingPrivateKey the blinding private key associated to the confidential address.
@@ -80,8 +94,8 @@ export interface TxInterface {
     blockHash?: string;
     blockTime?: number;
   };
-  vin: Array<InputInterface>;
-  vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
+  vin: InputInterface[];
+  vout: (BlindedOutputInterface | UnblindedOutputInterface)[];
 }
 
 export type MultisigPayment = AddressInterface & {

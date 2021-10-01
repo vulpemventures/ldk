@@ -1,12 +1,10 @@
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { ECPair, ECPairInterface, Psbt, payments } from 'liquidjs-lib';
-import Identity, {
-  IdentityInterface,
-  IdentityOpts,
-  IdentityType,
-} from './identity';
-import { AddressInterface } from '../types';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+
+import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
+
+import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 /**
  * This interface describes the shape of the value arguments used in contructor.

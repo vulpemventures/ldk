@@ -1,3 +1,6 @@
+import * as assert from 'assert';
+import { networks, address } from 'liquidjs-lib';
+
 import {
   IdentityOpts,
   IdentityType,
@@ -6,8 +9,7 @@ import {
   MultisigWatchOnly,
   multisigWatchOnlyFromEsplora,
 } from '../src';
-import * as assert from 'assert';
-import { networks, address } from 'liquidjs-lib';
+
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);

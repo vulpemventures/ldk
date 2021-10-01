@@ -1,12 +1,15 @@
+import axios from 'axios';
+import { IdentityInterface } from '../identity/identity';
+import { Multisig } from '../identity/multisig';
+import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
+
 import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
 import { Restorer } from './restorer';
-import axios from 'axios';
-import { IdentityInterface, Multisig, MultisigWatchOnly } from '..';
 
 // from Esplora
 
-export const BLOCKSTREAM_ESPLORA_ENDPOINT: string =
+export const BLOCKSTREAM_ESPLORA_ENDPOINT =
   'https://blockstream.info/liquid/api';
 
 export interface EsploraRestorerOpts {

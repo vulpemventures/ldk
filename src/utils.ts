@@ -1,3 +1,6 @@
+import { fromBase58 } from 'bip32';
+import { setDefaultWordlist, validateMnemonic } from 'bip39';
+import b58 from 'bs58check';
 import {
   Network,
   Psbt,
@@ -6,25 +9,16 @@ import {
   networks,
   TxOutput,
 } from 'liquidjs-lib';
+import { fromMasterBlindingKey } from 'slip77';
+
 import {
   AddressInterface,
   BlindedOutputInterface,
-  CosignerMultisig,
   Outpoint,
   UnblindedOutputInterface,
   UtxoInterface,
-  XPub,
+  IdentityType,
 } from './types';
-// @ts-ignore
-import b58 from 'bs58check';
-import { fromBase58, fromPublicKey, fromSeed } from 'bip32';
-import { fromMasterBlindingKey } from 'slip77';
-import { IdentityType, Multisig } from '.';
-import {
-  mnemonicToSeedSync,
-  setDefaultWordlist,
-  validateMnemonic,
-} from 'bip39';
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -98,7 +92,7 @@ export class BufferMap<T> {
     return this;
   }
 
-  values(): Array<T> {
+  values(): T[] {
     return Array.from(this.map.values());
   }
 }
@@ -159,7 +153,7 @@ export function toXpub(anyPub: string) {
   return changeVersionBytes(anyPub, 'xpub');
 }
 
-export function isValidXpub(xpub: string, network?: Network): Boolean {
+export function isValidXpub(xpub: string, network?: Network): boolean {
   try {
     fromBase58(xpub, network);
   } catch (e) {
@@ -169,7 +163,7 @@ export function isValidXpub(xpub: string, network?: Network): Boolean {
   return true;
 }
 
-export function isValidExtendedBlindKey(masterBlind: string): Boolean {
+export function isValidExtendedBlindKey(masterBlind: string): boolean {
   try {
     fromMasterBlindingKey(masterBlind);
   } catch (e) {
@@ -273,17 +267,12 @@ export function checkMasterPublicKey(masterPublicKey: string) {
   }
 }
 
-export function cosignerToXPub(
-  cosigner: CosignerMultisig,
-  network: networks.Network
-): XPub {
-  if (typeof cosigner === 'string') return cosigner;
-
-  const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
-  const baseNode = fromSeed(walletSeed, network).derivePath(
-    cosigner.baseDerivationPath || Multisig.DEFAULT_BASE_DERIVATION_PATH
-  );
-  return toXpub(
-    fromPublicKey(baseNode.publicKey, baseNode.chainCode, network).toBase58()
-  );
+export function decodePset(psetBase64: string): Psbt {
+  let pset: Psbt;
+  try {
+    pset = Psbt.fromBase64(psetBase64);
+  } catch (ignore) {
+    throw new Error('Invalid pset');
+  }
+  return pset;
 }

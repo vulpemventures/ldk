@@ -1,6 +1,7 @@
-import { fromXpub, toXpub } from '../src/utils';
 import * as assert from 'assert';
 import { bip32 } from 'liquidjs-lib';
+
+import { fromXpub, toXpub } from '../src/utils';
 
 const xpub =
   'xpub661MyMwAqRbcGC851SCJ22vDfA3ModMuFd9NozAt1d3diLCW31jN13wF2tx6uYCKTkjMuKDUNjVuvyMuvieXfv64Fm44MhjMdFFJ2hXcTp4';
