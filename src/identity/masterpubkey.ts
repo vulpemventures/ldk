@@ -195,4 +195,8 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
       addrExtended => addrExtended.address
     );
   }
+
+  getXPub(): string {
+    return this.masterPublicKeyNode.toBase58();
+  }
 }

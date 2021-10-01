@@ -6,7 +6,6 @@ import { checkIdentityType, fromXpub } from '../utils';
 import { ECPair, Psbt, bip32, networks, Network } from 'liquidjs-lib';
 import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
-import { AddressInterface } from '../types';
 
 export interface MnemonicOpts {
   mnemonic: string;
@@ -141,8 +140,14 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     return pset.toBase64();
   }
 
-  // returns all the addresses generated
-  async getAddresses(): Promise<AddressInterface[]> {
-    return super.getAddresses();
+  static Random(chain: IdentityOpts<any>['chain']): Mnemonic {
+    const randomMnemonic = bip39.generateMnemonic();
+    return new Mnemonic({
+      chain,
+      type: IdentityType.Mnemonic,
+      opts: {
+        mnemonic: randomMnemonic,
+      },
+    });
   }
 }

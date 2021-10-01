@@ -15,7 +15,7 @@ import {
 } from './types';
 // @ts-ignore
 import b58 from 'bs58check';
-import { fromBase58 } from 'bip32';
+import { BIP32Interface, fromBase58 } from 'bip32';
 import { fromMasterBlindingKey } from 'slip77';
 import { IdentityType } from '.';
 
@@ -251,4 +251,21 @@ export function checkIdentityType(actual: IdentityType, expect: IdentityType) {
     throw new Error(
       `Incorrect Identity type: need ${expect} and get ${actual}.`
     );
+}
+
+export function checkMasterPublicKey(masterPublicKey: string) {
+  try {
+    fromBase58(masterPublicKey);
+  } catch {
+    throw new Error(`invalid master public key: ${masterPublicKey}`);
+  }
+}
+
+export function deriveMasterPublicKey(
+  masterPublicKey: string,
+  derivationPath: string
+): BIP32Interface {
+  const masterNode = fromBase58(masterPublicKey);
+  const bip32Interface = masterNode.derivePath(derivationPath);
+  return bip32Interface;
 }

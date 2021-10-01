@@ -83,3 +83,8 @@ export interface TxInterface {
   vin: Array<InputInterface>;
   vout: Array<BlindedOutputInterface | UnblindedOutputInterface>;
 }
+
+export type MultisigPayment = AddressInterface & {
+  redeemScript: string;
+  witnessScript: string;
+};
