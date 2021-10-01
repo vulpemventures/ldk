@@ -282,31 +282,4 @@ describe('Identity:  Multisig', () => {
       assert.deepStrictEqual(nextIsAlreadyKnown, false);
     });
   });
-
-  // describe('MasterPubKey X Mnemonic', () => {
-  //   it('should generate same addresses than Mnemonic', () => {
-  //     const mnemonicValidOpts: IdentityOpts<MnemonicOpts> = {
-  //       chain: 'regtest',
-  //       type: IdentityType.Mnemonic,
-  //       opts: {
-  //         mnemonic:
-  //           'pause quantum three welcome become episode tackle achieve predict mimic share task onion vapor announce exist inner fortune stamp crucial angle neither manage denial',
-  //       },
-  //     };
-
-  //     const mnemonic = new Mnemonic(mnemonicValidOpts);
-  //     const pubkey = new Multisig({
-  //       ...validOpts,
-  //       opts: {
-  //         masterBlindingKey: mnemonic.masterBlindingKey,
-  //         Multisig: mnemonic.Multisig,
-  //       },
-  //     });
-
-  //     assert.deepStrictEqual(
-  //       pubkey.getNextAddress(),
-  //       mnemonic.getNextAddress()
-  //     );
-  //   });
-  // });
 });

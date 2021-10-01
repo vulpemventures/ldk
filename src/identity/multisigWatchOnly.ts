@@ -9,6 +9,10 @@ import Identity, {
   IdentityType,
 } from './identity';
 
+/**
+ * the public keys required to sign are defined by cosignersPublicKeys (xpub)
+ * the required number of signature must be < length of cosigners xpubs
+ */
 export interface MultisigWatchOnlyOpts {
   cosignersPublicKeys: string[];
   requiredSignatures: number;
