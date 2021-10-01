@@ -22,7 +22,7 @@ const validOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
   chain: 'regtest',
   type: IdentityType.MultisigWatchOnly,
   opts: {
-    cosignersPublicKeys: cosigners.map(m => m.getXPub()),
+    cosigners: cosigners.map(m => m.getXPub()),
     requiredSignatures: 1,
   },
 };
@@ -30,7 +30,7 @@ const validOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
 const invalidOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
   ...validOpts,
   opts: {
-    cosignersPublicKeys: cosigners.map(m => m.getXPub()),
+    cosigners: cosigners.map(m => m.getXPub()),
     requiredSignatures: 10000000,
   },
 };

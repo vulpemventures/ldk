@@ -1,13 +1,13 @@
 import { BIP32Interface, fromPublicKey, fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { address, ECPair, Network, networks, Psbt } from 'liquidjs-lib';
+import { SignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
 import { MultisigWatchOnly, MultisigWatchOnlyOpts } from './multisigWatchOnly';
 
 export type MultisigOpts = {
-  signerMnemonic: string;
-  baseDerivationPath?: string;
+  signer: SignerMultisig;
 } & MultisigWatchOnlyOpts;
 
 export class Multisig extends MultisigWatchOnly implements IdentityInterface {
@@ -18,35 +18,29 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
   constructor(args: IdentityOpts<MultisigOpts>) {
     checkIdentityType(args.type, IdentityType.Multisig);
-    checkMnemonic(args.opts.signerMnemonic);
+    checkMnemonic(args.opts.signer.mnemonic);
 
-    const walletSeed = mnemonicToSeedSync(args.opts.signerMnemonic);
+    const walletSeed = mnemonicToSeedSync(args.opts.signer.mnemonic);
     const network = (networks as Record<string, Network>)[args.chain];
     const masterPrivateKeyNode = fromSeed(walletSeed, network);
 
     const baseNode = masterPrivateKeyNode.derivePath(
-      args.opts.baseDerivationPath || Multisig.DEFAULT_BASE_DERIVATION_PATH
-    );
-
-    // generate the signer xpub
-    // we'll use it in super constructor
-    const signerBaseKey = toXpub(
-      fromPublicKey(baseNode.publicKey, baseNode.chainCode, network).toBase58()
+      args.opts.signer.baseDerivationPath ||
+        Multisig.DEFAULT_BASE_DERIVATION_PATH
     );
 
     super({
       ...args,
       opts: {
         ...args.opts,
-        cosignersPublicKeys: args.opts.cosignersPublicKeys.concat([
-          signerBaseKey,
-        ]),
+        cosigners: args.opts.cosigners.concat([args.opts.signer]),
       },
       type: IdentityType.MultisigWatchOnly,
     });
 
     this.baseDerivationPath =
-      args.opts.baseDerivationPath || Multisig.DEFAULT_BASE_DERIVATION_PATH;
+      args.opts.signer.baseDerivationPath ||
+      Multisig.DEFAULT_BASE_DERIVATION_PATH;
     this.baseNode = baseNode;
     this.scriptToPath = {};
   }

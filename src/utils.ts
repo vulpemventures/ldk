@@ -9,16 +9,22 @@ import {
 import {
   AddressInterface,
   BlindedOutputInterface,
+  CosignerMultisig,
   Outpoint,
   UnblindedOutputInterface,
   UtxoInterface,
+  XPub,
 } from './types';
 // @ts-ignore
 import b58 from 'bs58check';
-import { BIP32Interface, fromBase58 } from 'bip32';
+import { fromBase58, fromPublicKey, fromSeed } from 'bip32';
 import { fromMasterBlindingKey } from 'slip77';
-import { IdentityType } from '.';
-import { setDefaultWordlist, validateMnemonic } from 'bip39';
+import { IdentityType, Multisig } from '.';
+import {
+  mnemonicToSeedSync,
+  setDefaultWordlist,
+  validateMnemonic,
+} from 'bip39';
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -267,11 +273,17 @@ export function checkMasterPublicKey(masterPublicKey: string) {
   }
 }
 
-export function deriveMasterPublicKey(
-  masterPublicKey: string,
-  derivationPath: string
-): BIP32Interface {
-  const masterNode = fromBase58(masterPublicKey);
-  const bip32Interface = masterNode.derivePath(derivationPath);
-  return bip32Interface;
+export function cosignerToXPub(
+  cosigner: CosignerMultisig,
+  network: networks.Network
+): XPub {
+  if (typeof cosigner === 'string') return cosigner;
+
+  const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
+  const baseNode = fromSeed(walletSeed, network).derivePath(
+    cosigner.baseDerivationPath || Multisig.DEFAULT_BASE_DERIVATION_PATH
+  );
+  return toXpub(
+    fromPublicKey(baseNode.publicKey, baseNode.chainCode, network).toBase58()
+  );
 }

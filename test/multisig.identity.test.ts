@@ -30,8 +30,11 @@ const validOpts: IdentityOpts<MultisigOpts> = {
   chain: 'regtest',
   type: IdentityType.Multisig,
   opts: {
-    signerMnemonic: generateMnemonic(), // 1 signer
-    cosignersPublicKeys: cosigners.map(m => m.getXPub()), // 2 co signers
+    signer: {
+      mnemonic: generateMnemonic(),
+      baseDerivationPath: Multisig.DEFAULT_BASE_DERIVATION_PATH,
+    }, // 1 signer
+    cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
     requiredSignatures: 2, // need 2 signatures among 3 pubkeys
   },
 };
@@ -39,8 +42,11 @@ const validOpts: IdentityOpts<MultisigOpts> = {
 const invalidOpts: IdentityOpts<MultisigOpts> = {
   ...validOpts,
   opts: {
-    signerMnemonic: generateMnemonic(),
-    cosignersPublicKeys: cosigners.map(m => m.getXPub()),
+    signer: {
+      mnemonic: generateMnemonic(),
+      baseDerivationPath: Multisig.DEFAULT_BASE_DERIVATION_PATH,
+    }, // 1 signer
+    cosigners: cosigners.map(m => m.getXPub()),
     requiredSignatures: 10000000,
   },
 };
@@ -111,9 +117,9 @@ describe('Identity:  Multisig', () => {
       const signer2 = new Multisig({
         ...validOpts,
         opts: {
-          cosignersPublicKeys: [signer1.getXPub(), cosigners[1].getXPub()],
+          cosigners: [signer1.getXPub(), cosigners[1].getXPub()],
           requiredSignatures: 2,
-          signerMnemonic: cosigners[0].mnemonic,
+          signer: { mnemonic: cosigners[0].mnemonic },
         },
       });
       await signer2.getNextAddress(); // used to "restore" the address

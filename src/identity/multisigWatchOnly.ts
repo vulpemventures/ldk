@@ -1,8 +1,12 @@
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
-import { AddressInterface, MultisigPayment } from '../types';
-import { checkIdentityType, checkMasterPublicKey } from '../utils';
+import { AddressInterface, CosignerMultisig, MultisigPayment } from '../types';
+import {
+  checkIdentityType,
+  checkMasterPublicKey,
+  cosignerToXPub,
+} from '../utils';
 import Identity, {
   IdentityInterface,
   IdentityOpts,
@@ -14,7 +18,7 @@ import Identity, {
  * the required number of signature must be < length of cosigners xpubs
  */
 export interface MultisigWatchOnlyOpts {
-  cosignersPublicKeys: string[];
+  cosigners: CosignerMultisig[];
   requiredSignatures: number;
 }
 
@@ -33,13 +37,16 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     checkIdentityType(args.type, IdentityType.MultisigWatchOnly);
     checkRequiredSignature(
       args.opts.requiredSignatures,
-      args.opts.cosignersPublicKeys
+      args.opts.cosigners.length
     );
-    args.opts.cosignersPublicKeys.forEach(checkMasterPublicKey);
 
-    this.cosigners = args.opts.cosignersPublicKeys
-      .sort()
-      .map(xpub => fromBase58(xpub));
+    const cosignersPublicKeys = args.opts.cosigners.map(cosigner =>
+      cosignerToXPub(cosigner, this.network)
+    );
+    cosignersPublicKeys.forEach(checkMasterPublicKey);
+
+    this.cosigners = cosignersPublicKeys.sort().map(xpub => fromBase58(xpub));
+
     this.requiredSignatures = args.opts.requiredSignatures;
   }
 
@@ -125,10 +132,10 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
   }
 }
 
-function checkRequiredSignature(required: number, cosigners: string[]) {
-  if (required <= 0 || required > cosigners.length) {
+function checkRequiredSignature(required: number, cosignersLength: number) {
+  if (required <= 0 || required > cosignersLength) {
     throw new Error(
-      `number of required signatures must be > 0 and <= ${cosigners.length}`
+      `number of required signatures must be > 0 and <= ${cosignersLength}`
     );
   }
 }

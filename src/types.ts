@@ -88,3 +88,12 @@ export type MultisigPayment = AddressInterface & {
   redeemScript: string;
   witnessScript: string;
 };
+
+export interface SignerMultisig {
+  mnemonic: string;
+  baseDerivationPath?: string;
+}
+
+export type XPub = string;
+
+export type CosignerMultisig = XPub | SignerMultisig; // xpub or signer
