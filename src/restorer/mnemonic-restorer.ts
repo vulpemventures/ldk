@@ -2,7 +2,7 @@ import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
 import { Restorer } from './restorer';
 import axios from 'axios';
-import { IdentityInterface, MultisigWatchOnly } from '..';
+import { IdentityInterface, Multisig, MultisigWatchOnly } from '..';
 
 // from Esplora
 
@@ -118,6 +118,23 @@ export function masterPubKeyRestorerFromEsplora(toRestore: MasterPublicKey) {
  */
 export function multisigWatchOnlyFromEsplora(toRestore: MultisigWatchOnly) {
   return restorerFromEsplora<MultisigWatchOnly>(
+    toRestore,
+    (isChange, index) =>
+      toRestore.getMultisigAddress(
+        isChange
+          ? MultisigWatchOnly.INTERNAL_INDEX
+          : MultisigWatchOnly.EXTERNAL_INDEX,
+        index
+      ).confidentialAddress
+  );
+}
+
+/**
+ * build an async esplora restorer for a Multisig
+ * @param toRestore
+ */
+export function multisigFromEsplora(toRestore: Multisig) {
+  return restorerFromEsplora<Multisig>(
     toRestore,
     (isChange, index) =>
       toRestore.getMultisigAddress(

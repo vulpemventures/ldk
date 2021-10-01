@@ -2,7 +2,7 @@ import { MasterPublicKey } from './masterpubkey';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import * as bip39 from 'bip39';
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
-import { checkIdentityType, fromXpub } from '../utils';
+import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
 import { ECPair, Psbt, bip32, networks, Network } from 'liquidjs-lib';
 import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
@@ -10,6 +10,7 @@ import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
 export interface MnemonicOpts {
   mnemonic: string;
   language?: string;
+  baseDerivationPath?: string;
 }
 
 /**
@@ -22,6 +23,7 @@ export interface MnemonicOpts {
  * @member scriptToAddressCache a map scriptPubKey --> address generation.
  */
 export class Mnemonic extends MasterPublicKey implements IdentityInterface {
+  readonly mnemonic: string;
   readonly masterPrivateKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
 
@@ -29,17 +31,12 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   public masterBlindingKey: string;
 
   constructor(args: IdentityOpts<MnemonicOpts>) {
-    // check the identity type
     checkIdentityType(args.type, IdentityType.Mnemonic);
+    checkMnemonic(args.opts.mnemonic);
 
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
     bip39.setDefaultWordlist(args.opts.language || 'english');
-
-    // validate the mnemonic
-    if (!bip39.validateMnemonic(args.opts.mnemonic)) {
-      throw new Error('Mnemonic is not valid.');
-    }
 
     // retreive the wallet's seed from mnemonic
     const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
@@ -69,6 +66,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
       opts: {
         masterPublicKey,
         masterBlindingKey,
+        baseDerivationPath: args.opts.baseDerivationPath,
       },
     });
 
@@ -76,6 +74,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     this.masterBlindingKeyNode = masterBlindingKeyNode;
     this.masterPublicKey = masterPublicKey;
     this.masterPrivateKeyNode = masterPrivateKeyNode;
+    this.mnemonic = args.opts.mnemonic;
   }
 
   async blindPset(
@@ -140,13 +139,17 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     return pset.toBase64();
   }
 
-  static Random(chain: IdentityOpts<any>['chain']): Mnemonic {
+  static Random(
+    chain: IdentityOpts<any>['chain'],
+    baseDerivationPath?: string
+  ): Mnemonic {
     const randomMnemonic = bip39.generateMnemonic();
     return new Mnemonic({
       chain,
       type: IdentityType.Mnemonic,
       opts: {
         mnemonic: randomMnemonic,
+        baseDerivationPath,
       },
     });
   }

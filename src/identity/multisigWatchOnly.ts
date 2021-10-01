@@ -1,7 +1,7 @@
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
-import { AddressInterface } from '../types';
+import { AddressInterface, MultisigPayment } from '../types';
 import { checkIdentityType, checkMasterPublicKey } from '../utils';
 import Identity, {
   IdentityInterface,
@@ -33,13 +33,13 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     );
     args.opts.cosignersPublicKeys.forEach(checkMasterPublicKey);
 
-    this.cosigners = args.opts.cosignersPublicKeys.map(xpub =>
-      fromBase58(xpub)
-    );
+    this.cosigners = args.opts.cosignersPublicKeys
+      .sort()
+      .map(xpub => fromBase58(xpub));
     this.requiredSignatures = args.opts.requiredSignatures;
   }
 
-  getNextAddress(): Promise<AddressInterface> {
+  getNextAddress() {
     const addr = this.getMultisigAddress(
       MultisigWatchOnly.EXTERNAL_INDEX,
       this.nextIndex
@@ -48,7 +48,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     return Promise.resolve(addr);
   }
 
-  getNextChangeAddress(): Promise<AddressInterface> {
+  getNextChangeAddress() {
     const addr = this.getMultisigAddress(
       MultisigWatchOnly.INTERNAL_INDEX,
       this.nextChangeIndex
@@ -105,7 +105,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     );
   }
 
-  getMultisigAddress(change: number, index: number) {
+  getMultisigAddress(change: number, index: number): MultisigPayment {
     const keys = this.cosigners.map(cosigner =>
       cosigner.derive(change).derive(index)
     );
@@ -117,7 +117,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
       this.network
     );
 
-    return payment;
+    return { ...payment, derivationPath: `${change}/${index}` };
   }
 }
 

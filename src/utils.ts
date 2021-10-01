@@ -18,6 +18,7 @@ import b58 from 'bs58check';
 import { BIP32Interface, fromBase58 } from 'bip32';
 import { fromMasterBlindingKey } from 'slip77';
 import { IdentityType } from '.';
+import { validateMnemonic } from 'bip39';
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -251,6 +252,10 @@ export function checkIdentityType(actual: IdentityType, expect: IdentityType) {
     throw new Error(
       `Incorrect Identity type: need ${expect} and get ${actual}.`
     );
+}
+
+export function checkMnemonic(mnemonic: string) {
+  if (!validateMnemonic(mnemonic)) throw new Error('Mnemonic is not valid.');
 }
 
 export function checkMasterPublicKey(masterPublicKey: string) {

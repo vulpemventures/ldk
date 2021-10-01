@@ -18,6 +18,7 @@ import { payments } from 'liquidjs-lib';
 export interface MasterPublicKeyOpts {
   masterPublicKey: string;
   masterBlindingKey: string;
+  baseDerivationPath?: string;
 }
 
 interface AddressInterfaceExtended {
@@ -32,7 +33,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
   protected scriptToAddressCache: Record<string, AddressInterfaceExtended> = {};
-  private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
+  private baseDerivationPath: string;
 
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
@@ -58,6 +59,8 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     this.masterBlindingKeyNode = fromMasterBlindingKey(
       args.opts.masterBlindingKey
     );
+    this.baseDerivationPath =
+      args.opts.baseDerivationPath || MasterPublicKey.INITIAL_BASE_PATH;
   }
 
   async blindPset(
