@@ -61,7 +61,7 @@ export async function* fetchAndUnblindTxsGenerator(
         errors.push(new Error(err));
       }
 
-      errors.push(new Error('unknow error'));
+      errors.push(new Error('unknown error'));
     }
   }
   return { txIDs, errors };
