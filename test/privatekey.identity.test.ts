@@ -8,6 +8,7 @@ import {
   payments,
   address,
 } from 'liquidjs-lib';
+
 import {
   AddressInterface,
   IdentityOpts,
@@ -15,7 +16,9 @@ import {
   PrivateKey,
   PrivateKeyOpts,
 } from '../src';
+
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
+
 const network = networks.regtest;
 // increase default timeout of jest
 jest.setTimeout(15000);
@@ -96,7 +99,7 @@ describe('Identity: Private key', () => {
       const privateKey = new PrivateKey(validOpts);
       const signedBase64 = await privateKey.signPset(pset.toBase64());
       const signedPsbt = Psbt.fromBase64(signedBase64);
-      let isValid: boolean = false;
+      let isValid = false;
       assert.doesNotThrow(
         () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
       );

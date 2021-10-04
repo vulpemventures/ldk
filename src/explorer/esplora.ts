@@ -1,3 +1,6 @@
+import axios from 'axios';
+import { Transaction, TxOutput } from 'liquidjs-lib';
+
 import {
   BlindedOutputInterface,
   TxInterface,
@@ -5,10 +8,9 @@ import {
   isBlindedOutputInterface,
   InputInterface,
 } from '../types';
-import { Transaction, TxOutput } from 'liquidjs-lib';
 import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
+
 import { EsploraTx, EsploraUtxo } from './types';
-import axios from 'axios';
 
 const ZERO = Buffer.alloc(32).toString('hex');
 
@@ -146,12 +148,12 @@ function txOutputToOutputInterface(
 export function makeUnblindURL(
   baseURL: string,
   txID: string,
-  outputsBlinder: Array<{
+  outputsBlinder: {
     value: number;
     asset: string;
     assetBlinder: string;
     valueBlinder: string;
-  }>
+  }[]
 ): string {
   const outputsString = outputsBlinder
     .map(
@@ -168,12 +170,12 @@ export function makeUnblindURL(
  * @param baseURL base web Explorer URL
  */
 export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
-  const outputsData: Array<{
+  const outputsData: {
     value: number;
     asset: string;
     assetBlinder: string;
     valueBlinder: string;
-  }> = [];
+  }[] = [];
 
   const reverseHex = (blinder: string) =>
     Buffer.from(blinder, 'hex')

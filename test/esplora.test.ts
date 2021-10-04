@@ -1,5 +1,6 @@
-import { address, ECPair } from 'liquidjs-lib';
 import * as assert from 'assert';
+import { address, ECPair } from 'liquidjs-lib';
+
 import {
   AddressInterface,
   fetchAndUnblindTxs,
@@ -8,6 +9,7 @@ import {
   isBlindedUtxo,
   UtxoInterface,
 } from '../src';
+
 import { APIURL, faucet } from './_regtest';
 import { sender } from './fixtures/wallet.keys';
 

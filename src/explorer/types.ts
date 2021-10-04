@@ -12,7 +12,7 @@ export interface EsploraTx {
     block_hash: string;
     block_time: number;
   };
-  vin: Array<{
+  vin: {
     txid: string;
     vout: number;
     scriptsig: string;
@@ -20,13 +20,13 @@ export interface EsploraTx {
     is_coinbase: boolean;
     sequence: number;
     is_pegin: boolean;
-  }>;
-  vout: Array<{
+  }[];
+  vout: {
     scriptpubkey: string;
     scriptpubkey_type: string;
     valuecommitment: string;
     assetcommitment: string;
-  }>;
+  }[];
 }
 
 export interface EsploraUtxo {

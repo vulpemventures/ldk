@@ -1,18 +1,22 @@
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { BIP32Interface, fromBase58 } from 'bip32';
-import { isValidExtendedBlindKey, isValidXpub, toXpub } from '../utils';
-import Identity, {
-  IdentityInterface,
-  IdentityOpts,
-  IdentityType,
-} from './identity';
-import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
-import { AddressInterface } from '../types';
 import { payments } from 'liquidjs-lib';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+
+import { AddressInterface, IdentityType } from '../types';
+import {
+  checkIdentityType,
+  isValidExtendedBlindKey,
+  isValidXpub,
+  toXpub,
+} from '../utils';
+
+import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 export interface MasterPublicKeyOpts {
   masterPublicKey: string;
   masterBlindingKey: string;
+  baseDerivationPath?: string;
 }
 
 interface AddressInterfaceExtended {
@@ -21,13 +25,13 @@ interface AddressInterfaceExtended {
 }
 
 export class MasterPublicKey extends Identity implements IdentityInterface {
-  protected static INITIAL_BASE_PATH: string = "m/84'/0'/0'";
-  static INITIAL_INDEX: number = 0;
+  protected static INITIAL_BASE_PATH = "m/84'/0'/0'";
+  static INITIAL_INDEX = 0;
 
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
   protected scriptToAddressCache: Record<string, AddressInterfaceExtended> = {};
-  private baseDerivationPath: string = MasterPublicKey.INITIAL_BASE_PATH;
+  private baseDerivationPath: string;
 
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
@@ -38,11 +42,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     const xpub = toXpub(args.opts.masterPublicKey);
 
     // check the identity type
-    if (args.type !== IdentityType.MasterPublicKey) {
-      throw new Error(
-        'The identity arguments have not the MasterPublicKey type.'
-      );
-    }
+    checkIdentityType(args.type, IdentityType.MasterPublicKey);
 
     // validate xpub
     if (!isValidXpub(xpub)) {
@@ -57,6 +57,8 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     this.masterBlindingKeyNode = fromMasterBlindingKey(
       args.opts.masterBlindingKey
     );
+    this.baseDerivationPath =
+      args.opts.baseDerivationPath || MasterPublicKey.INITIAL_BASE_PATH;
   }
 
   async blindPset(
@@ -95,7 +97,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    */
   protected getBlindingKeyPair(
     scriptPubKey: string,
-    checkScript: boolean = false
+    checkScript = false
   ): { publicKey: Buffer; privateKey: Buffer } {
     if (checkScript) {
       const addressInterface = this.scriptToAddressCache[scriptPubKey];
@@ -193,5 +195,9 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     return Object.values(this.scriptToAddressCache).map(
       addrExtended => addrExtended.address
     );
+  }
+
+  getXPub(): string {
+    return this.masterPublicKeyNode.toBase58();
   }
 }

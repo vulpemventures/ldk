@@ -5,22 +5,11 @@ import {
   confidential,
   TxOutput,
 } from 'liquidjs-lib';
-import { isConfidentialOutput, psetToUnsignedHex } from '../utils';
-import { AddressInterface } from '../types';
-import { decodePset } from '../transaction';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 
-/**
- * Enumeration of all the Identity types.
- */
-export enum IdentityType {
-  PrivateKey = 1,
-  Mnemonic,
-  MasterPublicKey,
-  Inject,
-  Ledger,
-  Trezor,
-}
+import { AddressInterface } from '../types';
+import { IdentityType } from '../types';
+import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
 
 /**
  * The identity interface.
@@ -66,7 +55,7 @@ export interface IdentityOpts<optsT> {
 /**
  * Abstract class for Identity.
  */
-export default class Identity {
+export class Identity {
   network: Network;
   type: IdentityType;
 
@@ -100,7 +89,7 @@ export default class Identity {
 
     // set the outputs map
     for (const index of outputsToBlind) {
-      if (outputsPubKeys && outputsPubKeys.has(index)) {
+      if (outputsPubKeys?.has(index)) {
         const pubKey = Buffer.from(outputsPubKeys.get(index)!, 'hex');
         outputsKeys.set(index, pubKey);
         continue;
@@ -136,7 +125,7 @@ export default class Identity {
       }
 
       // check if blindingDataLike is specified
-      if (inputsBlindingDataLike && inputsBlindingDataLike.has(index)) {
+      if (inputsBlindingDataLike?.has(index)) {
         inputsData.set(index, inputsBlindingDataLike.get(index));
         continue;
       }
