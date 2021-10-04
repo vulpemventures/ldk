@@ -2,7 +2,7 @@ import { BIP32Interface, fromPublicKey, fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { address, ECPair, Network, networks, Psbt } from 'liquidjs-lib';
 
-import { IdentityType, SignerMultisig } from '../types';
+import { IdentityType, HDSignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 
 import { IdentityInterface, IdentityOpts } from './identity';
@@ -13,7 +13,7 @@ import {
 } from './multisigWatchOnly';
 
 export type MultisigOpts = {
-  signer: SignerMultisig;
+  signer: HDSignerMultisig;
 } & MultisigWatchOnlyOpts;
 
 export class Multisig extends MultisigWatchOnly implements IdentityInterface {

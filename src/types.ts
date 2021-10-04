@@ -103,11 +103,11 @@ export type MultisigPayment = AddressInterface & {
   witnessScript: string;
 };
 
-export interface SignerMultisig {
+export interface HDSignerMultisig {
   mnemonic: string;
   baseDerivationPath?: string;
 }
 
 export type XPub = string;
 
-export type CosignerMultisig = XPub | SignerMultisig; // xpub or signer
+export type CosignerMultisig = XPub | HDSignerMultisig; // xpub or signer
