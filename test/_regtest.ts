@@ -12,7 +12,7 @@ export async function fetchUtxos(
 ): Promise<any[]> {
   try {
     let utxos = (await axios.get(`${APIURL}/address/${address}/utxo`)).data;
-    if (txid) {
+    if (utxos && utxos.length > 0 && txid) {
       utxos = utxos.filter((u: any) => u.txid === txid);
     }
     return utxos;
