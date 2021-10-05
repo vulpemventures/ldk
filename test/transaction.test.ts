@@ -1,13 +1,17 @@
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
-import { networks, Psbt, Transaction } from 'liquidjs-lib';
+import { address, networks, Psbt, Transaction } from 'liquidjs-lib';
 import { recipientAddress, sender } from './fixtures/wallet.keys';
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
-import { buildTx, BuildTxArgs, decodePset } from '../src/transaction';
+import {
+  craftMultipleRecipientsPset,
+  BuildTxArgs,
+  decodePset,
+} from '../src/transaction';
 import * as assert from 'assert';
 import { RecipientInterface } from '../src/types';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
-import { psetToUnsignedHex } from '../src/utils';
+import { psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
 import { walletFromAddresses, WalletInterface } from '../src';
 
@@ -66,7 +70,7 @@ describe('buildTx', () => {
         address: recipientAddress,
       },
     ];
-    const unsignedTx = buildTx({
+    const unsignedTx = craftMultipleRecipientsPset({
       ...args,
       recipients,
       psetBase64: tx,
@@ -87,7 +91,11 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
+    const unsignedTx = craftMultipleRecipientsPset({
+      ...args,
+      recipients,
+      psetBase64: tx,
+    });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
@@ -107,7 +115,7 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx({
+    const unsignedTx = craftMultipleRecipientsPset({
       ...args,
       recipients,
       psetBase64: tx,
@@ -153,5 +161,79 @@ describe('buildTx', () => {
     const txid = await broadcastTx(hex);
     const txhex = await fetchTxHex(txid, APIURL);
     assert.doesNotThrow(() => Transaction.fromHex(txhex));
+  });
+});
+
+describe('sendTx', () => {
+  const makeRecipient = (asset: string) => (
+    value: number
+  ): RecipientInterface => ({
+    asset,
+    value,
+    address:
+      'Azpw1q7r7sd6FYEphGVX4UDXy9ZtbwbTMkA3YPPjfpmLwmKzLRjpN5gJ19PTYedjTJhERvqf7QSs2N6J',
+  });
+
+  const makeTest = async (
+    recipient: RecipientInterface,
+    substractScenario: boolean
+  ) => {
+    const addrI = await sender.getNextAddress();
+    const changeAddress = (await sender.getNextChangeAddress())
+      .confidentialAddress;
+    const senderAddress = addrI.confidentialAddress;
+
+    await faucet(senderAddress); // send 1_0000_0000
+    const wallet = await walletFromAddresses([addrI], APIURL, 'regtest');
+    const pset = wallet.sendTx(
+      recipient,
+      greedyCoinSelector(),
+      changeAddress,
+      substractScenario
+    );
+    const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>
+      out.script.equals(
+        address.toOutputScript(recipient.address, networks.regtest)
+      )
+    );
+    const blinded = await sender.blindPset(
+      pset,
+      [recipientIndex],
+      new Map().set(
+        recipientIndex,
+        address.fromConfidential(recipient.address).blindingKey
+      )
+    );
+    const signed = await sender.signPset(blinded);
+    const txHex = decodePset(signed)
+      .finalizeAllInputs()
+      .extractTransaction()
+      .toHex();
+    await broadcastTx(txHex);
+  };
+
+  it('should build a valid send tx with L-BTC', async () => {
+    await makeTest(makeRecipient(networks.regtest.assetHash)(850), false);
+  });
+
+  it('should throw an error if not enough fund', async () => {
+    await makeTest(
+      makeRecipient(networks.regtest.assetHash)(1_0000_0000 + 1),
+      false
+    );
+  });
+
+  it('should throw an error if not enough fund to pay fees (no substract fee from recipient)', async () => {
+    await makeTest(
+      makeRecipient(networks.regtest.assetHash)(1_0000_0000),
+      false
+    );
+  });
+
+  it('should substract fees if needed (substract fee from recipient)', async () => {
+    await makeTest(
+      makeRecipient(networks.regtest.assetHash)(1_0000_0000),
+      true
+    );
   });
 });

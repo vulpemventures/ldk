@@ -9,11 +9,7 @@ import {
   CoinSelectorErrorFn,
 } from './types';
 import { Psbt, address as laddress } from 'liquidjs-lib';
-import {
-  checkCoinSelect,
-  sumUtxos,
-  throwErrorHandler,
-} from './coinselection/utils';
+import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 
 export function craftSingleRecipientPset(
   unspents: UtxoInterface[],
@@ -43,20 +39,19 @@ export function craftSingleRecipientPset(
   let errorHandler: CoinSelectorErrorFn = throwErrorHandler;
   if (substractScenario) {
     errorHandler = (asset: string, need: number, has: number) => {
-      if (asset === recipient.asset) return; // do not throw error if not enougt fund with recipient's asset.
+      if (asset === recipient.asset) {
+        recipient.value = has - fee.value;
+        return;
+      } // do not throw error if not enougt fund with recipient's asset.
       throwErrorHandler(asset, need, has);
     };
   }
 
   const { selectedUtxos, changeOutputs } = coinSelector(errorHandler)(
     unspents,
-    [recipient],
+    [recipient, fee],
     () => changeAddress
   );
-
-  if (substractScenario) {
-    recipient.value = sumUtxos(recipient.asset)(selectedUtxos) - fee.value;
-  }
 
   const outs = [recipient, ...changeOutputs, fee];
   checkCoinSelect(outs)(selectedUtxos);

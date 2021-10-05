@@ -42,7 +42,7 @@ const diff = (utxos: UtxoInterface[]) => (asset: string) => {
   return (amount: number) => sum - amount;
 };
 
-export const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
+const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
   utxos
     .filter(assetFilter(asset))
     .reduce(
