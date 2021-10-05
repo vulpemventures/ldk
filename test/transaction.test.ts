@@ -11,7 +11,7 @@ import { BuildTxArgs, craftMultipleRecipientsPset } from '../src/transaction';
 import { RecipientInterface } from '../src/types';
 
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
-import { recipientAddress, sender } from './fixtures/wallet.keys';
+import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
 
 jest.setTimeout(50000);
 
@@ -22,6 +22,7 @@ describe('buildTx', () => {
   let args: BuildTxArgs;
   let senderAddress = '';
   let senderBlindingKey = '';
+  const sender = newRandomMnemonic();
 
   beforeAll(async () => {
     const addrI = await sender.getNextAddress();
@@ -176,6 +177,7 @@ describe('sendTx', () => {
     recipient: RecipientInterface,
     substractScenario: boolean
   ) => {
+    const sender = newRandomMnemonic();
     const addrI = await sender.getNextAddress();
     const changeAddress = (await sender.getNextChangeAddress())
       .confidentialAddress;
@@ -215,16 +217,14 @@ describe('sendTx', () => {
   });
 
   it('should throw an error if not enough fund', async () => {
-    await makeTest(
-      makeRecipient(networks.regtest.assetHash)(1_0000_0000 + 1),
-      false
+    assert.rejects(
+      makeTest(makeRecipient(networks.regtest.assetHash)(1_0000_0000), false)
     );
   });
 
   it('should throw an error if not enough fund to pay fees (no substract fee from recipient)', async () => {
-    await makeTest(
-      makeRecipient(networks.regtest.assetHash)(1_0000_0000),
-      false
+    assert.rejects(
+      makeTest(makeRecipient(networks.regtest.assetHash)(1_0000_0000), false)
     );
   });
 
