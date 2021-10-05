@@ -1,11 +1,15 @@
+import axios from 'axios';
+import { IdentityInterface } from '../identity/identity';
+import { Multisig } from '../identity/multisig';
+import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
+
 import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
 import { Restorer } from './restorer';
-import axios from 'axios';
 
 // from Esplora
 
-export const BLOCKSTREAM_ESPLORA_ENDPOINT: string =
+export const BLOCKSTREAM_ESPLORA_ENDPOINT =
   'https://blockstream.info/liquid/api';
 
 export interface EsploraRestorerOpts {
@@ -13,8 +17,9 @@ export interface EsploraRestorerOpts {
   gapLimit: number;
 }
 
-function restorerFromEsplora<R extends MasterPublicKey>(
-  identity: R
+function restorerFromEsplora<R extends IdentityInterface>(
+  identity: R,
+  getAddress: (isChange: boolean, index: number) => string
 ): Restorer<EsploraRestorerOpts, R> {
   return async ({
     esploraURL = BLOCKSTREAM_ESPLORA_ENDPOINT,
@@ -59,15 +64,11 @@ function restorerFromEsplora<R extends MasterPublicKey>(
     };
 
     const restorerExternal = restoreFunc((index: number) => {
-      return Promise.resolve(
-        identity.getAddress(false, index).address.confidentialAddress
-      );
+      return Promise.resolve(getAddress(false, index));
     });
 
     const restorerInternal = restoreFunc((index: number) => {
-      return Promise.resolve(
-        identity.getAddress(true, index).address.confidentialAddress
-      );
+      return Promise.resolve(getAddress(true, index));
     });
 
     const [lastUsedExternalIndex, lastUsedInternalIndex] = await Promise.all([
@@ -95,7 +96,11 @@ async function addressHasBeenUsed(
  * @param mnemonicToRestore
  */
 export function mnemonicRestorerFromEsplora(mnemonicToRestore: Mnemonic) {
-  return restorerFromEsplora<Mnemonic>(mnemonicToRestore);
+  return restorerFromEsplora<Mnemonic>(
+    mnemonicToRestore,
+    (isChange, index) =>
+      mnemonicToRestore.getAddress(isChange, index).address.confidentialAddress
+  );
 }
 
 /**
@@ -103,7 +108,45 @@ export function mnemonicRestorerFromEsplora(mnemonicToRestore: Mnemonic) {
  * @param toRestore
  */
 export function masterPubKeyRestorerFromEsplora(toRestore: MasterPublicKey) {
-  return restorerFromEsplora<MasterPublicKey>(toRestore);
+  return restorerFromEsplora<MasterPublicKey>(
+    toRestore,
+    (isChange, index) =>
+      toRestore.getAddress(isChange, index).address.confidentialAddress
+  );
+}
+
+/**
+ * build an async esplora restorer for a MultisigWatchOnly
+ * @param toRestore
+ */
+export function multisigWatchOnlyFromEsplora(toRestore: MultisigWatchOnly) {
+  return restorerFromEsplora<MultisigWatchOnly>(
+    toRestore,
+    (isChange, index) =>
+      toRestore.getMultisigAddress(
+        isChange
+          ? MultisigWatchOnly.INTERNAL_INDEX
+          : MultisigWatchOnly.EXTERNAL_INDEX,
+        index
+      ).confidentialAddress
+  );
+}
+
+/**
+ * build an async esplora restorer for a Multisig
+ * @param toRestore
+ */
+export function multisigFromEsplora(toRestore: Multisig) {
+  return restorerFromEsplora<Multisig>(
+    toRestore,
+    (isChange, index) =>
+      toRestore.getMultisigAddress(
+        isChange
+          ? MultisigWatchOnly.INTERNAL_INDEX
+          : MultisigWatchOnly.EXTERNAL_INDEX,
+        index
+      ).confidentialAddress
+  );
 }
 
 // From state
@@ -113,7 +156,7 @@ export interface StateRestorerOpts {
   lastUsedInternalIndex?: number;
 }
 
-function restorerFromState<R extends MasterPublicKey>(
+function restorerFromState<R extends IdentityInterface>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
   return async ({ lastUsedExternalIndex, lastUsedInternalIndex }) => {

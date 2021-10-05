@@ -10,6 +10,7 @@ import {
 } from './types';
 import { Psbt, address as laddress } from 'liquidjs-lib';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
+import { decodePset } from './utils';
 
 export function craftSingleRecipientPset(
   unspents: UtxoInterface[],
@@ -214,16 +215,6 @@ export function addToTx(
   }
 
   return pset.toBase64();
-}
-
-export function decodePset(psetBase64: string): Psbt {
-  let pset: Psbt;
-  try {
-    pset = Psbt.fromBase64(psetBase64);
-  } catch (ignore) {
-    throw new Error('Invalid pset');
-  }
-  return pset;
 }
 
 // estimate segwit transaction size in bytes depending on number of inputs and outputs

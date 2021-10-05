@@ -1,16 +1,19 @@
-import { MasterPublicKey } from './masterpubkey';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
-import * as bip39 from 'bip39';
 import { BIP32Interface, fromSeed as bip32fromSeed } from 'bip32';
-import { fromXpub } from '../utils';
+import * as bip39 from 'bip39';
 import { ECPair, Psbt, bip32, networks, Network } from 'liquidjs-lib';
-import { IdentityInterface, IdentityOpts, IdentityType } from './identity';
+import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
-import { AddressInterface } from '../types';
+
+import { IdentityType } from '../types';
+import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
+
+import { IdentityInterface, IdentityOpts } from './identity';
+import { MasterPublicKey } from './masterpubkey';
 
 export interface MnemonicOpts {
   mnemonic: string;
   language?: string;
+  baseDerivationPath?: string;
 }
 
 /**
@@ -23,6 +26,7 @@ export interface MnemonicOpts {
  * @member scriptToAddressCache a map scriptPubKey --> address generation.
  */
 export class Mnemonic extends MasterPublicKey implements IdentityInterface {
+  readonly mnemonic: string;
   readonly masterPrivateKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
 
@@ -30,19 +34,11 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   public masterBlindingKey: string;
 
   constructor(args: IdentityOpts<MnemonicOpts>) {
-    // check the identity type
-    if (args.type !== IdentityType.Mnemonic) {
-      throw new Error('The identity arguments have not the Mnemonic type.');
-    }
-
+    checkIdentityType(args.type, IdentityType.Mnemonic);
     // check set the language if it is different of the default language.
     // the "language exists check" is delegated to `bip39.setDefaultWordlist` function.
     bip39.setDefaultWordlist(args.opts.language || 'english');
-
-    // validate the mnemonic
-    if (!bip39.validateMnemonic(args.opts.mnemonic)) {
-      throw new Error('Mnemonic is not valid.');
-    }
+    checkMnemonic(args.opts.mnemonic);
 
     // retreive the wallet's seed from mnemonic
     const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
@@ -72,6 +68,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
       opts: {
         masterPublicKey,
         masterBlindingKey,
+        baseDerivationPath: args.opts.baseDerivationPath,
       },
     });
 
@@ -79,6 +76,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     this.masterBlindingKeyNode = masterBlindingKeyNode;
     this.masterPublicKey = masterPublicKey;
     this.masterPrivateKeyNode = masterPrivateKeyNode;
+    this.mnemonic = args.opts.mnemonic;
   }
 
   async blindPset(
@@ -117,7 +115,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
   async signPset(psetBase64: string): Promise<string> {
     const pset = Psbt.fromBase64(psetBase64);
-    const signInputPromises: Array<Promise<void>> = [];
+    const signInputPromises: Promise<void>[] = [];
 
     for (let index = 0; index < pset.data.inputs.length; index++) {
       const input = pset.data.inputs[index];
@@ -143,8 +141,18 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     return pset.toBase64();
   }
 
-  // returns all the addresses generated
-  async getAddresses(): Promise<AddressInterface[]> {
-    return super.getAddresses();
+  static Random(
+    chain: IdentityOpts<any>['chain'],
+    baseDerivationPath?: string
+  ): Mnemonic {
+    const randomMnemonic = bip39.generateMnemonic();
+    return new Mnemonic({
+      chain,
+      type: IdentityType.Mnemonic,
+      opts: {
+        mnemonic: randomMnemonic,
+        baseDerivationPath,
+      },
+    });
   }
 }

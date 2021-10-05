@@ -1,5 +1,6 @@
-import { CoinSelector } from './coinselection/coinSelector';
 import { Network, Psbt } from 'liquidjs-lib';
+
+import { CoinSelector } from './coinselection/coinSelector';
 import {
   AddressInterface,
   UtxoInterface,

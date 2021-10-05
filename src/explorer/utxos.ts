@@ -1,8 +1,10 @@
 import { confidential, Transaction, ECPair, address } from 'liquidjs-lib';
-import { AddressInterface, UtxoInterface } from '../types';
-import { fetchTxHex, fetchUtxos } from './esplora';
-import { isConfidentialOutput } from '../utils';
+
 import UnblindError from '../error/unblind-error';
+import { AddressInterface, UtxoInterface } from '../types';
+import { isConfidentialOutput } from '../utils';
+
+import { fetchTxHex, fetchUtxos } from './esplora';
 
 /**
  * Fetch balances for a given address
@@ -22,7 +24,7 @@ export async function fetchBalances(
   return (utxoInterfaces as any).reduce(
     (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
       // get the first instance of the key by which we're grouping
-      var group = item['asset'];
+      const group = item['asset'];
 
       // set `storage` for this instance of group to the outer scope (if not empty) or initialize it
       storage[group] = storage[group] || 0;
@@ -44,7 +46,7 @@ export async function fetchBalances(
  * @param skip optional, using to skip blinding step
  */
 export async function* fetchAndUnblindUtxosGenerator(
-  addressesAndBlindingKeys: Array<AddressInterface>,
+  addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: UtxoInterface) => boolean
 ): AsyncGenerator<
@@ -78,7 +80,7 @@ export async function* fetchAndUnblindUtxosGenerator(
 
       // at each 'next' call, the generator will return the result of the next promise
       for (const blindedUtxo of blindedUtxos) {
-        if (skip && skip(blindedUtxo)) {
+        if (skip?.(blindedUtxo)) {
           yield blindedUtxo;
           continue;
         }
@@ -92,8 +94,16 @@ export async function* fetchAndUnblindUtxosGenerator(
         yield unblindedUtxo;
         numberOfUtxos++;
       }
-    } catch (e) {
-      errors.push(e);
+    } catch (err) {
+      if (err instanceof Error) {
+        errors.push(err);
+      }
+
+      if (typeof err === 'string') {
+        errors.push(new Error(err));
+      }
+
+      errors.push(new Error('unknow error'));
     }
   }
   return { numberOfUtxos, errors };
@@ -106,7 +116,7 @@ export async function* fetchAndUnblindUtxosGenerator(
  * @param skip optional
  */
 export async function fetchAndUnblindUtxos(
-  addressesAndBlindingKeys: Array<AddressInterface>,
+  addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: UtxoInterface) => boolean
 ): Promise<UtxoInterface[]> {

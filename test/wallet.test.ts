@@ -1,7 +1,8 @@
-import { networks, address } from 'liquidjs-lib';
-import { APIURL, faucet } from './_regtest';
 import * as assert from 'assert';
-import { recipientAddress, sender } from './fixtures/wallet.keys';
+import { networks, address } from 'liquidjs-lib';
+
+import { fetchAndUnblindTxsGenerator } from '../src/explorer/transaction';
+import { fetchAndUnblindUtxosGenerator } from '../src/explorer/utxos';
 import {
   AddressInterface,
   isBlindedOutputInterface,
@@ -9,8 +10,9 @@ import {
   UnblindedOutputInterface,
   UtxoInterface,
 } from '../src/types';
-import { fetchAndUnblindTxsGenerator } from '../src/explorer/transaction';
-import { fetchAndUnblindUtxosGenerator } from '../src/explorer/utxos';
+
+import { APIURL, faucet } from './_regtest';
+import { recipientAddress, sender } from './fixtures/wallet.keys';
 
 jest.setTimeout(500000);
 

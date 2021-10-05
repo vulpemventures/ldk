@@ -1,6 +1,7 @@
 import { networks, payments, ECPair } from 'liquidjs-lib';
+
 import { PrivateKey } from '../../src/identity/privatekey';
-import { IdentityType } from '../../src/identity/identity';
+import { IdentityType } from '../../src/types';
 
 const network = networks.regtest;
 // generate a random keyPair for bob

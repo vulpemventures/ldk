@@ -5,6 +5,8 @@ export * from './identity/mnemonic';
 export * from './identity/privatekey';
 export * from './identity/masterpubkey';
 export * from './identity/browserinject';
+export * from './identity/multisig';
+export * from './identity/multisigWatchOnly';
 
 export * from './coinselection/coinSelector';
 export * from './coinselection/greedy';
