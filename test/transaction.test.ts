@@ -57,7 +57,7 @@ describe('buildTx', () => {
 
   it('should build a confidential transaction spending USDT', async () => {
     // create a tx using wallet
-    const tx = (await senderWallet).createTx();
+    const tx = senderWallet.createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -77,7 +77,7 @@ describe('buildTx', () => {
 
   it('should build a confidential transaction spending LBTC', async () => {
     // create a tx using wallet
-    const tx = (await senderWallet).createTx();
+    const tx = senderWallet.createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -91,8 +91,8 @@ describe('buildTx', () => {
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
-  it('should be able to create a complex transaction and broadcast it', async () => {
-    const tx = (await senderWallet).createTx();
+  it.only('should be able to create a complex transaction and broadcast it', async () => {
+    const tx = senderWallet.createTx();
 
     const recipients = [
       {
@@ -120,12 +120,19 @@ describe('buildTx', () => {
     const transaction = Transaction.fromHex(psetToUnsignedHex(unsignedTx));
     for (let i = 0; i < transaction.ins.length; i++) {
       const input = transaction.ins[i];
-      const blindingData = args.unspents.find(
+      const utxo = args.unspents.find(
         u =>
           input.hash.equals(Buffer.from(u.txid, 'hex').reverse()) &&
           u.vout === input.index
-      )!.unblindData;
-      blindingDataMap.set(i, blindingData);
+      );
+
+      if (!utxo) throw new Error('cannot find utxo');
+
+      const blindingData = utxo.unblindData;
+
+      if (blindingData) {
+        blindingDataMap.set(i, blindingData);
+      }
     }
 
     // blind only the change output

@@ -1,12 +1,12 @@
-import { isBlindedUtxo } from '../utils';
 import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
   UtxoInterface,
+  CompareUtxoFn,
+  HandleCoinSelectorErrorFn,
 } from './../types';
 import { CoinSelectionResult, CoinSelector } from './coinSelector';
-
-export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
+import { coinSelect, makeChanges, reduceRecipients } from './utils';
 
 const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
   a.value! - b.value!;
@@ -15,11 +15,10 @@ const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
 export function greedyCoinSelector(
   compare: CompareUtxoFn = defaultCompareFn
 ): CoinSelector {
-  return (
-    u: UtxoInterface[],
-    o: RecipientInterface[],
-    getter: ChangeAddressFromAssetGetter
-  ) => greedyCoinSelection(u, o, getter, compare);
+  const errorHandler = (asset: string) => {
+    throw new Error(`coin selector error: ${asset}`);
+  };
+  return greedyCoinSelection(compare)(errorHandler);
 }
 
 /**
@@ -27,95 +26,21 @@ export function greedyCoinSelector(
  * @param unspents a set of unspents.
  * @param outputs the outputs targetted by the coin selection
  */
-function greedyCoinSelection(
+const greedyCoinSelection = (sortFn: CompareUtxoFn) => (
+  errorHandler: HandleCoinSelectorErrorFn
+) => (
   unspents: UtxoInterface[],
-  outputs: RecipientInterface[],
-  changeAddressGetter: ChangeAddressFromAssetGetter,
-  sortFn: CompareUtxoFn
-): CoinSelectionResult {
-  unspents = unspents.filter(utxo => !isBlindedUtxo(utxo));
+  recipients: RecipientInterface[],
+  changeAddressGetter: ChangeAddressFromAssetGetter
+): CoinSelectionResult => {
+  const coinSelectFn = coinSelect(sortFn)(errorHandler)(unspents);
+  const makeChangesFn = makeChanges(changeAddressGetter);
 
-  const result: CoinSelectionResult = {
-    selectedUtxos: [],
-    changeOutputs: [],
+  const recipientsMap = reduceRecipients(recipients);
+  const selectedUtxos = coinSelectFn(recipientsMap);
+
+  return {
+    selectedUtxos,
+    changeOutputs: makeChangesFn(recipientsMap)(selectedUtxos),
   };
-
-  const utxosGroupedByAsset = groupBy(unspents, 'asset') as Record<
-    string,
-    UtxoInterface[]
-  >;
-  const outputsGroupedByAsset = groupBy(outputs, 'asset') as Record<
-    string,
-    RecipientInterface[]
-  >;
-
-  for (const [asset, outputs] of Object.entries(outputsGroupedByAsset)) {
-    const unspents = utxosGroupedByAsset[asset];
-    if (!unspents) {
-      throw new Error('need unspents for the asset: ' + asset);
-    }
-
-    const targetAmount: number = outputs.reduce(
-      (acc: number, output: RecipientInterface) => acc + output.value,
-      0
-    );
-
-    const { selected, changeAmount } = selectUtxos(
-      unspents,
-      targetAmount,
-      sortFn
-    );
-
-    result.selectedUtxos.push(...selected);
-
-    if (changeAmount > 0) {
-      const changeAddr = changeAddressGetter(asset);
-      if (!changeAddr) {
-        throw new Error('need change address for asset: ' + asset);
-      }
-
-      result.changeOutputs.push({
-        asset: asset,
-        value: changeAmount,
-        address: changeAddr,
-      });
-    }
-  }
-
-  return result;
-}
-
-function selectUtxos(
-  utxos: UtxoInterface[],
-  targetAmount: number,
-  compareFn: CompareUtxoFn
-): {
-  selected: UtxoInterface[];
-  changeAmount: number;
-} {
-  utxos = utxos.sort(compareFn);
-  const selected: UtxoInterface[] = [];
-  let total = 0;
-  for (const utxo of utxos) {
-    if (!isBlindedUtxo(utxo)) {
-      selected.push(utxo);
-      total += utxo.value!;
-    }
-
-    if (total >= targetAmount) {
-      return {
-        selected,
-        changeAmount: total - targetAmount,
-      };
-    }
-  }
-
-  throw new Error('not enough utxos in wallet to fund: ' + targetAmount);
-}
-
-function groupBy(xs: Array<any>, key: string) {
-  return xs.reduce(function(rv, x) {
-    (rv[x[key]] = rv[x[key]] || []).push(x);
-    return rv;
-  }, {});
-}
+};
