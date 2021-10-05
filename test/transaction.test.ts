@@ -91,7 +91,7 @@ describe('buildTx', () => {
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
-  it.only('should be able to create a complex transaction and broadcast it', async () => {
+  it('should be able to create a complex transaction and broadcast it', async () => {
     const tx = senderWallet.createTx();
 
     const recipients = [

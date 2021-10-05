@@ -60,76 +60,40 @@ export function buildTx(args: BuildTxArgs): string {
     satsPerByte,
   } = validateAndProcess(args);
 
-  const { selectedUtxos, changeOutputs } = coinSelector(
+  const firstSelection = coinSelector(
     unspents,
     recipients,
     changeAddressByAsset
   );
 
-  const inputs = selectedUtxos;
-
   // if not fee, just add selected unspents as inputs and specified outputs + change outputs to pset
   if (!addFee) {
-    const outs = recipients.concat(changeOutputs);
-    return addToTx(psetBase64, inputs, outs);
+    const outs = recipients.concat(firstSelection.changeOutputs);
+    return addToTx(psetBase64, firstSelection.selectedUtxos, outs);
   }
 
+  // otherwise, handle the fee output
   const pset = decodePset(psetBase64);
-  const nbInputs = pset.data.inputs.length + inputs.length;
+  const nbInputs =
+    pset.data.inputs.length + firstSelection.selectedUtxos.length + 1;
   let nbOutputs =
-    pset.data.outputs.length + recipients.length + changeOutputs.length;
+    pset.data.outputs.length +
+    recipients.length +
+    firstSelection.changeOutputs.length +
+    1;
 
   const feeAssetHash = laddress.getNetwork(recipients[0].address).assetHash;
-  // otherwise, handle the fee output
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
 
-  const changeIndexLBTC: number = changeOutputs.findIndex(
-    out => out.asset === feeAssetHash
-  );
-
-  let diff =
-    changeIndexLBTC === -1
-      ? 0 - fee.value
-      : changeOutputs[changeIndexLBTC].value - fee.value;
-
-  if (diff > 0) {
-    // changeAmount becomes the difference between fees and change base amount
-    changeOutputs[changeIndexLBTC].value = diff;
-    const outs = recipients.concat(changeOutputs).concat(fee);
-    return addToTx(psetBase64, inputs, outs);
-  }
-
-  if (diff === 0) {
-    const outs = recipients.concat(fee);
-    return addToTx(psetBase64, inputs, outs);
-  }
-
-  const availableUnspents: UtxoInterface[] = [];
-  for (const utxo of unspents) {
-    if (!selectedUtxos.includes(utxo)) availableUnspents.push(utxo);
-  }
-
-  // re-estimate the fees with one additional input and change output
-  const feeBis = createFeeOutput(
-    nbInputs + 1,
-    nbOutputs + 1,
-    satsPerByte!,
-    feeAssetHash
-  );
-
-  const coinSelectionResult = coinSelector(
-    availableUnspents,
-    [feeBis],
+  let { changeOutputs, selectedUtxos } = coinSelector(
+    unspents,
+    recipients.concat([fee]),
     changeAddressByAsset
   );
 
-  const ins = inputs.concat(coinSelectionResult.selectedUtxos);
-  const outs = recipients
-    .concat(changeOutputs)
-    .concat(coinSelectionResult.changeOutputs)
-    .concat(feeBis);
+  const outs = recipients.concat(changeOutputs).concat(fee);
 
-  return addToTx(psetBase64, ins, outs);
+  return addToTx(psetBase64, selectedUtxos, outs);
 }
 
 export function createFeeOutput(

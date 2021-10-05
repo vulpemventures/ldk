@@ -19,7 +19,7 @@ export const makeChanges = (
       recipients.push({
         address: changeAddressGetter(asset),
         asset,
-        value: amount,
+        value: changeAmount,
       });
     }
   });
@@ -90,3 +90,63 @@ const assetFilter = (assetToFilter: string) => ({
 }: {
   asset?: string;
 }) => asset && asset === assetToFilter;
+
+export const checkCoinSelect = (recipients: RecipientInterface[]) => (
+  selectedUtxos: UtxoInterface[]
+) => {
+  const inputs = selectedUtxos.map(u => ({
+    value: u.value || 0,
+    asset: u.asset || '',
+  }));
+  return check(inputs)(recipients);
+};
+
+const check = (inputs: { asset: string; value: number }[]) => (
+  outputs: { asset: string; value: number }[]
+) => {
+  const groupByAsset = groupBy<{ asset: string; value: number }, string>(
+    'asset'
+  );
+  const inputsByAsset = groupByAsset(inputs);
+  const outputsByAsset = groupByAsset(outputs);
+  const inputsAssets = Object.keys(inputsByAsset).sort();
+  const outputsAssets = Object.keys(outputsByAsset).sort();
+
+  if (!inputsAssets.every((asset: string) => outputsAssets.includes(asset))) {
+    throw new Error(
+      `inputs and outputs don't have the same assets. Inputs assets = ${inputsAssets}, Outputs assets = ${outputsAssets}`
+    );
+  }
+
+  for (const asset in inputsByAsset) {
+    const sumInputs = sumNumbers(
+      inputsByAsset[asset].map(({ value }) => value)
+    );
+    const sumOutputs = sumNumbers(
+      outputsByAsset[asset].map(({ value }) => value)
+    );
+
+    if (sumInputs !== sumOutputs) {
+      throw new Error(
+        `missing funds for asset ${asset} (inputs: ${sumInputs}, outputs: ${sumOutputs})`
+      );
+    }
+  }
+};
+
+const sumNumbers = (values: number[]) =>
+  values.reduce(function(acc, current) {
+    return acc + current;
+  }, 0);
+
+function groupBy<
+  T extends Record<string, any>,
+  R extends string | number | symbol
+>(key: string) {
+  return (xs: T[]): Record<R, T[]> => {
+    return xs.reduce(function(rv: Record<any, T[]>, x: T) {
+      (rv[x[key]] = rv[x[key]] || []).push(x);
+      return rv;
+    }, {});
+  };
+}

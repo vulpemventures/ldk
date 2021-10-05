@@ -6,7 +6,12 @@ import {
   HandleCoinSelectorErrorFn,
 } from './../types';
 import { CoinSelectionResult, CoinSelector } from './coinSelector';
-import { coinSelect, makeChanges, reduceRecipients } from './utils';
+import {
+  checkCoinSelect,
+  coinSelect,
+  makeChanges,
+  reduceRecipients,
+} from './utils';
 
 const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
   a.value! - b.value!;
@@ -38,9 +43,13 @@ const greedyCoinSelection = (sortFn: CompareUtxoFn) => (
 
   const recipientsMap = reduceRecipients(recipients);
   const selectedUtxos = coinSelectFn(recipientsMap);
+  const changeOutputs = makeChangesFn(recipientsMap)(selectedUtxos);
+
+  // check that input amount = output amount and input assets = output assets
+  checkCoinSelect([...recipients, ...changeOutputs])(selectedUtxos);
 
   return {
     selectedUtxos,
-    changeOutputs: makeChangesFn(recipientsMap)(selectedUtxos),
+    changeOutputs,
   };
 };
