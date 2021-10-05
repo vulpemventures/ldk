@@ -1,10 +1,68 @@
-import { CoinSelector } from './coinselection/coinSelector';
+import {
+  CoinSelectionResult,
+  CoinSelector,
+} from './coinselection/coinSelector';
 import {
   UtxoInterface,
   ChangeAddressFromAssetGetter,
   RecipientInterface,
+  CoinSelectorErrorFn,
 } from './types';
 import { Psbt, address as laddress } from 'liquidjs-lib';
+import {
+  checkCoinSelect,
+  sumUtxos,
+  throwErrorHandler,
+} from './coinselection/utils';
+
+export function craftSingleRecipientPset(
+  unspents: UtxoInterface[],
+  recipient: RecipientInterface,
+  coinSelector: CoinSelector,
+  changeAddress: string,
+  substractFeeFromRecipient = false,
+  satsPerByte = DEFAULT_SATS_PER_BYTE
+) {
+  const network = laddress.getNetwork(recipient.address);
+  const substractScenario =
+    substractFeeFromRecipient && recipient.asset === network.assetHash;
+
+  const firstSelection = coinSelector(throwErrorHandler)(
+    unspents,
+    [recipient],
+    () => changeAddress
+  );
+
+  const fee = createFeeOutput(
+    firstSelection.selectedUtxos.length,
+    1 + 1,
+    satsPerByte,
+    network.assetHash
+  );
+
+  let errorHandler: CoinSelectorErrorFn = throwErrorHandler;
+  if (substractScenario) {
+    errorHandler = (asset: string, need: number, has: number) => {
+      if (asset === recipient.asset) return; // do not throw error if not enougt fund with recipient's asset.
+      throwErrorHandler(asset, need, has);
+    };
+  }
+
+  const { selectedUtxos, changeOutputs } = coinSelector(errorHandler)(
+    unspents,
+    [recipient],
+    () => changeAddress
+  );
+
+  if (substractScenario) {
+    recipient.value = sumUtxos(recipient.asset)(selectedUtxos) - fee.value;
+  }
+
+  const outs = [recipient, ...changeOutputs, fee];
+  checkCoinSelect(outs)(selectedUtxos);
+
+  return addToTx(new Psbt({ network }).toBase64(), selectedUtxos, outs);
+}
 
 export interface BuildTxArgs {
   psetBase64: string;
@@ -14,11 +72,18 @@ export interface BuildTxArgs {
   changeAddressByAsset: ChangeAddressFromAssetGetter;
   addFee?: boolean;
   satsPerByte?: number;
+  errorHandler?: CoinSelectorErrorFn;
 }
+
+export const DEFAULT_SATS_PER_BYTE = 0.1;
 
 function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
   if (!args.satsPerByte) {
-    args.satsPerByte = 0.1;
+    args.satsPerByte = DEFAULT_SATS_PER_BYTE;
+  }
+
+  if (!args.errorHandler) {
+    args.errorHandler = throwErrorHandler;
   }
 
   if (!args.addFee) {
@@ -48,7 +113,7 @@ function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
  * finally it returns the new pset base64 encoded.
  * @param args buildTxArgs wraps arguments
  */
-export function buildTx(args: BuildTxArgs): string {
+export function craftMultipleRecipientsPset(args: BuildTxArgs): string {
   // validate and deconstruct args object
   const {
     changeAddressByAsset,
@@ -58,9 +123,10 @@ export function buildTx(args: BuildTxArgs): string {
     unspents,
     addFee,
     satsPerByte,
+    errorHandler,
   } = validateAndProcess(args);
 
-  const firstSelection = coinSelector(
+  const firstSelection = coinSelector(errorHandler!)(
     unspents,
     recipients,
     changeAddressByAsset
@@ -69,10 +135,37 @@ export function buildTx(args: BuildTxArgs): string {
   // if not fee, just add selected unspents as inputs and specified outputs + change outputs to pset
   if (!addFee) {
     const outs = recipients.concat(firstSelection.changeOutputs);
+    checkCoinSelect(outs)(firstSelection.selectedUtxos);
     return addToTx(psetBase64, firstSelection.selectedUtxos, outs);
   }
 
   // otherwise, handle the fee output
+  const fee = createFeeOutputFromPset(
+    psetBase64,
+    firstSelection,
+    recipients,
+    satsPerByte
+  );
+  const { changeOutputs, selectedUtxos } = coinSelector(errorHandler!)(
+    unspents,
+    [...recipients, fee],
+    changeAddressByAsset
+  );
+
+  const outs = [...recipients, ...changeOutputs, fee];
+
+  // check that input amount = output amount and input assets = output assets
+  checkCoinSelect(outs)(selectedUtxos);
+
+  return addToTx(psetBase64, selectedUtxos, outs);
+}
+
+function createFeeOutputFromPset(
+  psetBase64: string,
+  firstSelection: CoinSelectionResult,
+  recipients: RecipientInterface[],
+  satsPerByte: number | undefined
+) {
   const pset = decodePset(psetBase64);
   const nbInputs =
     pset.data.inputs.length + firstSelection.selectedUtxos.length + 1;
@@ -84,18 +177,10 @@ export function buildTx(args: BuildTxArgs): string {
 
   const feeAssetHash = laddress.getNetwork(recipients[0].address).assetHash;
   const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
-
-  let { changeOutputs, selectedUtxos } = coinSelector(
-    unspents,
-    recipients.concat([fee]),
-    changeAddressByAsset
-  );
-
-  const outs = recipients.concat(changeOutputs).concat(fee);
-
-  return addToTx(psetBase64, selectedUtxos, outs);
+  return fee;
 }
 
+// this function create a recipient interface for Fee output using tx size estimation
 export function createFeeOutput(
   numInputs: number,
   numOutputs: number,

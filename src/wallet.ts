@@ -8,7 +8,12 @@ import {
   ChangeAddressFromAssetGetter,
 } from './types';
 import { getNetwork, toOutpoint } from './utils';
-import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
+import {
+  craftMultipleRecipientsPset,
+  BuildTxArgs,
+  DEFAULT_SATS_PER_BYTE,
+  craftSingleRecipientPset,
+} from './transaction';
 import { fetchAndUnblindUtxos } from './explorer/utxos';
 
 /**
@@ -24,6 +29,13 @@ export interface WalletInterface {
     coinSelector: CoinSelector,
     changeAddressByAsset: ChangeAddressFromAssetGetter,
     addFee?: boolean,
+    satsPerByte?: number
+  ): string;
+  sendTx(
+    recipient: RecipientInterface,
+    coinSelector: CoinSelector,
+    changeAddress: string,
+    substractFee?: boolean,
     satsPerByte?: number
   ): string;
 }
@@ -71,7 +83,24 @@ export class Wallet implements WalletInterface {
       unspents: this.cache.getAll(),
     };
 
-    return buildTxFunction(args);
+    return craftMultipleRecipientsPset(args);
+  }
+
+  sendTx(
+    recipient: RecipientInterface,
+    coinSelector: CoinSelector,
+    changeAddress: string,
+    substractFee = false,
+    satsPerByte = DEFAULT_SATS_PER_BYTE
+  ) {
+    return craftSingleRecipientPset(
+      this.cache.getAll(),
+      recipient,
+      coinSelector,
+      changeAddress,
+      substractFee,
+      satsPerByte
+    );
   }
 }
 

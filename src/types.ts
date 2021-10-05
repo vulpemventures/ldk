@@ -83,7 +83,7 @@ export interface TxInterface {
 }
 
 export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
-export type HandleCoinSelectorErrorFn = (
+export type CoinSelectorErrorFn = (
   asset: string,
   need: number,
   has: number

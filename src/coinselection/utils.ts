@@ -1,11 +1,22 @@
 import {
   ChangeAddressFromAssetGetter,
   CompareUtxoFn,
-  HandleCoinSelectorErrorFn,
+  CoinSelectorErrorFn,
   RecipientInterface,
   UtxoInterface,
 } from '../types';
 
+export const throwErrorHandler: CoinSelectorErrorFn = (
+  asset: string,
+  need: number,
+  has: number
+) => {
+  throw new Error(
+    `not enought funds to fill ${need}sats of ${asset} (amount selected: ${has})`
+  );
+};
+
+// makeChanges creates the change RecipientInterface if needed
 export const makeChanges = (
   changeAddressGetter: ChangeAddressFromAssetGetter
 ) => (toSelect: Map<string, number>) => (
@@ -31,7 +42,7 @@ const diff = (utxos: UtxoInterface[]) => (asset: string) => {
   return (amount: number) => sum - amount;
 };
 
-const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
+export const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
   utxos
     .filter(assetFilter(asset))
     .reduce(
@@ -40,8 +51,9 @@ const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
       0
     );
 
+// coinSelect is used to select utxo until they fill the amount requested
 export const coinSelect = (compareFn: CompareUtxoFn) => (
-  errorHandler: HandleCoinSelectorErrorFn
+  errorHandler: CoinSelectorErrorFn
 ) => (utxos: UtxoInterface[]) => (toSelect: Map<string, number>) => {
   const selectors: ((utxos: UtxoInterface[]) => UtxoInterface[])[] = [];
   const coinSelectorFilter = coinSelectUtxosFilter(compareFn)(errorHandler);
@@ -64,7 +76,7 @@ function recipientsReducer(
 }
 
 const coinSelectUtxosFilter = (compareFn: CompareUtxoFn) => (
-  errorHandler: HandleCoinSelectorErrorFn
+  errorHandler: CoinSelectorErrorFn
 ) => (asset: string) => (amount: number) => (
   utxos: UtxoInterface[]
 ): UtxoInterface[] => {
