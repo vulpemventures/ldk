@@ -5386,7 +5386,7 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.17:
+liquidjs-lib@^5.2.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.2.0.tgz#06476558fc21762f4d6a4dd3b189155f94f201a4"
   integrity sha512-rd2TJkT8GOKXO67ud8PlvsrgYiYuveFV+beSE6hWQe5WpN243JKOgMwOmSJ79wZH0wy0O6ZZS766G7vKd3Ltfg==
