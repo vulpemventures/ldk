@@ -208,11 +208,10 @@ describe('Identity: Master Pub Key', () => {
   });
 
   describe('testnet', () => {
-    it('should send testnet', async () => {
+    it('should generate testnet addresses with chain = "testnet"', async () => {
       const mnemonic = Mnemonic.Random('testnet');
-      console.log(mnemonic.mnemonic);
       const address = await mnemonic.getNextAddress();
-      console.log(address.confidentialAddress);
+      assert.ok(address.confidentialAddress.startsWith('tlq'));
     });
   });
 });
