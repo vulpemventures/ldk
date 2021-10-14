@@ -5386,10 +5386,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^5.1.17:
-  version "5.2.0"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.2.0.tgz#06476558fc21762f4d6a4dd3b189155f94f201a4"
-  integrity sha512-rd2TJkT8GOKXO67ud8PlvsrgYiYuveFV+beSE6hWQe5WpN243JKOgMwOmSJ79wZH0wy0O6ZZS766G7vKd3Ltfg==
+liquidjs-lib@^5.2.2:
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-5.2.2.tgz#72a6fa4a32b74c49b7f9e9f9e58e31e55ff6a264"
+  integrity sha512-wHwJGGQi0zU3DrOaFPqfa36i3W0XojA/aoXbr66ph1NDc3nA1CJzdsagMx++iqY23qftqgUo0rKN9WDz2wmr/Q==
   dependencies:
     "@vulpemventures/secp256k1-zkp" "^2.0.0"
     axios "^0.21.1"
