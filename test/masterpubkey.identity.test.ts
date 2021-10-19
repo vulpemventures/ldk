@@ -206,4 +206,12 @@ describe('Identity: Master Pub Key', () => {
       );
     });
   });
+
+  describe('testnet', () => {
+    it('should generate testnet addresses with chain = "testnet"', async () => {
+      const mnemonic = Mnemonic.Random('testnet');
+      const address = await mnemonic.getNextAddress();
+      assert.ok(address.confidentialAddress.startsWith('tlq'));
+    });
+  });
 });

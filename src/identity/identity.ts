@@ -7,7 +7,7 @@ import {
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 
-import { AddressInterface } from '../types';
+import { AddressInterface, NetworkString } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
 
@@ -47,7 +47,7 @@ export interface IdentityInterface {
  * @member value the data used to create the Identity. depends of the type.
  */
 export interface IdentityOpts<optsT> {
-  chain: string;
+  chain: NetworkString;
   type: number;
   opts: optsT;
 }

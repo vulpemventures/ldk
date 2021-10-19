@@ -18,6 +18,7 @@ import {
   UnblindedOutputInterface,
   UtxoInterface,
   IdentityType,
+  NetworkString,
 } from './types';
 
 export function toAssetHash(x: Buffer): string {
@@ -196,7 +197,7 @@ export function isBlindedUtxo({ asset, value }: UtxoInterface): boolean {
   return !asset || !value;
 }
 
-export function getNetwork(str?: string): Network {
+export function getNetwork(str?: NetworkString): Network {
   return str ? (networks as Record<string, Network>)[str] : networks.liquid;
 }
 

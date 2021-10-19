@@ -111,3 +111,5 @@ export interface HDSignerMultisig {
 export type XPub = string;
 
 export type CosignerMultisig = XPub | HDSignerMultisig; // xpub or signer
+
+export type NetworkString = 'regtest' | 'testnet' | 'liquid';
