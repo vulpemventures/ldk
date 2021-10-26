@@ -38,8 +38,8 @@ const invalidOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
 };
 
 describe('Identity:  Multisig watch only', () => {
-  describe('Contructor', () => {
-    it('should build a valid MultisigWatchOnly class instance if the contructor arguments are valid', () => {
+  describe('Constructor', () => {
+    it('should build a valid MultisigWatchOnly class instance if the constructor arguments are valid', () => {
       const multisig = new MultisigWatchOnly(validOpts);
       assert.deepStrictEqual(multisig instanceof MultisigWatchOnly, true);
     });

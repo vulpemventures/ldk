@@ -8,7 +8,9 @@ import { MultisigPayment } from './types';
  * + conf address
  * + unconf address
  * @param keys co-signers public keys.
+ * @param blindingKey
  * @param required number of signature required in multisig script.
+ * @param network
  */
 export function p2msPayment(
   keys: BIP32Interface[],
@@ -17,13 +19,10 @@ export function p2msPayment(
   network: networks.Network
 ): MultisigPayment {
   // first generate the unconfidential payment
-  let multisigPayment = payments.p2sh({
-    redeem: payments.p2wsh({
-      redeem: payments.p2ms({
-        m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
-        pubkeys: keys.map(key => key.publicKey),
-        network,
-      }),
+  let multisigPayment = payments.p2wsh({
+    redeem: payments.p2ms({
+      m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
+      pubkeys: keys.map(key => key.publicKey),
       network,
     }),
     network,
@@ -36,14 +35,10 @@ export function p2msPayment(
   if (!publicKey || !privateKey)
     throw new Error('something went wrong while generating blinding key pair');
 
-  multisigPayment = payments.p2sh({
-    redeem: payments.p2wsh({
-      redeem: payments.p2ms({
-        m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
-        pubkeys: keys.map(key => key.publicKey),
-        network,
-      }),
-      blindkey: publicKey,
+  multisigPayment = payments.p2wsh({
+    redeem: payments.p2ms({
+      m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
+      pubkeys: keys.map(key => key.publicKey),
       network,
     }),
     blindkey: publicKey,
@@ -53,17 +48,14 @@ export function p2msPayment(
   if (
     !multisigPayment.confidentialAddress ||
     !multisigPayment.redeem ||
-    !multisigPayment.redeem.output ||
-    !multisigPayment.redeem.redeem ||
-    !multisigPayment.redeem.redeem.output
+    !multisigPayment.redeem.output
   )
     throw new Error('invalid payment');
 
   return {
-    redeemScript: multisigPayment.redeem.output.toString('hex'),
     blindingPrivateKey: privateKey.toString('hex'),
     confidentialAddress: multisigPayment.confidentialAddress,
-    witnessScript: multisigPayment.redeem.redeem.output.toString('hex'),
+    witnessScript: multisigPayment.redeem.output.toString('hex'),
   };
 }
 

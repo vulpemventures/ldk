@@ -99,7 +99,6 @@ export interface TxInterface {
 }
 
 export type MultisigPayment = AddressInterface & {
-  redeemScript: string;
   witnessScript: string;
 };
 
