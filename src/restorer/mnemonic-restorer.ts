@@ -156,7 +156,7 @@ export interface StateRestorerOpts {
   lastUsedInternalIndex?: number;
 }
 
-function restorerFromState<R extends IdentityInterface>(
+export function restorerFromState<R extends IdentityInterface>(
   identity: R
 ): Restorer<StateRestorerOpts, R> {
   return async ({ lastUsedExternalIndex, lastUsedInternalIndex }) => {

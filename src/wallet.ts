@@ -9,6 +9,7 @@ import {
   Outpoint,
   RecipientInterface,
   ChangeAddressFromAssetGetter,
+  NetworkString,
 } from './types';
 import { getNetwork, toOutpoint } from './utils';
 
@@ -85,7 +86,7 @@ export class Wallet implements WalletInterface {
 export async function walletFromAddresses(
   addresses: AddressInterface[],
   explorerUrl: string,
-  network?: string
+  network?: NetworkString
 ): Promise<WalletInterface> {
   const utxos = await fetchAndUnblindUtxos(addresses, explorerUrl);
   return walletFromCoins(utxos, network);
@@ -93,7 +94,7 @@ export async function walletFromAddresses(
 
 export function walletFromCoins(
   coins: UtxoInterface[],
-  network?: string
+  network?: NetworkString
 ): WalletInterface {
   return new Wallet(new UtxoCache(coins), getNetwork(network));
 }
