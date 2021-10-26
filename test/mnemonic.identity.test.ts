@@ -23,7 +23,7 @@ import {
   StateRestorerOpts,
 } from '../src';
 
-import { Restorer } from './../src/restorer/restorer';
+import { Restorer } from '../src';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 
 const network = networks.regtest;

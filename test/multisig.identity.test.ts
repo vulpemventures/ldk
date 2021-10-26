@@ -55,8 +55,8 @@ const invalidOpts: IdentityOpts<MultisigOpts> = {
 };
 
 describe('Identity:  Multisig', () => {
-  describe('Contructor', () => {
-    it('should build a valid Multisig class instance if the contructor arguments are valid', () => {
+  describe('Constructor', () => {
+    it('should build a valid Multisig class instance if the constructor arguments are valid', () => {
       const multisig = new Multisig(validOpts);
       assert.deepStrictEqual(multisig instanceof Multisig, true);
     });
@@ -96,7 +96,6 @@ describe('Identity:  Multisig', () => {
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: prevout,
-          redeemScript: Buffer.from(generated.redeemScript, 'hex'),
           witnessScript: Buffer.from(generated.witnessScript, 'hex'),
         })
         .addOutputs([
@@ -169,7 +168,6 @@ describe('Identity:  Multisig', () => {
           index: utxo.vout,
           witnessUtxo: prevout,
           witnessScript: Buffer.from(generated.witnessScript, 'hex'),
-          redeemScript: Buffer.from(generated.redeemScript, 'hex'),
         })
         .addOutputs([
           {

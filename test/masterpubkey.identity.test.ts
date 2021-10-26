@@ -43,8 +43,8 @@ const wrongTypeOpts: IdentityOpts<MasterPublicKeyOpts> = {
 };
 
 describe('Identity: Master Pub Key', () => {
-  describe('Contructor', () => {
-    it('should build a valid MasterPubkey class instance if the contructor arguments are valid', () => {
+  describe('Constructor', () => {
+    it('should build a valid MasterPubkey class instance if the constructor arguments are valid', () => {
       const pubKey = new MasterPublicKey(validOpts);
       assert.deepStrictEqual(pubKey instanceof MasterPublicKey, true);
     });
