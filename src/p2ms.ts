@@ -1,4 +1,10 @@
-import { BIP32Interface, networks, payments, crypto } from 'liquidjs-lib';
+import {
+  BIP32Interface,
+  networks,
+  payments,
+  crypto,
+  address,
+} from 'liquidjs-lib';
 import { Slip77Interface, fromSeed } from 'slip77';
 
 import { MultisigPayment } from './types';
@@ -22,16 +28,18 @@ export function p2msPayment(
   let multisigPayment = payments.p2wsh({
     redeem: payments.p2ms({
       m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
-      pubkeys: keys.map(key => key.publicKey),
+      pubkeys: bip67sort(keys.map(key => key.publicKey)),
       network,
     }),
     network,
   });
 
-  if (!multisigPayment.output) throw new Error('Invalid payment');
+  if (!multisigPayment.address) throw new Error('Invalid payment');
 
   // generate blinding key
-  const { publicKey, privateKey } = blindingKey.derive(multisigPayment.output);
+  const { publicKey, privateKey } = blindingKey.derive(
+    address.toOutputScript(multisigPayment.address, network)
+  );
   if (!publicKey || !privateKey)
     throw new Error('something went wrong while generating blinding key pair');
 
