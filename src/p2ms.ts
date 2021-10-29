@@ -38,7 +38,7 @@ export function p2msPayment(
   multisigPayment = payments.p2wsh({
     redeem: payments.p2ms({
       m: parseInt(required.toString()), // this is a trick in case of the input returns a string at runtime
-      pubkeys: keys.map(key => key.publicKey),
+      pubkeys: bip67sort(keys.map(key => key.publicKey)),
       network,
     }),
     blindkey: publicKey,
@@ -96,4 +96,12 @@ function xor(a: Buffer, b: Buffer): Buffer {
   }
 
   return result;
+}
+
+export function bip67sort(array: Buffer[]) {
+  return array.sort(bip67compareFunction);
+}
+
+function bip67compareFunction(a: Buffer, b: Buffer): number {
+  return a.toString('hex') < b.toString('hex') ? -1 : 1;
 }
