@@ -2,6 +2,7 @@ import {
   UtxoInterface,
   RecipientInterface,
   ChangeAddressFromAssetGetter,
+  CoinSelectorErrorFn,
 } from './../types';
 
 export interface CoinSelectionResult {
@@ -10,6 +11,8 @@ export interface CoinSelectionResult {
 }
 
 export type CoinSelector = (
+  errorHandler: CoinSelectorErrorFn
+) => (
   unspents: UtxoInterface[],
   outputs: RecipientInterface[],
   changeGetter: ChangeAddressFromAssetGetter

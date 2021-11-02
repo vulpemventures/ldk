@@ -1,17 +1,17 @@
 import * as assert from 'assert';
-import { networks, Psbt, Transaction } from 'liquidjs-lib';
+import { address, networks, Psbt, Transaction } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
 
 import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
+import { decodePset, psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
-import { buildTx, BuildTxArgs } from '../src/transaction';
+import { BuildTxArgs, craftMultipleRecipientsPset } from '../src/transaction';
 import { RecipientInterface } from '../src/types';
-import { psetToUnsignedHex, decodePset } from '../src/utils';
 
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
-import { recipientAddress, sender } from './fixtures/wallet.keys';
+import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
 
 jest.setTimeout(50000);
 
@@ -22,6 +22,7 @@ describe('buildTx', () => {
   let args: BuildTxArgs;
   let senderAddress = '';
   let senderBlindingKey = '';
+  const sender = newRandomMnemonic();
 
   beforeAll(async () => {
     const addrI = await sender.getNextAddress();
@@ -59,7 +60,7 @@ describe('buildTx', () => {
 
   it('should build a confidential transaction spending USDT', async () => {
     // create a tx using wallet
-    const tx = (await senderWallet).createTx();
+    const tx = senderWallet.createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -68,7 +69,7 @@ describe('buildTx', () => {
         address: recipientAddress,
       },
     ];
-    const unsignedTx = buildTx({
+    const unsignedTx = craftMultipleRecipientsPset({
       ...args,
       recipients,
       psetBase64: tx,
@@ -79,7 +80,7 @@ describe('buildTx', () => {
 
   it('should build a confidential transaction spending LBTC', async () => {
     // create a tx using wallet
-    const tx = (await senderWallet).createTx();
+    const tx = senderWallet.createTx();
 
     const recipients: RecipientInterface[] = [
       {
@@ -89,12 +90,16 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx({ ...args, recipients, psetBase64: tx });
+    const unsignedTx = craftMultipleRecipientsPset({
+      ...args,
+      recipients,
+      psetBase64: tx,
+    });
     assert.doesNotThrow(() => Psbt.fromBase64(unsignedTx));
   });
 
   it('should be able to create a complex transaction and broadcast it', async () => {
-    const tx = (await senderWallet).createTx();
+    const tx = senderWallet.createTx();
 
     const recipients = [
       {
@@ -109,7 +114,7 @@ describe('buildTx', () => {
       },
     ];
 
-    const unsignedTx = buildTx({
+    const unsignedTx = craftMultipleRecipientsPset({
       ...args,
       recipients,
       psetBase64: tx,
@@ -122,12 +127,19 @@ describe('buildTx', () => {
     const transaction = Transaction.fromHex(psetToUnsignedHex(unsignedTx));
     for (let i = 0; i < transaction.ins.length; i++) {
       const input = transaction.ins[i];
-      const blindingData = args.unspents.find(
+      const utxo = args.unspents.find(
         u =>
           input.hash.equals(Buffer.from(u.txid, 'hex').reverse()) &&
           u.vout === input.index
-      )!.unblindData;
-      blindingDataMap.set(i, blindingData);
+      );
+
+      if (!utxo) throw new Error('cannot find utxo');
+
+      const blindingData = utxo.unblindData;
+
+      if (blindingData) {
+        blindingDataMap.set(i, blindingData);
+      }
     }
 
     // blind only the change output
@@ -148,5 +160,78 @@ describe('buildTx', () => {
     const txid = await broadcastTx(hex);
     const txhex = await fetchTxHex(txid, APIURL);
     assert.doesNotThrow(() => Transaction.fromHex(txhex));
+  });
+});
+
+describe('sendTx', () => {
+  const makeRecipient = (asset: string) => (
+    value: number
+  ): RecipientInterface => ({
+    asset,
+    value,
+    address:
+      'Azpw1q7r7sd6FYEphGVX4UDXy9ZtbwbTMkA3YPPjfpmLwmKzLRjpN5gJ19PTYedjTJhERvqf7QSs2N6J',
+  });
+
+  const makeTest = async (
+    recipient: RecipientInterface,
+    substractScenario: boolean
+  ) => {
+    const sender = newRandomMnemonic();
+    const addrI = await sender.getNextAddress();
+    const changeAddress = (await sender.getNextChangeAddress())
+      .confidentialAddress;
+    const senderAddress = addrI.confidentialAddress;
+
+    await faucet(senderAddress); // send 1_0000_0000
+    const wallet = await walletFromAddresses([addrI], APIURL, 'regtest');
+    const pset = wallet.sendTx(
+      recipient,
+      greedyCoinSelector(),
+      changeAddress,
+      substractScenario
+    );
+    const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>
+      out.script.equals(
+        address.toOutputScript(recipient.address, networks.regtest)
+      )
+    );
+    const blinded = await sender.blindPset(
+      pset,
+      [recipientIndex],
+      new Map().set(
+        recipientIndex,
+        address.fromConfidential(recipient.address).blindingKey
+      )
+    );
+    const signed = await sender.signPset(blinded);
+    const txHex = decodePset(signed)
+      .finalizeAllInputs()
+      .extractTransaction()
+      .toHex();
+    await broadcastTx(txHex);
+  };
+
+  it('should build a valid send tx with L-BTC', async () => {
+    await makeTest(makeRecipient(networks.regtest.assetHash)(850), false);
+  });
+
+  it('should throw an error if not enough fund', async () => {
+    assert.rejects(
+      makeTest(makeRecipient(networks.regtest.assetHash)(1_0000_0000), false)
+    );
+  });
+
+  it('should throw an error if not enough fund to pay fees (no substract fee from recipient)', async () => {
+    assert.rejects(
+      makeTest(makeRecipient(networks.regtest.assetHash)(1_0000_0000), false)
+    );
+  });
+
+  it('should substract fees if needed (substract fee from recipient)', async () => {
+    await makeTest(
+      makeRecipient(networks.regtest.assetHash)(1_0000_0000),
+      true
+    );
   });
 });

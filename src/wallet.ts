@@ -1,8 +1,6 @@
 import { Network, Psbt } from 'liquidjs-lib';
 
 import { CoinSelector } from './coinselection/coinSelector';
-import { fetchAndUnblindUtxos } from './explorer/utxos';
-import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
 import {
   AddressInterface,
   UtxoInterface,
@@ -12,6 +10,13 @@ import {
   NetworkString,
 } from './types';
 import { getNetwork, toOutpoint } from './utils';
+import {
+  craftMultipleRecipientsPset,
+  BuildTxArgs,
+  DEFAULT_SATS_PER_BYTE,
+  craftSingleRecipientPset,
+} from './transaction';
+import { fetchAndUnblindUtxos } from './explorer/utxos';
 
 /**
  * Wallet abstraction.
@@ -26,6 +31,13 @@ export interface WalletInterface {
     coinSelector: CoinSelector,
     changeAddressByAsset: ChangeAddressFromAssetGetter,
     addFee?: boolean,
+    satsPerByte?: number
+  ): string;
+  sendTx(
+    recipient: RecipientInterface,
+    coinSelector: CoinSelector,
+    changeAddress: string,
+    substractFee?: boolean,
     satsPerByte?: number
   ): string;
 }
@@ -73,7 +85,24 @@ export class Wallet implements WalletInterface {
       unspents: this.cache.getAll(),
     };
 
-    return buildTxFunction(args);
+    return craftMultipleRecipientsPset(args);
+  }
+
+  sendTx(
+    recipient: RecipientInterface,
+    coinSelector: CoinSelector,
+    changeAddress: string,
+    substractFee = false,
+    satsPerByte = DEFAULT_SATS_PER_BYTE
+  ) {
+    return craftSingleRecipientPset(
+      this.cache.getAll(),
+      recipient,
+      coinSelector,
+      changeAddress,
+      substractFee,
+      satsPerByte
+    );
   }
 }
 

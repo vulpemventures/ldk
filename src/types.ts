@@ -26,9 +26,7 @@ export interface AddressInterface {
 }
 
 // define a type using to implement change's address strategy
-export type ChangeAddressFromAssetGetter = (
-  asset: string
-) => string | undefined;
+export type ChangeAddressFromAssetGetter = (asset: string) => string;
 
 // define function that takes a script as input and returns a blinding key (or undefined)
 export type BlindingKeyGetter = (script: string) => string | undefined;
@@ -97,6 +95,14 @@ export interface TxInterface {
   vin: InputInterface[];
   vout: (BlindedOutputInterface | UnblindedOutputInterface)[];
 }
+
+export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
+
+export type CoinSelectorErrorFn = (
+  asset: string,
+  need: number,
+  has: number
+) => void;
 
 export type MultisigPayment = AddressInterface & {
   witnessScript: string;
