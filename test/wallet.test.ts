@@ -5,10 +5,11 @@ import { fetchAndUnblindTxsGenerator } from '../src/explorer/transaction';
 import { fetchAndUnblindUtxosGenerator } from '../src/explorer/utxos';
 import {
   AddressInterface,
-  isBlindedOutputInterface,
+  asset,
+  isUnblindedOutput,
+  Output,
+  sats,
   TxInterface,
-  UnblindedOutputInterface,
-  UtxoInterface,
 } from '../src/types';
 
 import { APIURL, faucet } from './_regtest';
@@ -43,20 +44,18 @@ describe('Wallet - Transaction builder', () => {
         APIURL
       );
 
-      faucetTx = (await txs.next()).value as TxInterface;
-      while (faucetTx.txid && faucetTx.txid !== faucetTxID) {
-        faucetTx = (await txs.next()).value as TxInterface;
+      for await (const tx of txs) {
+        if (tx.txid === faucetTxID) {
+          faucetTx = tx;
+        }
       }
     });
 
     it('should fetch all the transactions of an address & unblind the outputs', async () => {
       const LBTC = networks.regtest.assetHash;
       const hasOutputWithValue1LBTC = faucetTx!.vout.some(out => {
-        if (!isBlindedOutputInterface(out)) {
-          const unblindOutput = out as UnblindedOutputInterface;
-          return (
-            unblindOutput.value === 1_0000_0000 && unblindOutput.asset === LBTC
-          );
+        if (isUnblindedOutput(out)) {
+          return sats(out) === 1_0000_0000 && asset(out) === LBTC;
         }
         return false;
       });
@@ -84,11 +83,10 @@ describe('Wallet - Transaction builder', () => {
       }
 
       const hasUnblindedPrevout = faucetTx!.vout.some(prevout => {
-        if (!isBlindedOutputInterface(prevout)) {
-          const unblindOutput = prevout as UnblindedOutputInterface;
+        if (isUnblindedOutput(prevout)) {
           return (
-            unblindOutput.value === 1_0000_0000 &&
-            unblindOutput.asset === networks.regtest.assetHash
+            sats(prevout) === 1_0000_0000 &&
+            asset(prevout) === networks.regtest.assetHash
           );
         }
         return false;
@@ -113,11 +111,13 @@ describe('Wallet - Transaction builder', () => {
         APIURL
       );
 
-      const utxosArray: UtxoInterface[] = [];
+      const utxosArray: Output[] = [];
       let utxoV = await utxosGenerator.next();
       while (!utxoV.done) {
-        utxosArray.push(utxoV.value as UtxoInterface);
-        utxoV = await utxosGenerator.next();
+        if (utxoV.done === false) {
+          utxosArray.push(utxoV.value);
+          utxoV = await utxosGenerator.next();
+        }
       }
 
       assert.strictEqual(utxosArray.length, utxoV.value.numberOfUtxos);

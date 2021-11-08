@@ -1,24 +1,21 @@
 import { Network, Psbt } from 'liquidjs-lib';
-
 import { CoinSelector } from './coinselection/coinSelector';
 import { fetchAndUnblindUtxos } from './explorer/utxos';
 import { buildTx as buildTxFunction, BuildTxArgs } from './transaction';
 import {
   AddressInterface,
-  UtxoInterface,
-  Outpoint,
   RecipientInterface,
   ChangeAddressFromAssetGetter,
   NetworkString,
+  UnblindedOutput,
 } from './types';
-import { getNetwork, toOutpoint } from './utils';
+import { getNetwork } from './utils';
 
 /**
  * Wallet abstraction.
  */
 export interface WalletInterface {
   network: Network;
-  cache: UtxoCacheInterface;
   createTx(): string;
   buildTx(
     psetBase64: string,
@@ -34,17 +31,16 @@ export interface WalletInterface {
  * Implementation of Wallet Interface.
  * @member network type of network (regtest...)
  * @member addresses list of AddressInterface.
- * @member blindingPrivateKeyByScript a map scriptPubKey --> blindingPrivateKey.
  * @method createTx init empty PSET.
  * @method updateTx update a PSET with outputs and inputs (for Swap tx).
  */
 export class Wallet implements WalletInterface {
   network: Network;
-  cache: UtxoCacheInterface;
+  unspents: UnblindedOutput[];
 
-  constructor(cache: UtxoCacheInterface, network: Network) {
+  constructor(unspents: UnblindedOutput[], network: Network) {
     this.network = network;
-    this.cache = cache;
+    this.unspents = unspents;
   }
 
   /**
@@ -70,7 +66,7 @@ export class Wallet implements WalletInterface {
       changeAddressByAsset,
       addFee,
       satsPerByte,
-      unspents: this.cache.getAll(),
+      unspents: this.unspents,
     };
 
     return buildTxFunction(args);
@@ -93,41 +89,8 @@ export async function walletFromAddresses(
 }
 
 export function walletFromCoins(
-  coins: UtxoInterface[],
+  coins: UnblindedOutput[],
   network?: NetworkString
 ): WalletInterface {
-  return new Wallet(new UtxoCache(coins), getNetwork(network));
-}
-
-export interface UtxoCacheInterface {
-  push(utxos: UtxoInterface[]): void;
-  delete(outpoint: Outpoint): boolean;
-  getAll(): UtxoInterface[];
-}
-
-export class UtxoCache implements UtxoCacheInterface {
-  private utxoMap: Map<Outpoint, UtxoInterface> = new Map<
-    Outpoint,
-    UtxoInterface
-  >();
-
-  constructor(utxos?: UtxoInterface[]) {
-    if (utxos) {
-      this.push(utxos);
-    }
-  }
-
-  push(utxos: UtxoInterface[]): void {
-    for (const utxo of utxos) {
-      this.utxoMap.set(toOutpoint(utxo), utxo);
-    }
-  }
-
-  delete(outpoint: Outpoint): boolean {
-    return this.utxoMap.delete(outpoint);
-  }
-
-  getAll(): UtxoInterface[] {
-    return Array.from(this.utxoMap.values());
-  }
+  return new Wallet(coins, getNetwork(network));
 }

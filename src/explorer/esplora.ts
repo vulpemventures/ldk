@@ -1,18 +1,16 @@
 import axios from 'axios';
 import { Transaction, TxOutput } from 'liquidjs-lib';
-
 import {
-  BlindedOutputInterface,
   TxInterface,
-  UnblindedOutputInterface,
-  isBlindedOutputInterface,
   InputInterface,
+  Output,
+  Outpoint,
+  isUnblindedOutput,
+  sats,
+  asset,
 } from '../types';
-import { isConfidentialOutput, toAssetHash, toNumber } from '../utils';
-
 import { EsploraTx, EsploraUtxo } from './types';
-
-const ZERO = Buffer.alloc(32).toString('hex');
+import { fetchAndUnblindUtxos } from './utxos';
 
 /**
  * Fetch the raw transaction by txid
@@ -43,9 +41,20 @@ export async function fetchTx(txId: string, url: string): Promise<TxInterface> {
 export async function fetchUtxos(
   address: string,
   url: string
-): Promise<EsploraUtxo[]> {
-  return (await axios.get(`${url}/address/${address}/utxo`)).data;
+): Promise<Output[]> {
+  const esploraUtxos: EsploraUtxo[] = (
+    await axios.get(`${url}/address/${address}/utxo`)
+  ).data;
+  return Promise.all(esploraUtxos.map(outpointToUtxo(url)));
 }
+
+const outpointToUtxo = (esploraURL: string) => async (
+  outpoint: Outpoint
+): Promise<Output> => {
+  const prevoutHex: string = await fetchTxHex(outpoint.txid, esploraURL);
+  const prevout = Transaction.fromHex(prevoutHex).outs[outpoint.vout];
+  return { ...outpoint, prevout };
+};
 
 /**
  * Convert an esplora transaction to a TxInterface
@@ -74,7 +83,8 @@ export async function esploraTxToTxInterface(
   const prevoutAsOutput = prevoutTxHexs.map(
     (hex: string | undefined, index: number) => {
       if (!hex) return undefined;
-      return txOutputToOutputInterface(
+      return makeOutput(
+        { txid: inputTxIds[index], vout: inputVouts[index] },
         Transaction.fromHex(hex).outs[inputVouts[index]]
       );
     }
@@ -94,7 +104,13 @@ export async function esploraTxToTxInterface(
   const txHex = await fetchTxHex(esploraTx.txid, explorerUrl);
   const transaction = Transaction.fromHex(txHex);
 
-  const txOutputs = transaction.outs.map(txOutputToOutputInterface);
+  const makeOutpoint = (index: number): Outpoint => ({
+    txid: esploraTx.txid,
+    vout: index,
+  });
+  const makeOutputFromTxout = (txout: TxOutput, index: number): Output =>
+    makeOutput(makeOutpoint(index), txout);
+  const txOutputs = transaction.outs.map(makeOutputFromTxout);
 
   const tx: TxInterface = {
     txid: esploraTx.txid,
@@ -113,30 +129,11 @@ export async function esploraTxToTxInterface(
 }
 
 // util function for output mapping
-function txOutputToOutputInterface(
-  txOutput: TxOutput
-): BlindedOutputInterface | UnblindedOutputInterface {
-  if (isConfidentialOutput(txOutput)) {
-    const blindedOutput: BlindedOutputInterface = {
-      blindedAsset: txOutput.asset,
-      blindedValue: txOutput.value,
-      nonce: txOutput.nonce,
-      rangeProof: txOutput.rangeProof!,
-      surjectionProof: txOutput.surjectionProof!,
-      script: txOutput.script.toString('hex'),
-    };
-    return blindedOutput;
-  }
-
-  const unblindedOutput: UnblindedOutputInterface = {
-    asset: toAssetHash(txOutput.asset),
-    value: toNumber(txOutput.value),
-    script: txOutput.script.toString('hex'),
-    assetBlinder: ZERO,
-    valueBlinder: ZERO,
+function makeOutput(outpoint: Outpoint, txOutput: TxOutput): Output {
+  return {
+    ...outpoint,
+    prevout: txOutput,
   };
-
-  return unblindedOutput;
 }
 
 /**
@@ -183,14 +180,52 @@ export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
       .toString('hex');
 
   for (const output of tx.vout) {
-    if (output.script.length > 0 && !isBlindedOutputInterface(output)) {
+    if (output.prevout.script.length > 0 && isUnblindedOutput(output)) {
       outputsData.push({
-        ...output,
-        assetBlinder: reverseHex(output.assetBlinder),
-        valueBlinder: reverseHex(output.valueBlinder),
+        value: sats(output),
+        asset: asset(output),
+        assetBlinder: reverseHex(
+          output.unblindData.assetBlindingFactor.toString('hex')
+        ),
+        valueBlinder: reverseHex(
+          output.unblindData.valueBlindingFactor.toString('hex')
+        ),
       });
     }
   }
 
   return makeUnblindURL(baseURL, tx.txid, outputsData);
+}
+
+/**
+ * Fetch balances for a given address
+ * @param address the address to fetch utxos
+ * @param blindPrivKey the blinding private key (if the address is confidential one)
+ * @param url esplora URL
+ */
+export async function fetchBalances(
+  address: string,
+  blindPrivKey: string,
+  url: string
+) {
+  const utxoInterfaces = await fetchAndUnblindUtxos(
+    [{ confidentialAddress: address, blindingPrivateKey: blindPrivKey }],
+    url
+  );
+  return (utxoInterfaces as any).reduce(
+    (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
+      // get the first instance of the key by which we're grouping
+      const group = item['asset'];
+
+      // set `storage` for this instance of group to the outer scope (if not empty) or initialize it
+      storage[group] = storage[group] || 0;
+
+      // add this item to its group within `storage`
+      storage[group] += item.value;
+
+      // return the updated storage to the reduce function, which will then loop through the next
+      return storage;
+    },
+    {}
+  ); // {} is the initial value of the storage
 }

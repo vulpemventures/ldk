@@ -7,19 +7,19 @@ import {
   Transaction,
   confidential,
   networks,
-  TxOutput,
 } from 'liquidjs-lib';
 import { fromMasterBlindingKey } from 'slip77';
 
 import {
   AddressInterface,
-  BlindedOutputInterface,
   Outpoint,
-  UnblindedOutputInterface,
-  UtxoInterface,
+  Output,
   IdentityType,
   NetworkString,
+  UnblindedOutput,
 } from './types';
+
+const ZERO = Buffer.alloc(32);
 
 export function toAssetHash(x: Buffer): string {
   const withoutFirstByte = x.slice(1);
@@ -189,12 +189,8 @@ export function psetToUnsignedTx(ptx: string): Transaction {
   return Transaction.fromHex(psetToUnsignedHex(ptx));
 }
 
-export function toOutpoint({ txid, vout }: UtxoInterface): Outpoint {
+export function toOutpoint({ txid, vout }: Output): Outpoint {
   return { txid, vout };
-}
-
-export function isBlindedUtxo({ asset, value }: UtxoInterface): boolean {
-  return !asset || !value;
 }
 
 export function getNetwork(str?: NetworkString): Network {
@@ -202,38 +198,37 @@ export function getNetwork(str?: NetworkString): Network {
 }
 
 /**
- * take a blinded output and unblind it
- * @param output blinded output
- * @param BlindingPrivateKey blinding private key
+ * Compute the blinding data for a given output
+ * @param utxo blinded utxo
+ * @param blindPrivKey blinding private key
  */
 export async function unblindOutput(
-  output: BlindedOutputInterface,
-  BlindingPrivateKey: string
-): Promise<UnblindedOutputInterface> {
-  const txOutput: TxOutput = {
-    asset: output.blindedAsset,
-    value: output.blindedValue,
-    rangeProof: output.rangeProof,
-    surjectionProof: output.surjectionProof,
-    nonce: output.nonce,
-    script: Buffer.from(output.script, 'hex'),
-  };
+  utxo: Output,
+  blindPrivKey: string
+): Promise<UnblindedOutput> {
+  if (!isConfidentialOutput(utxo.prevout)) {
+    return {
+      ...utxo,
+      unblindData: {
+        asset: utxo.prevout.asset.slice(1),
+        value: confidential
+          .confidentialValueToSatoshi(utxo.prevout.value)
+          .toString(10),
+        assetBlindingFactor: ZERO,
+        valueBlindingFactor: ZERO,
+      },
+    };
+  }
 
-  const blindPrivateKeyBuffer = Buffer.from(BlindingPrivateKey, 'hex');
-  const unblindedResult = await confidential.unblindOutputWithKey(
-    txOutput,
-    blindPrivateKeyBuffer
+  const unblindData = await confidential.unblindOutputWithKey(
+    utxo.prevout,
+    Buffer.from(blindPrivKey, 'hex')
   );
 
-  const unblindedOutput: UnblindedOutputInterface = {
-    asset: Buffer.from(unblindedResult.asset.reverse()).toString('hex'),
-    value: parseInt(unblindedResult.value, 10),
-    script: output.script,
-    assetBlinder: unblindedResult.assetBlindingFactor.toString('hex'),
-    valueBlinder: unblindedResult.valueBlindingFactor.toString('hex'),
+  return {
+    ...utxo,
+    unblindData,
   };
-
-  return unblindedOutput;
 }
 
 // util function that parse a derivation path and return the index

@@ -1,11 +1,6 @@
 import axios from 'axios';
-
 import UnblindError from '../error/unblind-error';
-import {
-  BlindingKeyGetter,
-  isBlindedOutputInterface,
-  TxInterface,
-} from '../types';
+import { BlindingKeyGetter, isUnblindedOutput, TxInterface } from '../types';
 import { unblindOutput } from '../utils';
 
 import { esploraTxToTxInterface } from './esplora';
@@ -155,13 +150,15 @@ export async function unblindTransaction(
 
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
-    const prevout = tx.vin[inputIndex].prevout;
-    if (prevout && isBlindedOutputInterface(prevout)) {
+    const output = tx.vin[inputIndex].prevout;
+    if (output && !isUnblindedOutput(output)) {
       const promise = async () => {
-        const blindingKey = blindingPrivateKeyGetter(prevout.script);
+        const blindingKey = blindingPrivateKeyGetter(
+          output.prevout.script.toString('hex')
+        );
         if (blindingKey) {
           try {
-            const unblinded = await unblindOutput(prevout, blindingKey);
+            const unblinded = await unblindOutput(output, blindingKey);
             tx.vin[inputIndex].prevout = unblinded;
           } catch (_) {
             errors.push(
@@ -182,9 +179,11 @@ export async function unblindTransaction(
   // try to unblind outputs
   for (let outputIndex = 0; outputIndex < tx.vout.length; outputIndex++) {
     const output = tx.vout[outputIndex];
-    if (isBlindedOutputInterface(output)) {
+    if (!isUnblindedOutput(output)) {
       const promise = async () => {
-        const blindingKey = blindingPrivateKeyGetter(output.script);
+        const blindingKey = blindingPrivateKeyGetter(
+          output.prevout.script.toString('hex')
+        );
         if (blindingKey) {
           try {
             const unblinded = await unblindOutput(output, blindingKey);

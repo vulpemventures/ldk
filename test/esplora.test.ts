@@ -5,9 +5,8 @@ import {
   AddressInterface,
   fetchAndUnblindTxs,
   fetchAndUnblindUtxos,
-  fetchPrevoutAndTryToUnblindUtxo,
-  isBlindedUtxo,
-  UtxoInterface,
+  isUnblindedOutput,
+  Output,
 } from '../src';
 
 import { APIURL, faucet } from './_regtest';
@@ -71,7 +70,7 @@ describe('esplora', () => {
       );
 
       const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
-      assert.deepStrictEqual(isBlindedUtxo(faucetUtxo!), false);
+      assert.deepStrictEqual(isUnblindedOutput(faucetUtxo!), true);
     });
 
     it('should skip unblinding step if the skip predicate returns true', async () => {
@@ -84,58 +83,11 @@ describe('esplora', () => {
         ],
         APIURL,
         // with this skip predicate, `txid` utxos won't be unblinded
-        (utxo: UtxoInterface) => utxo.txid === txid
+        (utxo: Output) => utxo.txid === txid
       );
 
       const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
-      assert.deepStrictEqual(isBlindedUtxo(faucetUtxo!), true);
-    });
-
-    it('should return an UtxoInterface with extra esplora enriched fields if the UtxoInterface interface as input contains extra esplora enriched fields', async () => {
-      const senderUtxos = await fetchAndUnblindUtxos(
-        [
-          {
-            confidentialAddress: senderAddress.confidentialAddress,
-            blindingPrivateKey: senderAddress.blindingPrivateKey,
-          },
-        ],
-        APIURL
-      );
-      const faucetUtxo = senderUtxos.find(utxo => utxo.txid === txid);
-      const utxoInterface = await fetchPrevoutAndTryToUnblindUtxo(
-        faucetUtxo as UtxoInterface,
-        senderAddress.blindingPrivateKey,
-        APIURL
-      );
-      expect(utxoInterface.unblindedUtxo).toMatchObject({
-        asset: expect.any(String),
-        assetcommitment: expect.any(String),
-        noncecommitment: expect.any(String),
-        prevout: {
-          asset: expect.any(Buffer),
-          nonce: expect.any(Buffer),
-          rangeProof: expect.any(Buffer),
-          script: expect.any(Buffer),
-          surjectionProof: expect.any(Buffer),
-          value: expect.any(Buffer),
-        },
-        status: {
-          block_hash: expect.any(String),
-          block_height: expect.any(Number),
-          block_time: expect.any(Number),
-          confirmed: expect.any(Boolean),
-        },
-        txid: expect.any(String),
-        unblindData: {
-          asset: expect.any(Buffer),
-          assetBlindingFactor: expect.any(Buffer),
-          value: '100000000',
-          valueBlindingFactor: expect.any(Buffer),
-        },
-        value: 100000000,
-        valuecommitment: expect.any(String),
-        vout: expect.any(Number),
-      });
+      assert.deepStrictEqual(faucetUtxo, undefined);
     });
   });
 

@@ -2,15 +2,16 @@ import { address as laddress } from 'liquidjs-lib';
 
 import { CoinSelector } from './coinselection/coinSelector';
 import {
-  UtxoInterface,
   ChangeAddressFromAssetGetter,
   RecipientInterface,
+  UnblindedOutput,
+  Output,
 } from './types';
 import { decodePset } from './utils';
 
 export interface BuildTxArgs {
   psetBase64: string;
-  unspents: UtxoInterface[];
+  unspents: UnblindedOutput[];
   recipients: RecipientInterface[];
   coinSelector: CoinSelector;
   changeAddressByAsset: ChangeAddressFromAssetGetter;
@@ -106,7 +107,7 @@ export function buildTx(args: BuildTxArgs): string {
     return addToTx(psetBase64, inputs, outs);
   }
 
-  const availableUnspents: UtxoInterface[] = [];
+  const availableUnspents: UnblindedOutput[] = [];
   for (const utxo of unspents) {
     if (!selectedUtxos.includes(utxo)) availableUnspents.push(utxo);
   }
@@ -152,7 +153,7 @@ export function createFeeOutput(
 
 export function addToTx(
   psetBase64: string,
-  unspents: UtxoInterface[],
+  unspents: Output[],
   outputs: RecipientInterface[]
 ): string {
   const pset = decodePset(psetBase64);

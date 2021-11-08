@@ -1,23 +1,25 @@
-import { isBlindedUtxo } from '../utils';
-
 import {
+  asset,
   ChangeAddressFromAssetGetter,
   RecipientInterface,
-  UtxoInterface,
+  sats,
+  UnblindedOutput,
 } from './../types';
 import { CoinSelectionResult, CoinSelector } from './coinSelector';
 
-export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
+export type CompareUtxoFn = (a: UnblindedOutput, b: UnblindedOutput) => number;
 
-const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
-  a.value! - b.value!;
+const defaultCompareFn: CompareUtxoFn = (
+  a: UnblindedOutput,
+  b: UnblindedOutput
+) => sats(a) - sats(b);
 
 // the exported factory function for greedy coin selector
 export function greedyCoinSelector(
   compare: CompareUtxoFn = defaultCompareFn
 ): CoinSelector {
   return (
-    u: UtxoInterface[],
+    u: UnblindedOutput[],
     o: RecipientInterface[],
     getter: ChangeAddressFromAssetGetter
   ) => greedyCoinSelection(u, o, getter, compare);
@@ -26,29 +28,24 @@ export function greedyCoinSelector(
 /**
  * select utxo for outputs among unspents.
  * @param unspents a set of unspents.
- * @param outputs the outputs targetted by the coin selection
+ * @param recipients the outputs targetted by the coin selection
  */
 function greedyCoinSelection(
-  unspents: UtxoInterface[],
-  outputs: RecipientInterface[],
+  unspents: UnblindedOutput[],
+  recipients: RecipientInterface[],
   changeAddressGetter: ChangeAddressFromAssetGetter,
   sortFn: CompareUtxoFn
 ): CoinSelectionResult {
-  unspents = unspents.filter(utxo => !isBlindedUtxo(utxo));
-
   const result: CoinSelectionResult = {
     selectedUtxos: [],
     changeOutputs: [],
   };
 
-  const utxosGroupedByAsset = groupBy(unspents, 'asset') as Record<
-    string,
-    UtxoInterface[]
-  >;
-  const outputsGroupedByAsset = groupBy(outputs, 'asset') as Record<
-    string,
-    RecipientInterface[]
-  >;
+  const utxosGroupedByAsset = groupBy<UnblindedOutput>(unspents, u => asset(u));
+  const outputsGroupedByAsset = groupBy<RecipientInterface>(
+    recipients,
+    r => r.asset
+  );
 
   for (const [asset, outputs] of Object.entries(outputsGroupedByAsset)) {
     const unspents = utxosGroupedByAsset[asset];
@@ -87,21 +84,19 @@ function greedyCoinSelection(
 }
 
 function selectUtxos(
-  utxos: UtxoInterface[],
+  utxos: UnblindedOutput[],
   targetAmount: number,
   compareFn: CompareUtxoFn
 ): {
-  selected: UtxoInterface[];
+  selected: UnblindedOutput[];
   changeAmount: number;
 } {
   utxos = utxos.sort(compareFn);
-  const selected: UtxoInterface[] = [];
+  const selected: UnblindedOutput[] = [];
   let total = 0;
   for (const utxo of utxos) {
-    if (!isBlindedUtxo(utxo)) {
-      selected.push(utxo);
-      total += utxo.value!;
-    }
+    selected.push(utxo);
+    total += sats(utxo);
 
     if (total >= targetAmount) {
       return {
@@ -114,9 +109,12 @@ function selectUtxos(
   throw new Error('not enough utxos in wallet to fund: ' + targetAmount);
 }
 
-function groupBy(xs: any[], key: string) {
+function groupBy<T extends Record<string, any>>(
+  xs: T[],
+  key: (t: T) => string
+): Record<string, T[]> {
   return xs.reduce(function(rv, x) {
-    (rv[x[key]] = rv[x[key]] || []).push(x);
+    (rv[key(x)] = rv[key(x)] || []).push(x);
     return rv;
-  }, {});
+  }, {} as Record<string, T[]>);
 }

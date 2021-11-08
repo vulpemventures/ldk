@@ -1,16 +1,16 @@
 import {
-  UtxoInterface,
   RecipientInterface,
   ChangeAddressFromAssetGetter,
+  UnblindedOutput,
 } from './../types';
 
 export interface CoinSelectionResult {
-  selectedUtxos: UtxoInterface[];
+  selectedUtxos: UnblindedOutput[];
   changeOutputs: RecipientInterface[];
 }
 
 export type CoinSelector = (
-  unspents: UtxoInterface[],
+  unspents: UnblindedOutput[],
   outputs: RecipientInterface[],
   changeGetter: ChangeAddressFromAssetGetter
 ) => CoinSelectionResult;
