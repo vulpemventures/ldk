@@ -7,6 +7,7 @@ import {
   Transaction,
   confidential,
   networks,
+  address,
 } from 'liquidjs-lib';
 import { fromMasterBlindingKey } from 'slip77';
 
@@ -271,4 +272,24 @@ export function decodePset(psetBase64: string): Psbt {
     throw new Error('Invalid pset');
   }
   return pset;
+}
+
+export function getScripts(addresses: AddressInterface[]): Set<string> {
+  return new Set(
+    addresses.map(a =>
+      address.toOutputScript(a.confidentialAddress).toString('hex')
+    )
+  );
+}
+
+export function groupBy<T extends Record<string, any>>(
+  xs: T[],
+  key: (t: T) => string
+): Record<string, T[]> {
+  return xs.reduce(function(rv, x) {
+    const k = key(x);
+    const row = rv[k] ?? [];
+    rv[k] = [...row, x];
+    return rv;
+  }, {} as Record<string, T[]>);
 }

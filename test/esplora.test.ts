@@ -1,15 +1,19 @@
 import * as assert from 'assert';
-import { address, ECPair } from 'liquidjs-lib';
+import { address, ECPair, networks } from 'liquidjs-lib';
 
 import {
   AddressInterface,
+  balances,
   fetchAndUnblindTxs,
   fetchAndUnblindUtxos,
+  getScripts,
   isUnblindedOutput,
+  Mnemonic,
   Output,
+  utxosFromTransactions,
 } from '../src';
 
-import { APIURL, faucet } from './_regtest';
+import { APIURL, faucet, sleep } from './_regtest';
 import { sender } from './fixtures/wallet.keys';
 
 jest.setTimeout(80000);
@@ -110,7 +114,6 @@ describe('esplora', () => {
       const faucetTx = senderTxs.find(t => t.txid === txid);
       assert.notStrictEqual(faucetTx, undefined);
     });
-
     it('should skip transaction specified by skip function (and does not return it)', async () => {
       const senderTxs = await fetchAndUnblindTxs(
         [senderAddress.confidentialAddress],
@@ -140,6 +143,46 @@ describe('esplora', () => {
 
       const faucetTx = senderTxs.find(t => t.txid === txid);
       assert.notStrictEqual(faucetTx, undefined);
+    });
+  });
+
+  describe('unspents from transactions', () => {
+    it.only('should compute utxos set from transactions', async () => {
+      const identity = Mnemonic.Random('regtest');
+      const address0 = await identity.getNextAddress();
+      const address1 = await identity.getNextAddress();
+
+      await faucet(address0.confidentialAddress);
+      await faucet(address1.confidentialAddress);
+      sleep(3000);
+
+      const txs = await fetchAndUnblindTxs(
+        [address1, address0].map(a => a.confidentialAddress),
+        (script: string) => {
+          if (
+            address
+              .toOutputScript(address0.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return address0.blindingPrivateKey;
+          } else if (
+            address
+              .toOutputScript(address1.confidentialAddress)
+              .equals(Buffer.from(script, 'hex'))
+          ) {
+            return address1.blindingPrivateKey;
+          } else return undefined;
+        },
+        APIURL
+      );
+
+      const utxos = utxosFromTransactions(
+        txs,
+        getScripts([address0, address1])
+      );
+      assert.deepStrictEqual(utxos.length, 2);
+      const balance = balances(utxos);
+      assert.deepStrictEqual(balance[networks.regtest.assetHash], 2_0000_0000);
     });
   });
 });

@@ -1,3 +1,4 @@
+import { groupBy } from '../utils';
 import {
   asset,
   ChangeAddressFromAssetGetter,
@@ -41,7 +42,7 @@ function greedyCoinSelection(
     changeOutputs: [],
   };
 
-  const utxosGroupedByAsset = groupBy<UnblindedOutput>(unspents, u => asset(u));
+  const utxosGroupedByAsset = groupBy<UnblindedOutput>(unspents, asset);
   const outputsGroupedByAsset = groupBy<RecipientInterface>(
     recipients,
     r => r.asset
@@ -107,14 +108,4 @@ function selectUtxos(
   }
 
   throw new Error('not enough utxos in wallet to fund: ' + targetAmount);
-}
-
-function groupBy<T extends Record<string, any>>(
-  xs: T[],
-  key: (t: T) => string
-): Record<string, T[]> {
-  return xs.reduce(function(rv, x) {
-    (rv[key(x)] = rv[key(x)] || []).push(x);
-    return rv;
-  }, {} as Record<string, T[]>);
 }

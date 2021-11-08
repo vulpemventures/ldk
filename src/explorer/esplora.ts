@@ -10,7 +10,6 @@ import {
   asset,
 } from '../types';
 import { EsploraTx, EsploraUtxo } from './types';
-import { fetchAndUnblindUtxos } from './utxos';
 
 /**
  * Fetch the raw transaction by txid
@@ -195,37 +194,4 @@ export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
   }
 
   return makeUnblindURL(baseURL, tx.txid, outputsData);
-}
-
-/**
- * Fetch balances for a given address
- * @param address the address to fetch utxos
- * @param blindPrivKey the blinding private key (if the address is confidential one)
- * @param url esplora URL
- */
-export async function fetchBalances(
-  address: string,
-  blindPrivKey: string,
-  url: string
-) {
-  const utxoInterfaces = await fetchAndUnblindUtxos(
-    [{ confidentialAddress: address, blindingPrivateKey: blindPrivKey }],
-    url
-  );
-  return (utxoInterfaces as any).reduce(
-    (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
-      // get the first instance of the key by which we're grouping
-      const group = item['asset'];
-
-      // set `storage` for this instance of group to the outer scope (if not empty) or initialize it
-      storage[group] = storage[group] || 0;
-
-      // add this item to its group within `storage`
-      storage[group] += item.value;
-
-      // return the updated storage to the reduce function, which will then loop through the next
-      return storage;
-    },
-    {}
-  ); // {} is the initial value of the storage
 }
