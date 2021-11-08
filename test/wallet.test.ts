@@ -13,7 +13,7 @@ import {
 } from '../src/types';
 
 import { APIURL, faucet } from './_regtest';
-import { recipientAddress, sender } from './fixtures/wallet.keys';
+import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
 
 jest.setTimeout(500000);
 
@@ -22,6 +22,7 @@ describe('Wallet - Transaction builder', () => {
   let senderAddress: AddressInterface;
 
   beforeAll(async () => {
+    const sender = newRandomMnemonic();
     senderAddress = await sender.getNextAddress();
     faucetTxID = await faucet(senderAddress.confidentialAddress);
   });

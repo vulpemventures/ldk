@@ -12,9 +12,9 @@ import {
   Output,
   utxosFromTransactions,
 } from '../src';
+import { newRandomMnemonic } from './fixtures/wallet.keys';
 
 import { APIURL, faucet, sleep } from './_regtest';
-import { sender } from './fixtures/wallet.keys';
 
 jest.setTimeout(80000);
 
@@ -24,6 +24,7 @@ describe('esplora', () => {
   let unconfidentialSenderAddress: string;
 
   beforeAll(async () => {
+    const sender = newRandomMnemonic();
     senderAddress = await sender.getNextAddress();
     unconfidentialSenderAddress = address.fromConfidential(
       senderAddress.confidentialAddress

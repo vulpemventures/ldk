@@ -2,6 +2,7 @@ import {
   RecipientInterface,
   ChangeAddressFromAssetGetter,
   UnblindedOutput,
+  CoinSelectorErrorFn,
 } from './../types';
 
 export interface CoinSelectionResult {
@@ -10,6 +11,8 @@ export interface CoinSelectionResult {
 }
 
 export type CoinSelector = (
+  errorHandler: CoinSelectorErrorFn
+) => (
   unspents: UnblindedOutput[],
   outputs: RecipientInterface[],
   changeGetter: ChangeAddressFromAssetGetter

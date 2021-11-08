@@ -1,7 +1,5 @@
 import { networks, payments, ECPair } from 'liquidjs-lib';
-
-import { PrivateKey } from '../../src/identity/privatekey';
-import { IdentityType } from '../../src/types';
+import { Mnemonic } from '../../src/identity/mnemonic';
 
 const network = networks.regtest;
 // generate a random keyPair for bob
@@ -15,14 +13,7 @@ const blindKeyPair2 = ECPair.fromWIF(
   network
 );
 
-export const sender = new PrivateKey({
-  chain: 'regtest',
-  type: IdentityType.PrivateKey,
-  opts: {
-    signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
-    blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
-  },
-});
+export const newRandomMnemonic = () => Mnemonic.Random('regtest');
 
 // this is random address for who is receiving the withdrawal
 export const recipientAddress = payments.p2wpkh({
