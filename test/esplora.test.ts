@@ -148,7 +148,7 @@ describe('esplora', () => {
   });
 
   describe('unspents from transactions', () => {
-    it.only('should compute utxos set from transactions', async () => {
+    it('should compute utxos set from transactions', async () => {
       const identity = Mnemonic.Random('regtest');
       const address0 = await identity.getNextAddress();
       const address1 = await identity.getNextAddress();

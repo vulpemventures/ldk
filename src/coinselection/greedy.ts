@@ -1,7 +1,7 @@
 import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
-  sats,
+  getSats,
   UnblindedOutput,
 } from './../types';
 import { CoinSelectionResult, CoinSelector } from './coinSelector';
@@ -18,7 +18,7 @@ export type CompareUtxoFn = (a: UnblindedOutput, b: UnblindedOutput) => number;
 const defaultCompareFn: CompareUtxoFn = (
   a: UnblindedOutput,
   b: UnblindedOutput
-) => sats(a) - sats(b);
+) => getSats(a) - getSats(b);
 
 /**
  * select utxo for outputs among unspents.

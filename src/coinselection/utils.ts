@@ -3,8 +3,8 @@ import {
   CoinSelectorErrorFn,
   RecipientInterface,
   UnblindedOutput,
-  sats,
-  asset,
+  getSats,
+  getAsset,
 } from '../types';
 import { CompareUtxoFn } from './greedy';
 
@@ -46,8 +46,8 @@ const diff = (utxos: UnblindedOutput[]) => (asset: string) => {
 
 const sumUtxos = (asset: string) => (utxos: UnblindedOutput[]): number =>
   utxos
-    .filter(assetFilter(asset))
-    .reduce((sum: number, utxo: UnblindedOutput) => sum + sats(utxo), 0);
+    .filter(makeAssetFilter(asset))
+    .reduce((sum: number, utxo: UnblindedOutput) => sum + getSats(utxo), 0);
 
 // coinSelect is used to select utxo until they fill the amount requested
 export const coinSelect = (compareFn: CompareUtxoFn) => (
@@ -73,19 +73,27 @@ function recipientsReducer(
   return results;
 }
 
+function makeAssetFilter(assetToFilter: string) {
+  return function(u: UnblindedOutput) {
+    const asset = getAsset(u);
+    return asset === assetToFilter;
+  };
+}
+
 const coinSelectUtxosFilter = (compareFn: CompareUtxoFn) => (
   errorHandler: CoinSelectorErrorFn
 ) => (asset: string) => (amount: number) => (
   utxos: UnblindedOutput[]
 ): UnblindedOutput[] => {
   let amtSelected = 0;
-  const selected = utxos
-    .filter(assetFilter(asset))
+  const assetsUtxos = utxos.filter(makeAssetFilter(asset));
+
+  const selected = assetsUtxos
     .sort(compareFn)
     .reduce((selected: UnblindedOutput[], next: UnblindedOutput) => {
       if (amtSelected <= amount) {
         selected.push(next);
-        amtSelected += sats(next);
+        amtSelected += getSats(next);
       }
       return selected;
     }, []);
@@ -95,15 +103,12 @@ const coinSelectUtxosFilter = (compareFn: CompareUtxoFn) => (
   return selected;
 };
 
-const assetFilter = (assetToFilter: string) => (u: UnblindedOutput) =>
-  asset && asset(u) === assetToFilter;
-
 export const checkCoinSelect = (recipients: RecipientInterface[]) => (
   selectedUtxos: UnblindedOutput[]
 ) => {
   const inputs = selectedUtxos.map(u => ({
-    value: sats(u) || 0,
-    asset: asset(u) || '',
+    value: getSats(u) || 0,
+    asset: getAsset(u) || '',
   }));
   return check(inputs)(recipients);
 };

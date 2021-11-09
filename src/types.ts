@@ -55,32 +55,28 @@ export function isUnblindedOutput(output: Output): output is UnblindedOutput {
   return (output as UnblindedOutput).unblindData !== undefined;
 }
 
-export function sats(output: Output | UnblindedOutput): number {
+export function getSats(output: Output | UnblindedOutput): number {
+  if (isUnblindedOutput(output)) return parseInt(output.unblindData.value, 10);
   if (!isConfidentialOutput(output.prevout)) {
     return confidential.confidentialValueToSatoshi(output.prevout.value);
   }
-
-  if (isUnblindedOutput(output)) return parseInt(output.unblindData.value, 10);
 
   throw new Error(
     'cannot get value for confidential output, need unblinded one'
   );
 }
 
-function assetToHex(buf: Buffer): string {
-  return buf
-    .slice()
-    .reverse()
-    .toString('hex');
-}
-
-export function asset(output: Output | UnblindedOutput): string {
-  if (!isConfidentialOutput(output.prevout)) {
-    return assetToHex(output.prevout.asset.slice(1));
+export function getAsset(output: Output | UnblindedOutput): string {
+  if (isUnblindedOutput(output)) {
+    const asset = Buffer.from(output.unblindData.asset).reverse();
+    return asset.toString('hex');
   }
 
-  if (isUnblindedOutput(output)) {
-    return assetToHex(output.unblindData.asset);
+  if (!isConfidentialOutput(output.prevout)) {
+    const asset = Buffer.from(output.prevout.asset)
+      .slice(1)
+      .reverse();
+    return asset.toString('hex');
   }
 
   throw new Error(

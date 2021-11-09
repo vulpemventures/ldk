@@ -1,4 +1,4 @@
-import { asset, Output, sats } from './types';
+import { getAsset, Output, getSats } from './types';
 import { groupBy } from './utils';
 
 /**
@@ -6,7 +6,7 @@ import { groupBy } from './utils';
  * @param unspents the utxos to reduce
  */
 export function balances(unspents: Output[]): Record<string, number> {
-  const unspentsByAsset = groupBy<Output>(unspents, asset);
+  const unspentsByAsset = groupBy<Output>(unspents, getAsset);
   const balances: Record<string, number> = {};
 
   for (const [asset, utxos] of Object.entries(unspentsByAsset)) {
@@ -17,5 +17,5 @@ export function balances(unspents: Output[]): Record<string, number> {
 }
 
 function sumSats(unspents: Output[]): number {
-  return unspents.reduce((acc, utxo) => acc + sats(utxo), 0);
+  return unspents.reduce((acc, utxo) => acc + getSats(utxo), 0);
 }

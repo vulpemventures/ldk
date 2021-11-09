@@ -6,8 +6,8 @@ import {
   Output,
   Outpoint,
   isUnblindedOutput,
-  sats,
-  asset,
+  getSats,
+  getAsset,
 } from '../types';
 import { EsploraTx, EsploraUtxo } from './types';
 
@@ -181,8 +181,8 @@ export function getUnblindURLFromTx(tx: TxInterface, baseURL: string) {
   for (const output of tx.vout) {
     if (output.prevout.script.length > 0 && isUnblindedOutput(output)) {
       outputsData.push({
-        value: sats(output),
-        asset: asset(output),
+        value: getSats(output),
+        asset: getAsset(output),
         assetBlinder: reverseHex(
           output.unblindData.assetBlindingFactor.toString('hex')
         ),
