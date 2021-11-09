@@ -2,6 +2,7 @@ import { BIP32Interface, fromBase58, fromPublicKey, fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { networks } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { Slip77Interface } from 'slip77';
 
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
 import {
@@ -35,6 +36,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
   static INTERNAL_INDEX = 1; // change addresses
 
   cosigners: BIP32Interface[];
+  blindingKeyMasterNode: Slip77Interface;
   requiredSignatures: number;
 
   constructor(args: IdentityOpts<MultisigWatchOnlyOpts>) {
@@ -51,6 +53,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     cosignersPublicKeys.forEach(checkMasterPublicKey);
 
     this.cosigners = cosignersPublicKeys.sort().map(xpub => fromBase58(xpub));
+    this.blindingKeyMasterNode = blindingKeyFromXPubs(this.cosigners);
 
     this.requiredSignatures = args.opts.requiredSignatures;
   }
@@ -92,7 +95,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
   }
 
   private getBlindingKeyPair(script: string) {
-    const keys = blindingKeyFromXPubs(this.cosigners).derive(script);
+    const keys = this.blindingKeyMasterNode.derive(script);
     if (!keys.publicKey || !keys.privateKey)
       throw new Error('unable to generate blinding key pair');
     return { publicKey: keys.publicKey, privateKey: keys.privateKey };
@@ -128,7 +131,7 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
 
     const payment = p2msPayment(
       keys,
-      blindingKeyFromXPubs(this.cosigners),
+      this.blindingKeyMasterNode,
       this.requiredSignatures,
       this.network
     );
