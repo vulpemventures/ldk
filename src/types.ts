@@ -1,4 +1,5 @@
 import { TxOutput, confidential } from 'liquidjs-lib';
+import { isConfidentialOutput } from './utils';
 
 /**
  * Enumeration of all the Identity types.
@@ -42,44 +43,51 @@ export interface Outpoint {
   vout: number;
 }
 
-export interface UtxoInterface {
-  txid: string;
-  vout: number;
-  asset?: string;
-  value?: number;
-  prevout?: TxOutput;
-  unblindData?: confidential.UnblindOutputResult;
-  redeemScript?: Buffer;
-  witnessScript?: Buffer;
+export type Output = Outpoint & {
+  prevout: TxOutput;
+};
+
+export type UnblindedOutput = Output & {
+  unblindData: confidential.UnblindOutputResult;
+};
+
+export function isUnblindedOutput(output: Output): output is UnblindedOutput {
+  return (output as UnblindedOutput).unblindData !== undefined;
 }
 
-export interface BlindedOutputInterface {
-  script: string;
-  blindedValue: Buffer;
-  blindedAsset: Buffer;
-  nonce: Buffer;
-  rangeProof: Buffer;
-  surjectionProof: Buffer;
+export function getSats(output: Output | UnblindedOutput): number {
+  if (isUnblindedOutput(output)) return parseInt(output.unblindData.value, 10);
+  if (!isConfidentialOutput(output.prevout)) {
+    return confidential.confidentialValueToSatoshi(output.prevout.value);
+  }
+
+  throw new Error(
+    'cannot get value for confidential output, need unblinded one'
+  );
 }
 
-export function isBlindedOutputInterface(
-  object: any
-): object is BlindedOutputInterface {
-  return 'surjectionProof' in object && 'rangeProof' in object;
-}
+export function getAsset(output: Output | UnblindedOutput): string {
+  if (isUnblindedOutput(output)) {
+    const asset = Buffer.from(output.unblindData.asset).reverse();
+    return asset.toString('hex');
+  }
 
-export interface UnblindedOutputInterface {
-  script: string;
-  value: number;
-  asset: string;
-  valueBlinder: string;
-  assetBlinder: string;
+  if (!isConfidentialOutput(output.prevout)) {
+    const asset = Buffer.from(output.prevout.asset)
+      .slice(1)
+      .reverse();
+    return asset.toString('hex');
+  }
+
+  throw new Error(
+    'cannot get asset for confidential output, need unblinded one'
+  );
 }
 
 export interface InputInterface {
   txid: string;
   vout: number;
-  prevout?: BlindedOutputInterface | UnblindedOutputInterface;
+  prevout?: Output | UnblindedOutput;
   isPegin: boolean;
 }
 
@@ -93,10 +101,8 @@ export interface TxInterface {
     blockTime?: number;
   };
   vin: InputInterface[];
-  vout: (BlindedOutputInterface | UnblindedOutputInterface)[];
+  vout: (Output | UnblindedOutput)[];
 }
-
-export type CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) => number;
 
 export type CoinSelectorErrorFn = (
   asset: string,

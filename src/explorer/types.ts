@@ -1,3 +1,5 @@
+import { Outpoint } from '../types';
+
 // Esplora tx format
 export interface EsploraTx {
   txid: string;
@@ -29,7 +31,7 @@ export interface EsploraTx {
   }[];
 }
 
-export interface EsploraUtxo {
+export type EsploraUtxo = Outpoint & {
   txid: string;
   vout: number;
   status: {
@@ -41,4 +43,4 @@ export interface EsploraUtxo {
   valuecommitment: string;
   assetcommitment: string;
   noncecommitment: string;
-}
+};

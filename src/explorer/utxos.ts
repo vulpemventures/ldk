@@ -1,43 +1,14 @@
-import { confidential, Transaction, ECPair, address } from 'liquidjs-lib';
-
+import { ECPair, address } from 'liquidjs-lib';
 import UnblindError from '../error/unblind-error';
-import { AddressInterface, UtxoInterface } from '../types';
-import { isConfidentialOutput } from '../utils';
-
-import { fetchTxHex, fetchUtxos } from './esplora';
-
-/**
- * Fetch balances for a given address
- * @param address the address to fetch utxos
- * @param blindPrivKey the blinding private key (if the address is confidential one)
- * @param url esplora URL
- */
-export async function fetchBalances(
-  address: string,
-  blindPrivKey: string,
-  url: string
-) {
-  const utxoInterfaces = await fetchAndUnblindUtxos(
-    [{ confidentialAddress: address, blindingPrivateKey: blindPrivKey }],
-    url
-  );
-  return (utxoInterfaces as any).reduce(
-    (storage: { [x: string]: any }, item: { [x: string]: any; value: any }) => {
-      // get the first instance of the key by which we're grouping
-      const group = item['asset'];
-
-      // set `storage` for this instance of group to the outer scope (if not empty) or initialize it
-      storage[group] = storage[group] || 0;
-
-      // add this item to its group within `storage`
-      storage[group] += item.value;
-
-      // return the updated storage to the reduce function, which will then loop through the next
-      return storage;
-    },
-    {}
-  ); // {} is the initial value of the storage
-}
+import {
+  AddressInterface,
+  InputInterface,
+  TxInterface,
+  UnblindedOutput,
+  Output,
+} from '../types';
+import { unblindOutput } from '../utils';
+import { fetchUtxos } from './esplora';
 
 /**
  * fetchAndUnblindUtxosGenerator returns the unblinded utxos associated with a set of addresses.
@@ -48,9 +19,9 @@ export async function fetchBalances(
 export async function* fetchAndUnblindUtxosGenerator(
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
-  skip?: (utxo: UtxoInterface) => boolean
+  skip?: (utxo: Output) => boolean
 ): AsyncGenerator<
-  UtxoInterface,
+  UnblindedOutput,
   { numberOfUtxos: number; errors: Error[] },
   undefined
 > {
@@ -80,52 +51,32 @@ export async function* fetchAndUnblindUtxosGenerator(
 
       // at each 'next' call, the generator will return the result of the next promise
       for (const blindedUtxo of blindedUtxos) {
-        if (skip?.(blindedUtxo)) {
-          yield blindedUtxo;
-          continue;
-        }
+        if (skip?.(blindedUtxo)) continue;
 
-        const { unblindedUtxo, error } = await fetchPrevoutAndTryToUnblindUtxo(
-          blindedUtxo,
-          blindingPrivateKey,
-          url
-        );
-        if (error) errors.push(error);
-        yield unblindedUtxo;
+        yield await tryToUnblindUtxo(blindedUtxo, blindingPrivateKey);
         numberOfUtxos++;
       }
     } catch (err) {
-      if (err instanceof Error) {
-        errors.push(err);
-      }
-
-      if (typeof err === 'string') {
-        errors.push(new Error(err));
-      }
-
+      if (err instanceof Error) errors.push(err);
+      if (typeof err === 'string') errors.push(new Error(err));
       errors.push(new Error('unknow error'));
     }
   }
   return { numberOfUtxos, errors };
 }
 
-/**
- * Aggregate generator's result.
- * @param addressesAndBlindingKeys
- * @param url
- * @param skip optional
- */
+// Aggregate generator's result.
 export async function fetchAndUnblindUtxos(
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
-  skip?: (utxo: UtxoInterface) => boolean
-): Promise<UtxoInterface[]> {
+  skip?: (utxo: Output) => boolean
+): Promise<UnblindedOutput[]> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(
     addressesAndBlindingKeys,
     url,
     skip
   );
-  const utxos: UtxoInterface[] = [];
+  const utxos: UnblindedOutput[] = [];
 
   let iterator = await utxosGenerator.next();
   while (!iterator.done) {
@@ -137,71 +88,67 @@ export async function fetchAndUnblindUtxos(
 }
 
 /**
- * Fetch utxo's prevout and set it
- * @param utxo an unspent without prevout
- * @param explorerURL esplora URL
- */
-export async function utxoWithPrevout(
-  utxo: UtxoInterface,
-  explorerURL: string
-): Promise<UtxoInterface> {
-  const prevoutHex: string = await fetchTxHex(utxo.txid, explorerURL);
-  const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
-
-  return { ...utxo, prevout };
-}
-
-/**
  * try to unblind the utxo with blindPrivKey. if unblind fails, return utxo
  * if unblind step success: set prevout & unblindData members in UtxoInterface result
  * @param utxo utxo to unblind
  * @param blindPrivKey the blinding private key using to unblind
  * @param url esplora endpoint URL
  */
-export async function fetchPrevoutAndTryToUnblindUtxo(
-  utxo: UtxoInterface,
-  blindPrivKey: string,
-  url: string
-): Promise<{ unblindedUtxo: UtxoInterface; error?: UnblindError }> {
-  if (!utxo.prevout) utxo = await utxoWithPrevout(utxo, url);
+async function tryToUnblindUtxo(
+  utxo: Output,
+  blindPrivKey: string
+): Promise<UnblindedOutput> {
   try {
-    const unblindedUtxo = await unblindUtxo(utxo, blindPrivKey);
-    return { unblindedUtxo };
+    return unblindOutput(utxo, blindPrivKey);
   } catch (_) {
-    const error = new UnblindError(utxo.txid, utxo.vout, blindPrivKey);
-    return { unblindedUtxo: utxo, error };
+    throw new UnblindError(utxo.txid, utxo.vout, blindPrivKey);
   }
 }
 
 /**
- * Unblind utxo using hex encoded blinding private key
- * @param utxo blinded utxo
- * @param blindPrivKey blinding private key
+ * Reduce a set of transactions using a set of scripts
+ * @param txs the wallet's transactions
+ * @param walletScripts the set of scripts to use in order to filter tx's outputs
+ * @param initialState initial utxos state (set in txs reducer) - optional (default: [])
  */
-export async function unblindUtxo(
-  utxo: UtxoInterface,
-  blindPrivKey: string
-): Promise<UtxoInterface> {
-  if (!utxo.prevout)
-    throw new Error(
-      'utxo need utxo.prevout to be defined. Use utxoWithPrevout.'
-    );
+export function utxosFromTransactions(
+  txs: TxInterface[],
+  walletScripts: Set<string>,
+  initialState: (Output | UnblindedOutput)[] = []
+): (Output | UnblindedOutput)[] {
+  const orInfinity = (a?: number) => (a ? a : Infinity);
+  const compareBlockHeight = (a: TxInterface, b: TxInterface) =>
+    orInfinity(a.status.blockHeight) - orInfinity(b.status.blockHeight) || 0;
+  const compareVin = (a: TxInterface, b: TxInterface) =>
+    a.vin.map(i => i.txid).includes(b.txid) ? 1 : 0;
+  const compare = (a: TxInterface, b: TxInterface) =>
+    compareBlockHeight(a, b) || compareVin(a, b);
+  return txs
+    .sort(compare)
+    .reduce((utxoSet: (Output | UnblindedOutput)[], tx: TxInterface, _) => {
+      const withoutSpentUtxo = removeInputsFromUtxos(utxoSet, tx.vin);
+      return addOutputsToUtxos(withoutSpentUtxo, tx, walletScripts);
+    }, initialState);
+}
 
-  if (!isConfidentialOutput(utxo.prevout)) {
-    return utxo;
+function addOutputsToUtxos(
+  utxos: (Output | UnblindedOutput)[],
+  tx: TxInterface,
+  walletScripts: Set<string>
+) {
+  const isWalletOutput = (o: Output) =>
+    walletScripts.has(o.prevout.script.toString('hex'));
+  const walletOutputs = tx.vout.filter(isWalletOutput);
+  return utxos.concat(walletOutputs);
+}
+
+function removeInputsFromUtxos(utxoSet: Output[], inputs: InputInterface[]) {
+  let result = utxoSet;
+  for (const input of inputs) {
+    result = result.filter(
+      u => !(u.txid === input.txid && u.vout === input.vout)
+    );
   }
 
-  const unblindData = await confidential.unblindOutputWithKey(
-    utxo.prevout,
-    Buffer.from(blindPrivKey, 'hex')
-  );
-  const unblindAsset = Buffer.alloc(32);
-  unblindData.asset.copy(unblindAsset);
-
-  return {
-    ...utxo,
-    asset: unblindAsset.reverse().toString('hex'),
-    value: parseInt(unblindData.value, 10),
-    unblindData,
-  };
+  return result;
 }

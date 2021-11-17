@@ -1,10 +1,12 @@
 import {
   ChangeAddressFromAssetGetter,
-  CompareUtxoFn,
   CoinSelectorErrorFn,
   RecipientInterface,
-  UtxoInterface,
+  UnblindedOutput,
+  getSats,
+  getAsset,
 } from '../types';
+import { CompareUtxoFn } from './greedy';
 
 export const throwErrorHandler: CoinSelectorErrorFn = (
   asset: string,
@@ -20,7 +22,7 @@ export const throwErrorHandler: CoinSelectorErrorFn = (
 export const makeChanges = (
   changeAddressGetter: ChangeAddressFromAssetGetter
 ) => (toSelect: Map<string, number>) => (
-  selectedUtxos: UtxoInterface[]
+  selectedUtxos: UnblindedOutput[]
 ): RecipientInterface[] => {
   const recipients: RecipientInterface[] = [];
   toSelect.forEach((amount: number, asset: string) => {
@@ -37,25 +39,21 @@ export const makeChanges = (
   return recipients;
 };
 
-const diff = (utxos: UtxoInterface[]) => (asset: string) => {
+const diff = (utxos: UnblindedOutput[]) => (asset: string) => {
   const sum = sumUtxos(asset)(utxos);
   return (amount: number) => sum - amount;
 };
 
-const sumUtxos = (asset: string) => (utxos: UtxoInterface[]): number =>
+const sumUtxos = (asset: string) => (utxos: UnblindedOutput[]): number =>
   utxos
-    .filter(assetFilter(asset))
-    .reduce(
-      (sum: number, utxo: UtxoInterface) =>
-        utxo.value ? sum + utxo.value : sum,
-      0
-    );
+    .filter(makeAssetFilter(asset))
+    .reduce((sum: number, utxo: UnblindedOutput) => sum + getSats(utxo), 0);
 
 // coinSelect is used to select utxo until they fill the amount requested
 export const coinSelect = (compareFn: CompareUtxoFn) => (
   errorHandler: CoinSelectorErrorFn
-) => (utxos: UtxoInterface[]) => (toSelect: Map<string, number>) => {
-  const selectors: ((utxos: UtxoInterface[]) => UtxoInterface[])[] = [];
+) => (utxos: UnblindedOutput[]) => (toSelect: Map<string, number>) => {
+  const selectors: ((utxos: UnblindedOutput[]) => UnblindedOutput[])[] = [];
   const coinSelectorFilter = coinSelectUtxosFilter(compareFn)(errorHandler);
   toSelect.forEach((amount: number, asset: string) => {
     selectors.push(coinSelectorFilter(asset)(amount));
@@ -75,19 +73,27 @@ function recipientsReducer(
   return results;
 }
 
+function makeAssetFilter(assetToFilter: string) {
+  return function(u: UnblindedOutput) {
+    const asset = getAsset(u);
+    return asset === assetToFilter;
+  };
+}
+
 const coinSelectUtxosFilter = (compareFn: CompareUtxoFn) => (
   errorHandler: CoinSelectorErrorFn
 ) => (asset: string) => (amount: number) => (
-  utxos: UtxoInterface[]
-): UtxoInterface[] => {
+  utxos: UnblindedOutput[]
+): UnblindedOutput[] => {
   let amtSelected = 0;
-  const selected = utxos
-    .filter(assetFilter(asset))
+  const assetsUtxos = utxos.filter(makeAssetFilter(asset));
+
+  const selected = assetsUtxos
     .sort(compareFn)
-    .reduce((selected: UtxoInterface[], next: UtxoInterface) => {
-      if (amtSelected <= amount && next.value) {
+    .reduce((selected: UnblindedOutput[], next: UnblindedOutput) => {
+      if (amtSelected <= amount) {
         selected.push(next);
-        amtSelected += next.value;
+        amtSelected += getSats(next);
       }
       return selected;
     }, []);
@@ -97,18 +103,12 @@ const coinSelectUtxosFilter = (compareFn: CompareUtxoFn) => (
   return selected;
 };
 
-const assetFilter = (assetToFilter: string) => ({
-  asset,
-}: {
-  asset?: string;
-}) => asset && asset === assetToFilter;
-
 export const checkCoinSelect = (recipients: RecipientInterface[]) => (
-  selectedUtxos: UtxoInterface[]
+  selectedUtxos: UnblindedOutput[]
 ) => {
   const inputs = selectedUtxos.map(u => ({
-    value: u.value || 0,
-    asset: u.asset || '',
+    value: getSats(u) || 0,
+    asset: getAsset(u) || '',
   }));
   return check(inputs)(recipients);
 };

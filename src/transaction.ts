@@ -3,9 +3,10 @@ import {
   CoinSelector,
 } from './coinselection/coinSelector';
 import {
-  UtxoInterface,
   ChangeAddressFromAssetGetter,
   RecipientInterface,
+  UnblindedOutput,
+  Output,
   CoinSelectorErrorFn,
 } from './types';
 import { Psbt, address as laddress } from 'liquidjs-lib';
@@ -13,7 +14,7 @@ import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 import { decodePset } from './utils';
 
 export function craftSingleRecipientPset(
-  unspents: UtxoInterface[],
+  unspents: UnblindedOutput[],
   recipient: RecipientInterface,
   coinSelector: CoinSelector,
   changeAddress: string,
@@ -62,7 +63,7 @@ export function craftSingleRecipientPset(
 
 export interface BuildTxArgs {
   psetBase64: string;
-  unspents: UtxoInterface[];
+  unspents: UnblindedOutput[];
   recipients: RecipientInterface[];
   coinSelector: CoinSelector;
   changeAddressByAsset: ChangeAddressFromAssetGetter;
@@ -195,7 +196,7 @@ export function createFeeOutput(
 
 export function addToTx(
   psetBase64: string,
-  unspents: UtxoInterface[],
+  unspents: Output[],
   outputs: RecipientInterface[]
 ): string {
   const pset = decodePset(psetBase64);

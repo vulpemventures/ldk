@@ -1,10 +1,11 @@
 import {
   ChangeAddressFromAssetGetter,
   RecipientInterface,
-  UtxoInterface,
-  CompareUtxoFn,
+  getSats,
+  UnblindedOutput,
 } from './../types';
 import { CoinSelectionResult, CoinSelector } from './coinSelector';
+
 import {
   coinSelect,
   makeChanges,
@@ -12,19 +13,23 @@ import {
   throwErrorHandler,
 } from './utils';
 
-const defaultCompareFn: CompareUtxoFn = (a: UtxoInterface, b: UtxoInterface) =>
-  a.value! - b.value!;
+export type CompareUtxoFn = (a: UnblindedOutput, b: UnblindedOutput) => number;
+
+const defaultCompareFn: CompareUtxoFn = (
+  a: UnblindedOutput,
+  b: UnblindedOutput
+) => getSats(a) - getSats(b);
 
 /**
  * select utxo for outputs among unspents.
  * @param unspents a set of unspents.
- * @param outputs the outputs targetted by the coin selection
+ * @param recipients the outputs targetted by the coin selection
  */
 export function greedyCoinSelector(sortFn = defaultCompareFn): CoinSelector {
   return (errorHandler = throwErrorHandler) => {
     const coinSelectFn = coinSelect(sortFn)(errorHandler);
     return (
-      unspents: UtxoInterface[],
+      unspents: UnblindedOutput[],
       recipients: RecipientInterface[],
       changeAddressGetter: ChangeAddressFromAssetGetter
     ): CoinSelectionResult => {
