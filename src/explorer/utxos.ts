@@ -120,7 +120,7 @@ export function utxosFromTransactions(
   const compareBlockHeight = (a: TxInterface, b: TxInterface) =>
     orInfinity(a.status.blockHeight) - orInfinity(b.status.blockHeight) || 0;
   const compareVin = (a: TxInterface, b: TxInterface) =>
-    a.vin.map(i => i.txid).includes(b.txid) ? 1 : 0;
+    a.vin.map(i => i.txid).includes(b.txid) ? 1 : -1;
   const compare = (a: TxInterface, b: TxInterface) =>
     compareBlockHeight(a, b) || compareVin(a, b);
   return txs
