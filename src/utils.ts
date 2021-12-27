@@ -146,8 +146,8 @@ function changeVersionBytes(xpub: string, targetFormat: string) {
   }
 }
 
-export function fromXpub(xub: string, chain: string) {
-  const format = chain === 'regtest' ? 'vpub' : 'zpub';
+export function fromXpub(xub: string, chain: NetworkString) {
+  const format = chain === 'regtest' || chain === 'testnet' ? 'vpub' : 'zpub';
   return changeVersionBytes(xub, format);
 }
 
