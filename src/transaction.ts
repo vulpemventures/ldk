@@ -33,7 +33,8 @@ export function craftSingleRecipientPset(
 
   const fee = createFeeOutput(
     firstSelection.selectedUtxos.length,
-    1 + 1,
+    // Change outputs + 1 recipient + 1 fee
+    firstSelection.changeOutputs.length + 2,
     satsPerByte,
     network.assetHash
   );
