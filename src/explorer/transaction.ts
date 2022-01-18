@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { getWithFetch } from '../network';
 import UnblindError from '../error/unblind-error';
 import { BlindingKeyGetter, isUnblindedOutput, TxInterface } from '../types';
 import { unblindOutput } from '../utils';
@@ -213,6 +213,5 @@ async function fetch25newestTxsForAddress(
     url += `/${lastSeenTxid}`;
   }
 
-  const response = await axios.get(url);
-  return response.data;
+  return await getWithFetch(url);
 }

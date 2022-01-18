@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { getWithFetch } from '../network';
 import { IdentityInterface } from '../identity/identity';
 import { Multisig } from '../identity/multisig';
 import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
@@ -87,7 +87,7 @@ async function addressHasBeenUsed(
   address: string,
   esploraURL: string
 ): Promise<boolean> {
-  const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
+  const data = await getWithFetch(`${esploraURL}/address/${address}/txs`);
   return data.length > 0;
 }
 
