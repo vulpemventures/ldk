@@ -62,6 +62,21 @@ export const coinSelect = (compareFn: CompareUtxoFn) => (
 };
 
 export function reduceRecipients(recipients: RecipientInterface[]) {
+  // - Sanitize recipient.value, it must be a number.
+  // - If is not, try to coerce it into number.
+  // - Throw error if at the end is still not a number.
+  // We were getting 'value' as a string without typescript complaining.
+  // See https://github.com/vulpemventures/ldk/issues/103
+  for (const recipient of recipients) {
+    if (typeof recipient.value !== 'number') {
+      recipient.value = parseInt(recipient.value);
+      if (typeof recipient.value !== 'number') {
+        throw new Error(
+          `invalid '${typeof recipient.value}' type for recipient.value`
+        );
+      }
+    }
+  }
   return recipients.reduce(recipientsReducer, new Map<string, number>());
 }
 
