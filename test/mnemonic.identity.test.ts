@@ -282,6 +282,8 @@ describe('Identity: Mnemonic', () => {
           confidentialAddress:
             'el1qqwk073ahg84zn02x4l6rvwdrtrpgs9ufukgppqshs3hhvq0e9e8rzdsths666g8h5xhxj696axjydx83ep2jj3wtxx5cl8gcp',
           derivationPath: "m/84'/0'/0'/0/42",
+          publicKey:
+            '0212c8b6bea7e0061f41d16ec5b4c18f51335e133f3f4037af66d058c6e3bc9ecb',
         },
         publicKey:
           '0212c8b6bea7e0061f41d16ec5b4c18f51335e133f3f4037af66d058c6e3bc9ecb',
