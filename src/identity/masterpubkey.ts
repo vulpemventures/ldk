@@ -159,6 +159,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
         confidentialAddress: confidentialAddress!,
         blindingPrivateKey: blindingKeyPair.privateKey!.toString('hex'),
         derivationPath: path,
+        publicKey: publicKey.toString('hex'),
       },
       publicKey: publicKey.toString('hex'),
     };

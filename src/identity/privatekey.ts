@@ -100,6 +100,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
       confidentialAddress: this.confidentialAddress,
       blindingPrivateKey: this.blindingPrivateKey,
       derivationPath: undefined,
+      publicKey: this.blindingKeyPair.publicKey.toString('hex'),
     };
   }
 
@@ -158,6 +159,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
         confidentialAddress: this.confidentialAddress,
         blindingPrivateKey: this.blindingPrivateKey,
         derivationPath: undefined,
+        publicKey: this.blindingKeyPair.publicKey.toString('hex'),
       },
     ];
   }

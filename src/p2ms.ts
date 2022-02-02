@@ -64,6 +64,7 @@ export function p2msPayment(
     blindingPrivateKey: privateKey.toString('hex'),
     confidentialAddress: multisigPayment.confidentialAddress,
     witnessScript: multisigPayment.redeem.output.toString('hex'),
+    publicKey: publicKey.toString('hex'),
   };
 }
 
