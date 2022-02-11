@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { getWithFetch } from '../network';
 import { Transaction, TxOutput } from 'liquidjs-lib';
 import {
   TxInterface,
@@ -17,7 +17,7 @@ import { EsploraTx, EsploraUtxo } from './types';
  * @param url esplora URL
  */
 export async function fetchTxHex(txId: string, url: string): Promise<string> {
-  return (await axios.get(`${url}/tx/${txId}/hex`)).data;
+  return await getWithFetch(`${url}/tx/${txId}/hex`);
 }
 
 /**
@@ -26,10 +26,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
  * @param url the esplora URL
  */
 export async function fetchTx(txId: string, url: string): Promise<TxInterface> {
-  return esploraTxToTxInterface(
-    (await axios.get(`${url}/tx/${txId}`)).data,
-    url
-  );
+  return esploraTxToTxInterface(await getWithFetch(`${url}/tx/${txId}`), url);
 }
 
 /**
@@ -41,9 +38,9 @@ export async function fetchUtxos(
   address: string,
   url: string
 ): Promise<Output[]> {
-  const esploraUtxos: EsploraUtxo[] = (
-    await axios.get(`${url}/address/${address}/utxo`)
-  ).data;
+  const esploraUtxos: EsploraUtxo[] = await getWithFetch(
+    `${url}/address/${address}/utxo`
+  );
   return Promise.all(esploraUtxos.map(outpointToUtxo(url)));
 }
 
