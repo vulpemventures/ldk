@@ -37,6 +37,7 @@ export interface RecipientInterface {
   value: number;
   asset: string;
   address: string;
+  script?: Buffer;
 }
 
 export interface Outpoint {

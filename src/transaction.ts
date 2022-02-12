@@ -203,9 +203,13 @@ export function addToTx(
   const pset = decodePset(psetBase64);
   const nonce = Buffer.from('00', 'hex');
 
-  for (const { asset, value, address } of outputs) {
-    const script = address === '' ? '' : laddress.toOutputScript(address);
-    pset.addOutput({ asset, value, script, nonce });
+  for (const { asset, value, address, script } of outputs) {
+    if (script) {
+      pset.addOutput({ asset, value, script, nonce });
+    } else {
+      const dervivedScript = address === '' ? '' : laddress.toOutputScript(address);
+      pset.addOutput({ asset, value, script: dervivedScript, nonce });
+    }
   }
 
   for (const unspent of unspents) {
