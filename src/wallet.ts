@@ -1,4 +1,4 @@
-import { Network, Psbt } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib';
 import { CoinSelector } from './coinselection/coinSelector';
 import {
   AddressInterface,
@@ -15,6 +15,7 @@ import {
   craftSingleRecipientPset,
 } from './transaction';
 import { fetchAndUnblindUtxos } from './explorer/utxos';
+import { Network } from 'liquidjs-lib/src/networks';
 
 /**
  * Wallet abstraction.

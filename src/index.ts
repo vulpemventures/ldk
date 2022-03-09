@@ -1,4 +1,4 @@
-export { networks, address, payments, ECPair } from 'liquidjs-lib';
+export { networks, address, payments, ECPair, AssetHash } from 'liquidjs-lib';
 
 export * from './identity/identity';
 export * from './identity/mnemonic';

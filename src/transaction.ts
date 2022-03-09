@@ -9,7 +9,12 @@ import {
   Output,
   CoinSelectorErrorFn,
 } from './types';
-import { Psbt, address as laddress } from 'liquidjs-lib';
+import {
+  Psbt,
+  address as laddress,
+  AssetHash,
+  confidential,
+} from 'liquidjs-lib';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 import { decodePset } from './utils';
 
@@ -198,14 +203,20 @@ export function createFeeOutput(
 export function addToTx(
   psetBase64: string,
   unspents: Output[],
-  outputs: RecipientInterface[]
+  recipients: RecipientInterface[]
 ): string {
   const pset = decodePset(psetBase64);
-  const nonce = Buffer.from('00', 'hex');
+  const nonce = Buffer.alloc(1);
 
-  for (const { asset, value, address } of outputs) {
-    const script = address === '' ? '' : laddress.toOutputScript(address);
-    pset.addOutput({ asset, value, script, nonce });
+  for (const { asset, value, address } of recipients) {
+    const script =
+      address === '' ? Buffer.alloc(0) : laddress.toOutputScript(address);
+    pset.addOutput({
+      asset: AssetHash.fromHex(asset, false).bytes,
+      value: confidential.satoshiToConfidentialValue(value),
+      script,
+      nonce,
+    });
   }
 
   for (const unspent of unspents) {

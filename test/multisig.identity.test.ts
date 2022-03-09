@@ -7,8 +7,9 @@ import {
   Psbt,
   confidential,
   TxOutput,
+  AssetHash,
 } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 
 import {
   IdentityOpts,
@@ -21,6 +22,9 @@ import {
 } from '../src';
 
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
+
+const network = networks.regtest;
+const lbtc = AssetHash.fromHex(network.assetHash, false);
 
 jest.setTimeout(60000);
 
@@ -103,13 +107,13 @@ describe('Identity:  Multisig', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script,
-            asset: networks.regtest.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: networks.regtest.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
 
@@ -174,13 +178,13 @@ describe('Identity:  Multisig', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script,
-            asset: multisig.network.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: multisig.network.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
 

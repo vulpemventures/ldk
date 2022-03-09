@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { bip32 } from 'liquidjs-lib';
+import { bip32 } from '../src/bip32';
 
 import { fromXpub, toXpub } from '../src/utils';
 

@@ -1,7 +1,8 @@
-import { BIP32Interface, fromBase58 } from 'bip32';
+import { BIP32Interface } from 'bip32';
 import { payments } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+import { bip32 } from '../bip32';
 
 import { AddressInterface, IdentityType } from '../types';
 import {
@@ -53,7 +54,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
       throw new Error('Master blinding key is not valid');
     }
 
-    this.masterPublicKeyNode = fromBase58(xpub);
+    this.masterPublicKeyNode = bip32.fromBase58(xpub);
     this.masterBlindingKeyNode = fromMasterBlindingKey(
       args.opts.masterBlindingKey
     );

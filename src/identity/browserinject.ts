@@ -1,5 +1,4 @@
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
-// @ts-ignore
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { MarinaProvider } from 'marina-provider';
 
 import { AddressInterface, IdentityType } from '../types';

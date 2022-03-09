@@ -1,10 +1,5 @@
-import {
-  BIP32Interface,
-  networks,
-  payments,
-  crypto,
-  address,
-} from 'liquidjs-lib';
+import { BIP32Interface } from 'bip32';
+import { networks, payments, crypto, address } from 'liquidjs-lib';
 import { Slip77Interface, fromSeed } from 'slip77';
 
 import { MultisigPayment } from './types';

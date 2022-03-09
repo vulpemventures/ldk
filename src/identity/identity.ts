@@ -1,11 +1,6 @@
-import {
-  Network,
-  Transaction,
-  networks,
-  confidential,
-  TxOutput,
-} from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { Transaction, networks, confidential, TxOutput } from 'liquidjs-lib';
+import { Network } from 'liquidjs-lib/src/networks';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 
 import { AddressInterface, NetworkString } from '../types';
 import { IdentityType } from '../types';
