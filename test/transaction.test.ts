@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { address, networks, Psbt, Transaction } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 
 import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';

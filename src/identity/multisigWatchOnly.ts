@@ -1,8 +1,9 @@
-import { BIP32Interface, fromBase58, fromPublicKey, fromSeed } from 'bip32';
+import { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { networks } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface } from 'slip77';
+import { bip32 } from '../bip32';
 
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
 import {
@@ -52,7 +53,9 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     );
     cosignersPublicKeys.forEach(checkMasterPublicKey);
 
-    this.cosigners = cosignersPublicKeys.sort().map(xpub => fromBase58(xpub));
+    this.cosigners = cosignersPublicKeys
+      .sort()
+      .map(xpub => bip32.fromBase58(xpub));
     this.blindingKeyMasterNode = blindingKeyFromXPubs(this.cosigners);
 
     this.requiredSignatures = args.opts.requiredSignatures;
@@ -155,10 +158,12 @@ function cosignerToXPub(
   if (typeof cosigner === 'string') return cosigner;
 
   const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
-  const baseNode = fromSeed(walletSeed, network).derivePath(
-    cosigner.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH
-  );
+  const baseNode = bip32
+    .fromSeed(walletSeed, network)
+    .derivePath(cosigner.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH);
   return toXpub(
-    fromPublicKey(baseNode.publicKey, baseNode.chainCode, network).toBase58()
+    bip32
+      .fromPublicKey(baseNode.publicKey, baseNode.chainCode, network)
+      .toBase58()
   );
 }

@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import { fromSeed as bip32fromSeed } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import {
   Psbt,
@@ -9,8 +8,9 @@ import {
   payments,
   address,
   TxOutput,
+  AssetHash,
 } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/types/psbt';
+import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { fromSeed as slip77fromSeed } from 'slip77';
 
 import {
@@ -24,9 +24,11 @@ import {
 } from '../src';
 
 import { Restorer } from '../src';
+import { bip32 } from '../src/bip32';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 
 const network = networks.regtest;
+const lbtc = AssetHash.fromHex(network.assetHash, false);
 
 jest.setTimeout(500_000);
 
@@ -40,7 +42,7 @@ const validOpts: IdentityOpts<MnemonicOpts> = {
 };
 
 const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
-const masterPrivateKeyFromValidMnemonic = bip32fromSeed(
+const masterPrivateKeyFromValidMnemonic = bip32.fromSeed(
   seedFromValidMnemonic,
   network
 );
@@ -150,13 +152,13 @@ describe('Identity: Mnemonic', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script,
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
 
@@ -206,13 +208,13 @@ describe('Identity: Mnemonic', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script,
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
 
@@ -257,13 +259,13 @@ describe('Identity: Mnemonic', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script,
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
 

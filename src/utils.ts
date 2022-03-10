@@ -1,15 +1,15 @@
-import { fromBase58 } from 'bip32';
 import { setDefaultWordlist, validateMnemonic } from 'bip39';
 import b58 from 'bs58check';
 import {
-  Network,
   Psbt,
   Transaction,
   confidential,
   networks,
   address,
 } from 'liquidjs-lib';
+import { Network } from 'liquidjs-lib/src/networks';
 import { fromMasterBlindingKey } from 'slip77';
+import { bip32 } from './bip32';
 
 import {
   AddressInterface,
@@ -157,7 +157,7 @@ export function toXpub(anyPub: string) {
 
 export function isValidXpub(xpub: string, network?: Network): boolean {
   try {
-    fromBase58(xpub, network);
+    bip32.fromBase58(xpub, network);
   } catch (e) {
     return false;
   }
@@ -258,7 +258,7 @@ export function checkMnemonic(mnemonic: string, language?: string) {
 
 export function checkMasterPublicKey(masterPublicKey: string) {
   try {
-    fromBase58(masterPublicKey);
+    bip32.fromBase58(masterPublicKey);
   } catch {
     throw new Error(`invalid master public key: ${masterPublicKey}`);
   }

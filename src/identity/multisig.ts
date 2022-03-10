@@ -1,6 +1,8 @@
-import { BIP32Interface, fromPublicKey, fromSeed } from 'bip32';
+import { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
-import { address, ECPair, Network, networks, Psbt } from 'liquidjs-lib';
+import { address, ECPair, networks, Psbt } from 'liquidjs-lib';
+import { Network } from 'liquidjs-lib/src/networks';
+import { bip32 } from '../bip32';
 
 import { IdentityType, HDSignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
@@ -27,7 +29,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
     const walletSeed = mnemonicToSeedSync(args.opts.signer.mnemonic);
     const network = (networks as Record<string, Network>)[args.chain];
-    const masterPrivateKeyNode = fromSeed(walletSeed, network);
+    const masterPrivateKeyNode = bip32.fromSeed(walletSeed, network);
 
     const baseNode = masterPrivateKeyNode.derivePath(
       args.opts.signer.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH
@@ -99,11 +101,13 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
   getXPub(): string {
     return toXpub(
-      fromPublicKey(
-        this.baseNode.publicKey,
-        this.baseNode.chainCode,
-        this.network
-      ).toBase58()
+      bip32
+        .fromPublicKey(
+          this.baseNode.publicKey,
+          this.baseNode.chainCode,
+          this.network
+        )
+        .toBase58()
     );
   }
 

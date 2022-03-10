@@ -7,6 +7,7 @@ import {
   networks,
   payments,
   address,
+  AssetHash,
 } from 'liquidjs-lib';
 
 import {
@@ -20,6 +21,8 @@ import {
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 
 const network = networks.regtest;
+const lbtc = AssetHash.fromHex(network.assetHash, false);
+
 // increase default timeout of jest
 jest.setTimeout(15000);
 const validOpts: IdentityOpts<PrivateKeyOpts> = {
@@ -87,13 +90,13 @@ describe('Identity: Private key', () => {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(49999500),
             script: p2wpkh.output!,
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
             value: confidential.satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
-            asset: network.assetHash,
+            asset: lbtc.bytes,
           },
         ]);
       const privateKey = new PrivateKey(validOpts);
