@@ -1,5 +1,6 @@
-import { networks, payments, ECPair } from 'liquidjs-lib';
+import { networks, payments } from 'liquidjs-lib';
 import { Mnemonic } from '../../src/identity/mnemonic';
+import { ECPair } from '../../src/ecpair';
 
 const network = networks.regtest;
 // generate a random keyPair for bob

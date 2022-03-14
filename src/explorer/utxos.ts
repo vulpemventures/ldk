@@ -1,4 +1,5 @@
-import { ECPair, address } from 'liquidjs-lib';
+import { address } from 'liquidjs-lib';
+import { ECPair } from '../ecpair';
 import UnblindError from '../error/unblind-error';
 import {
   AddressInterface,

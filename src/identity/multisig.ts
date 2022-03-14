@@ -1,6 +1,7 @@
 import { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
-import { address, ECPair, networks, Psbt } from 'liquidjs-lib';
+import { address, networks, Psbt } from 'liquidjs-lib';
+import { ECPair } from '../ecpair';
 import { Network } from 'liquidjs-lib/src/networks';
 import { bip32 } from '../bip32';
 
