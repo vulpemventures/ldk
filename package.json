@@ -85,7 +85,7 @@
     "ecpair": "^2.0.1",
     "liquidjs-lib": "^6.0.1",
     "marina-provider": "^1.0.0",
-    "slip77": "^0.1.1",
+    "slip77": "^0.2.0",
     "tiny-secp256k1": "^2.2.1",
     "tslib": "^2.3.1"
   }

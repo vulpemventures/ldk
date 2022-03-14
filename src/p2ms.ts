@@ -1,7 +1,7 @@
 import { BIP32Interface } from 'bip32';
 import { networks, payments, crypto, address } from 'liquidjs-lib';
-import { Slip77Interface, fromSeed } from 'slip77';
-
+import { Slip77Interface } from 'slip77';
+import { slip77 } from './slip77';
 import { MultisigPayment } from './types';
 
 /**
@@ -71,7 +71,7 @@ export function blindingKeyFromXPubs(
 ): Slip77Interface {
   const chainCodes = extendedKeys.map(key => key.chainCode);
   const seed = blindingKeyFromChainCode(chainCodes);
-  return fromSeed(seed);
+  return slip77.fromSeed(seed);
 }
 
 /**
