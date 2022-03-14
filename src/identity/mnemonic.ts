@@ -3,7 +3,8 @@ import * as bip39 from 'bip39';
 import { ECPair, Psbt, networks } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { Slip77Interface, fromSeed as slip77fromSeed } from 'slip77';
+import { Slip77Interface } from 'slip77';
+import { slip77 } from '../slip77';
 import { bip32 } from '../bip32';
 
 import { IdentityType } from '../types';
@@ -61,7 +62,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     const masterPublicKey = fromXpub(accountPublicKey, args.chain);
 
     // generate the master blinding key from the seed
-    const masterBlindingKeyNode = slip77fromSeed(walletSeed);
+    const masterBlindingKeyNode = slip77.fromSeed(walletSeed);
     const masterBlindingKey = masterBlindingKeyNode.masterKey.toString('hex');
 
     super({

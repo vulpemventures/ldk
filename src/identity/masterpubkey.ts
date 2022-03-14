@@ -1,8 +1,9 @@
 import { BIP32Interface } from 'bip32';
 import { payments } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { Slip77Interface, fromMasterBlindingKey } from 'slip77';
+import { Slip77Interface } from 'slip77';
 import { bip32 } from '../bip32';
+import { slip77 } from '../slip77';
 
 import { AddressInterface, IdentityType } from '../types';
 import {
@@ -55,7 +56,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
     }
 
     this.masterPublicKeyNode = bip32.fromBase58(xpub);
-    this.masterBlindingKeyNode = fromMasterBlindingKey(
+    this.masterBlindingKeyNode = slip77.fromMasterBlindingKey(
       args.opts.masterBlindingKey
     );
     this.baseDerivationPath =

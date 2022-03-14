@@ -11,7 +11,6 @@ import {
   AssetHash,
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { fromSeed as slip77fromSeed } from 'slip77';
 
 import {
   IdentityOpts,
@@ -21,6 +20,7 @@ import {
   mnemonicRestorerFromEsplora,
   mnemonicRestorerFromState,
   StateRestorerOpts,
+  slip77,
 } from '../src';
 
 import { Restorer } from '../src';
@@ -46,7 +46,7 @@ const masterPrivateKeyFromValidMnemonic = bip32.fromSeed(
   seedFromValidMnemonic,
   network
 );
-const masterBlindingKeyFromValidMnemonic = slip77fromSeed(
+const masterBlindingKeyFromValidMnemonic = slip77.fromSeed(
   seedFromValidMnemonic
 );
 

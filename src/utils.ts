@@ -8,7 +8,7 @@ import {
   address,
 } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
-import { fromMasterBlindingKey } from 'slip77';
+import { slip77 } from './slip77';
 import { bip32 } from './bip32';
 
 import {
@@ -167,7 +167,7 @@ export function isValidXpub(xpub: string, network?: Network): boolean {
 
 export function isValidExtendedBlindKey(masterBlind: string): boolean {
   try {
-    fromMasterBlindingKey(masterBlind);
+    slip77.fromMasterBlindingKey(masterBlind);
   } catch (e) {
     return false;
   }
