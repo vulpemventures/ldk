@@ -1,6 +1,7 @@
 import { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
-import { ECPair, Psbt, networks } from 'liquidjs-lib';
+import { Psbt, networks } from 'liquidjs-lib';
+import { ECPair } from '../ecpair';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface } from 'slip77';

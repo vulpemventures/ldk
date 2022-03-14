@@ -1,5 +1,6 @@
 import * as assert from 'assert';
-import { address, ECPair, networks } from 'liquidjs-lib';
+import { address, networks } from 'liquidjs-lib';
+import { ECPair } from '../src/ecpair';
 
 import {
   AddressInterface,

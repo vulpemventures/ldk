@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import {
-  ECPair,
   Psbt,
   Transaction,
   confidential,
@@ -9,6 +8,7 @@ import {
   address,
   AssetHash,
 } from 'liquidjs-lib';
+import { ECPair } from '../src/ecpair';
 
 import {
   AddressInterface,
