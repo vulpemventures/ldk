@@ -19,6 +19,7 @@ import {
   Multisig,
   multisigFromEsplora,
   DEFAULT_BASE_DERIVATION_PATH,
+  ecc,
 } from '../src';
 
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
@@ -135,7 +136,10 @@ describe('Identity:  Multisig', () => {
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid = false;
       assert.doesNotThrow(
-        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+        () =>
+          (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
       );
       assert.deepStrictEqual(isValid, true);
     });
@@ -198,7 +202,10 @@ describe('Identity:  Multisig', () => {
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid = false;
       assert.doesNotThrow(
-        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+        () =>
+          (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
       );
       assert.deepStrictEqual(isValid, true);
     });

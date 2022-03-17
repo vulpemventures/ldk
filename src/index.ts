@@ -25,6 +25,7 @@ export * from './balance';
 export * from './restorer/mnemonic-restorer';
 export * from './restorer/restorer';
 
+export * from './ecclib';
 export * from './bip32';
 export * from './slip77';
 export * from './ecpair';
