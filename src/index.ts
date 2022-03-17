@@ -1,4 +1,4 @@
-export { networks, address, payments, AssetHash } from 'liquidjs-lib';
+export * from 'liquidjs-lib';
 
 export * from './identity/identity';
 export * from './identity/mnemonic';
