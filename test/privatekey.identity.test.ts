@@ -12,6 +12,7 @@ import { ECPair } from '../src/ecpair';
 
 import {
   AddressInterface,
+  ecc,
   IdentityOpts,
   IdentityType,
   PrivateKey,
@@ -104,7 +105,10 @@ describe('Identity: Private key', () => {
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid = false;
       assert.doesNotThrow(
-        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+        () =>
+          (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
       );
       assert.deepStrictEqual(isValid, true);
     });

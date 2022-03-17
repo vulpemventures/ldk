@@ -1,7 +1,13 @@
-import { Transaction, networks, confidential, TxOutput } from 'liquidjs-lib';
+import {
+  Transaction,
+  networks,
+  confidential,
+  TxOutput,
+  Psbt,
+} from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-
+import { ecc } from '../ecclib';
 import { AddressInterface, NetworkString } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
@@ -139,7 +145,12 @@ export class Identity {
       inputsData.set(index, blinders);
     }
 
-    const blinded = await pset.blindOutputsByIndex(inputsData, outputsKeys);
+    const blinded = await pset.blindOutputsByIndex(
+      Psbt.ECCKeysGenerator(ecc),
+      inputsData,
+      outputsKeys
+    );
+
     return blinded.toBase64();
   }
 }

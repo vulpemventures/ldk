@@ -21,6 +21,7 @@ import {
   mnemonicRestorerFromState,
   StateRestorerOpts,
   slip77,
+  ecc,
 } from '../src';
 
 import { Restorer } from '../src';
@@ -166,7 +167,10 @@ describe('Identity: Mnemonic', () => {
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid = false;
       assert.doesNotThrow(
-        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+        () =>
+          (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
       );
       assert.deepStrictEqual(isValid, true);
     });
@@ -228,7 +232,10 @@ describe('Identity: Mnemonic', () => {
       const signedPsbt = Psbt.fromBase64(signedBase64);
       let isValid = false;
       assert.doesNotThrow(
-        () => (isValid = signedPsbt.validateSignaturesOfAllInputs())
+        () =>
+          (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
       );
       assert.deepStrictEqual(isValid, true);
     });
