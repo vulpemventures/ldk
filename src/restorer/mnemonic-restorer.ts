@@ -2,7 +2,6 @@ import axios from 'axios';
 import { IdentityInterface } from '../identity/identity';
 import { Multisig } from '../identity/multisig';
 import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
-
 import { MasterPublicKey } from './../identity/masterpubkey';
 import { Mnemonic } from './../identity/mnemonic';
 import { Restorer } from './restorer';
@@ -17,7 +16,7 @@ export interface EsploraRestorerOpts {
   gapLimit: number;
 }
 
-function restorerFromEsplora<R extends IdentityInterface>(
+export function restorerFromEsplora<R extends IdentityInterface>(
   identity: R,
   getAddress: (isChange: boolean, index: number) => string
 ): Restorer<EsploraRestorerOpts, R> {

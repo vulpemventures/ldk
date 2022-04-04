@@ -4,7 +4,6 @@ import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface } from 'slip77';
 import { bip32 } from '../bip32';
 import { slip77 } from '../slip77';
-
 import { AddressInterface, IdentityType } from '../types';
 import {
   checkIdentityType,
@@ -12,7 +11,6 @@ import {
   isValidXpub,
   toXpub,
 } from '../utils';
-
 import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 export interface MasterPublicKeyOpts {
