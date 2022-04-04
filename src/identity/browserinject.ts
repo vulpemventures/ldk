@@ -1,9 +1,6 @@
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { MarinaProvider } from 'marina-provider';
-
 import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
-
 import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 /**
@@ -14,9 +11,16 @@ export interface InjectOpts {
   windowProvider: string;
 }
 
+export interface BrowserInjectProviderInterface {
+  getNextAddress: () => Promise<AddressInterface>;
+  getNextChangeAddress: () => Promise<AddressInterface>;
+  getAddresses: () => Promise<AddressInterface[]>;
+  signTransaction: (psetBase64: string) => Promise<string>;
+}
+
 export class BrowserInject extends Identity implements IdentityInterface {
   // here we force MarinaProvider since there aren't other Liquid injected API specification available as TypeScript interface yet.
-  protected provider: MarinaProvider;
+  protected provider: BrowserInjectProviderInterface;
 
   constructor(args: IdentityOpts<InjectOpts>) {
     super(args);
@@ -34,6 +38,7 @@ export class BrowserInject extends Identity implements IdentityInterface {
       );
     }
 
+    // the provider must implement BrowserInjectProviderInterface
     this.provider = (window as any)[args.opts.windowProvider];
   }
 
