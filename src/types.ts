@@ -25,6 +25,7 @@ export interface AddressInterface {
   blindingPrivateKey: string;
   derivationPath?: string;
   publicKey?: string;
+  [key: string]: any;
 }
 
 // define a type using to implement change's address strategy

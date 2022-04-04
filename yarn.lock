@@ -2183,10 +2183,10 @@ bl@^4.1.0:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blech32@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/blech32/-/blech32-1.1.0.tgz#3f7ad05e18f36db2162cb5e8acf603fdd8a3d793"
-  integrity sha512-TGl9OgRq7woBzhQX1S5Im7opgyb2lpnEgqoApHpEZ8hgo8NSQkwJrf1Qxbg6frobTdBWxo2c+sFLjZFWGMLZHA==
+blech32@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/blech32/-/blech32-1.1.1.tgz#b3260d953710c25a2bdac08bfe919d0db1cb3203"
+  integrity sha512-5EvwgaKzsUMU9En0aAum5Gq48Gp40ODxUZTAPK5gg5BNxjkjDve3Qh/yLEg33wYEaNXL3IFRsnQoky5+bA9tLQ==
   dependencies:
     long "^4.0.0"
 
@@ -5432,10 +5432,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-liquidjs-lib@^6.0.2-liquid.1:
-  version "6.0.2-liquid.1"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-6.0.2-liquid.1.tgz#21f09efb9c6545951a0263c66d44955461f3e12b"
-  integrity sha512-bWO0HUa42ZSq4zFY5yeo8ELQ8gQsPlCQ7Pyx/qTjVpka/cFdeUCe3VvFtfrKhpwBee/WW5vv7+WfbdaJfJ1Drg==
+liquidjs-lib@^6.0.2-liquid.5:
+  version "6.0.2-liquid.5"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-6.0.2-liquid.5.tgz#075f1b9d0152d832880806853e56249ae9cca885"
+  integrity sha512-9zaEGC7q+ermW9Zo3ia7CCOD2S7TfQlXynL5AumepMeG3NsmioIVp+nobC4NDAphUC5/56HRsu54M4hpqgkRtw==
   dependencies:
     "@types/randombytes" "^2.0.0"
     "@types/wif" "^2.0.2"
@@ -5446,7 +5446,7 @@ liquidjs-lib@^6.0.2-liquid.1:
     bip32 "^2.0.4"
     bip66 "^1.1.0"
     bitcoin-ops "^1.4.0"
-    blech32 "^1.1.0"
+    blech32 "^1.1.1"
     bs58check "^2.0.0"
     create-hash "^1.2.0"
     ecpair "^2.0.1"
@@ -5646,11 +5646,6 @@ map-visit@^1.0.0:
   integrity sha1-7Nyo8TFE5mDxtb1B8S80edmN+48=
   dependencies:
     object-visit "^1.0.0"
-
-marina-provider@^1.0.0:
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/marina-provider/-/marina-provider-1.4.3.tgz#15e51c989569e96088a74916ff195e03fc0b05c8"
-  integrity sha512-FXeJ61q+arMUEdR7GeXLmT/Xx8w1NP5vmkztkBIeSmRFvs02qjJO6GqutEUnVFWUzC3QQSB45yiOo8+i8ohYZw==
 
 md5.js@^1.3.4:
   version "1.3.5"
