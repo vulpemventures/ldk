@@ -1,18 +1,16 @@
-import { BIP32Interface } from 'bip32';
+import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
 import { Psbt, networks } from 'liquidjs-lib';
-import { ECPair } from '../ecpair';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { Slip77Interface } from 'slip77';
-import { slip77 } from '../slip77';
-import { bip32 } from '../bip32';
+import { SLIP77Factory, Slip77Interface } from 'slip77';
 
 import { IdentityType } from '../types';
 import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
 
 import { IdentityInterface, IdentityOpts } from './identity';
 import { MasterPublicKey } from './masterpubkey';
+import ECPairFactory from 'ecpair';
 
 export interface MnemonicOpts {
   mnemonic: string;
@@ -48,6 +46,7 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
     // generate the master private key from the wallet seed
     const network = (networks as Record<string, Network>)[args.chain];
+    const bip32 = BIP32Factory(args.ecclib);
     const masterPrivateKeyNode = bip32.fromSeed(walletSeed, network);
 
     // compute and expose the masterPublicKey in this.masterPublicKey
@@ -63,7 +62,9 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     const masterPublicKey = fromXpub(accountPublicKey, args.chain);
 
     // generate the master blinding key from the seed
-    const masterBlindingKeyNode = slip77.fromSeed(walletSeed);
+    const masterBlindingKeyNode = SLIP77Factory(args.ecclib).fromSeed(
+      walletSeed
+    );
     const masterBlindingKey = masterBlindingKeyNode.masterKey.toString('hex');
 
     super({
@@ -110,14 +111,22 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   private derivePath(
     derivationPath: string
   ): { publicKey: Buffer; privateKey: Buffer } {
+    if (!this.ecclib)
+      throw new Error('ecclib is missing, cannot derive public key');
+
     const wif: string = this.masterPrivateKeyNode
       .derivePath(derivationPath)
       .toWIF();
-    const { publicKey, privateKey } = ECPair.fromWIF(wif, this.network);
+    const { publicKey, privateKey } = ECPairFactory(this.ecclib).fromWIF(
+      wif,
+      this.network
+    );
     return { publicKey: publicKey!, privateKey: privateKey! };
   }
 
   async signPset(psetBase64: string): Promise<string> {
+    if (!this.ecclib) throw new Error('ecclib is missing, cannot sign pset');
+
     const pset = Psbt.fromBase64(psetBase64);
     const signInputPromises: Promise<void>[] = [];
 
@@ -133,7 +142,9 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
           const privateKeyBuffer = this.derivePath(
             addressGeneration.address.derivationPath!
           ).privateKey;
-          const signingKeyPair = ECPair.fromPrivateKey(privateKeyBuffer);
+          const signingKeyPair = ECPairFactory(this.ecclib).fromPrivateKey(
+            privateKeyBuffer
+          );
           // add the promise to array
           signInputPromises.push(pset.signInputAsync(index, signingKeyPair));
         }
@@ -147,11 +158,13 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
   static Random(
     chain: IdentityOpts<any>['chain'],
+    ecclib: IdentityOpts<any>['ecclib'],
     baseDerivationPath?: string
   ): Mnemonic {
     const randomMnemonic = bip39.generateMnemonic();
     return new Mnemonic({
       chain,
+      ecclib,
       type: IdentityType.Mnemonic,
       opts: {
         mnemonic: randomMnemonic,

@@ -19,8 +19,8 @@ import {
   Multisig,
   multisigFromEsplora,
   DEFAULT_BASE_DERIVATION_PATH,
-  ecc,
 } from '../src';
+import * as ecc from 'tiny-secp256k1';
 
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 
@@ -30,13 +30,14 @@ const lbtc = AssetHash.fromHex(network.assetHash, false);
 jest.setTimeout(60000);
 
 const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest', DEFAULT_BASE_DERIVATION_PATH),
-  Mnemonic.Random('regtest', DEFAULT_BASE_DERIVATION_PATH),
+  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
+  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
 ];
 
 const validOpts: IdentityOpts<MultisigOpts> = {
   chain: 'regtest',
   type: IdentityType.Multisig,
+  ecclib: ecc,
   opts: {
     signer: {
       mnemonic: generateMnemonic(),

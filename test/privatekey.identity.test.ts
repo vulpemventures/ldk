@@ -8,18 +8,16 @@ import {
   address,
   AssetHash,
 } from 'liquidjs-lib';
-import { ECPair } from '../src/ecpair';
-
 import {
   AddressInterface,
-  ecc,
   IdentityOpts,
   IdentityType,
   PrivateKey,
   PrivateKeyOpts,
 } from '../src';
-
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
+import * as ecc from 'tiny-secp256k1';
+import ECPairFactory from 'ecpair';
 
 const network = networks.regtest;
 const lbtc = AssetHash.fromHex(network.assetHash, false);
@@ -29,6 +27,7 @@ jest.setTimeout(15000);
 const validOpts: IdentityOpts<PrivateKeyOpts> = {
   chain: 'regtest',
   type: IdentityType.PrivateKey,
+  ecclib: ecc,
   opts: {
     signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
     blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
@@ -45,8 +44,14 @@ const unvalidWIF: IdentityOpts<PrivateKeyOpts> = {
     blindingKeyWIF: 'invalidWIF',
   },
 };
-const keypair = ECPair.fromWIF(validOpts.opts.signingKeyWIF, network);
-const keypair2 = ECPair.fromWIF(validOpts.opts.blindingKeyWIF, network);
+const keypair = ECPairFactory(ecc).fromWIF(
+  validOpts.opts.signingKeyWIF,
+  network
+);
+const keypair2 = ECPairFactory(ecc).fromWIF(
+  validOpts.opts.blindingKeyWIF,
+  network
+);
 const p2wpkh = payments.p2wpkh({
   pubkey: keypair.publicKey!,
   blindkey: keypair2.publicKey!,

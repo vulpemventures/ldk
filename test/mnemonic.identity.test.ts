@@ -20,13 +20,12 @@ import {
   mnemonicRestorerFromEsplora,
   mnemonicRestorerFromState,
   StateRestorerOpts,
-  slip77,
-  ecc,
 } from '../src';
-
+import * as ecc from 'tiny-secp256k1';
 import { Restorer } from '../src';
-import { bip32 } from '../src/bip32';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
+import BIP32Factory from 'bip32';
+import { SLIP77Factory } from 'slip77';
 
 const network = networks.regtest;
 const lbtc = AssetHash.fromHex(network.assetHash, false);
@@ -36,6 +35,7 @@ jest.setTimeout(500_000);
 const validOpts: IdentityOpts<MnemonicOpts> = {
   chain: 'regtest',
   type: IdentityType.Mnemonic,
+  ecclib: ecc,
   opts: {
     mnemonic:
       'turn manual grain tobacco pluck onion off chief drive amount slice forward',
@@ -43,11 +43,11 @@ const validOpts: IdentityOpts<MnemonicOpts> = {
 };
 
 const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
-const masterPrivateKeyFromValidMnemonic = bip32.fromSeed(
+const masterPrivateKeyFromValidMnemonic = BIP32Factory(ecc).fromSeed(
   seedFromValidMnemonic,
   network
 );
-const masterBlindingKeyFromValidMnemonic = slip77.fromSeed(
+const masterBlindingKeyFromValidMnemonic = SLIP77Factory(ecc).fromSeed(
   seedFromValidMnemonic
 );
 

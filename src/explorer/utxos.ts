@@ -1,5 +1,5 @@
+import ECPairFactory, { TinySecp256k1Interface } from 'ecpair';
 import { address } from 'liquidjs-lib';
-import { ECPair } from '../ecpair';
 import UnblindError from '../error/unblind-error';
 import {
   AddressInterface,
@@ -18,6 +18,7 @@ import { fetchUtxos } from './esplora';
  * @param skip optional, using to skip blinding step
  */
 export async function* fetchAndUnblindUtxosGenerator(
+  ecclib: TinySecp256k1Interface,
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: Output) => boolean
@@ -37,7 +38,7 @@ export async function* fetchAndUnblindUtxosGenerator(
     try {
       // check the blinding private key
       if (blindingPrivateKey.length > 0) {
-        const blindingKeyPair = ECPair.fromPrivateKey(
+        const blindingKeyPair = ECPairFactory(ecclib).fromPrivateKey(
           Buffer.from(blindingPrivateKey, 'hex')
         );
         const addressPublicKey = address.fromConfidential(confidentialAddress)
@@ -68,11 +69,13 @@ export async function* fetchAndUnblindUtxosGenerator(
 
 // Aggregate generator's result.
 export async function fetchAndUnblindUtxos(
+  ecclib: TinySecp256k1Interface,
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: Output) => boolean
 ): Promise<UnblindedOutput[]> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(
+    ecclib,
     addressesAndBlindingKeys,
     url,
     skip

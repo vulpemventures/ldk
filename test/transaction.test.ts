@@ -1,7 +1,7 @@
+import * as ecc from 'tiny-secp256k1';
 import * as assert from 'assert';
 import { address, networks, Psbt, Transaction } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-
 import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
@@ -9,7 +9,6 @@ import { decodePset, psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
 import { BuildTxArgs, craftMultipleRecipientsPset } from '../src/transaction';
 import { RecipientInterface } from '../src/types';
-
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
 import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
 
@@ -30,6 +29,7 @@ describe('buildTx', () => {
     senderBlindingKey = addrI.blindingPrivateKey;
 
     senderWallet = await walletFromAddresses(
+      ecc,
       await sender.getAddresses(),
       APIURL,
       'regtest'
@@ -40,6 +40,7 @@ describe('buildTx', () => {
     const minted = await mint(senderAddress, 100);
     USDT = minted.asset;
     const senderUtxos = await fetchAndUnblindUtxos(
+      ecc,
       [
         {
           confidentialAddress: senderAddress,
@@ -184,7 +185,7 @@ describe('sendTx', () => {
     const senderAddress = addrI.confidentialAddress;
 
     await faucet(senderAddress); // send 1_0000_0000
-    const wallet = await walletFromAddresses([addrI], APIURL, 'regtest');
+    const wallet = await walletFromAddresses(ecc, [addrI], APIURL, 'regtest');
     const pset = wallet.sendTx(
       recipient,
       greedyCoinSelector(),

@@ -1,7 +1,7 @@
 import * as assert from 'assert';
+import ECPairFactory from 'ecpair';
 import { address, networks } from 'liquidjs-lib';
-import { ECPair } from '../src/ecpair';
-
+import * as ecc from 'tiny-secp256k1';
 import {
   AddressInterface,
   balances,
@@ -14,7 +14,6 @@ import {
   utxosFromTransactions,
 } from '../src';
 import { newRandomMnemonic } from './fixtures/wallet.keys';
-
 import { APIURL, faucet, sleep } from './_regtest';
 
 jest.setTimeout(80000);
@@ -38,6 +37,7 @@ describe('esplora', () => {
   describe('fetchAndUnblindUtxos', () => {
     it('should fetch the utxo prevout, even if unconfidential address is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
+        ecc,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -53,10 +53,13 @@ describe('esplora', () => {
 
     it('should fetch the utxos, even if wrong blinding key is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
+        ecc,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
-            blindingPrivateKey: ECPair.makeRandom().privateKey!.toString('hex'),
+            blindingPrivateKey: ECPairFactory(ecc)
+              .makeRandom()
+              .privateKey!.toString('hex'),
           },
         ],
         APIURL
@@ -66,6 +69,7 @@ describe('esplora', () => {
 
     it('should unblind utxos if the blinding key is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
+        ecc,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -81,6 +85,7 @@ describe('esplora', () => {
 
     it('should skip unblinding step if the skip predicate returns true', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
+        ecc,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -150,7 +155,7 @@ describe('esplora', () => {
 
   describe('unspents from transactions', () => {
     it('should compute utxos set from transactions', async () => {
-      const identity = Mnemonic.Random('regtest');
+      const identity = Mnemonic.Random('regtest', ecc);
       const address0 = await identity.getNextAddress();
       const address1 = await identity.getNextAddress();
 

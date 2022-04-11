@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { networks, payments } from 'liquidjs-lib';
-
+import * as ecc from 'tiny-secp256k1';
 import {
   IdentityOpts,
   IdentityType,
@@ -11,13 +11,13 @@ import {
   MasterPublicKeyOpts,
   MnemonicOpts,
 } from '../src';
-
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
 const validOpts: IdentityOpts<MasterPublicKeyOpts> = {
   chain: 'regtest',
+  ecclib: ecc,
   type: IdentityType.MasterPublicKey,
   opts: {
     masterPublicKey: fromXpub(
@@ -186,6 +186,7 @@ describe('Identity: Master Pub Key', () => {
     it('should generate same addresses than Mnemonic', () => {
       const mnemonicValidOpts: IdentityOpts<MnemonicOpts> = {
         chain: 'regtest',
+        ecclib: ecc,
         type: IdentityType.Mnemonic,
         opts: {
           mnemonic:
@@ -211,7 +212,7 @@ describe('Identity: Master Pub Key', () => {
 
   describe('testnet', () => {
     it('should generate testnet addresses with chain = "testnet"', async () => {
-      const mnemonic = Mnemonic.Random('testnet');
+      const mnemonic = Mnemonic.Random('testnet', ecc);
       const address = await mnemonic.getNextAddress();
       assert.ok(address.confidentialAddress.startsWith('tlq'));
     });

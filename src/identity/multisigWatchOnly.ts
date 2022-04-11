@@ -1,9 +1,8 @@
-import { BIP32Interface } from 'bip32';
+import BIP32Factory, { BIP32Interface, TinySecp256k1Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import { networks } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface } from 'slip77';
-import { bip32 } from '../bip32';
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
 import {
   AddressInterface,
@@ -12,7 +11,7 @@ import {
   XPub,
 } from '../types';
 import { IdentityType } from '../types';
-import { checkIdentityType, checkMasterPublicKey, toXpub } from '../utils';
+import { checkIdentityType, isValidXpub, toXpub } from '../utils';
 import { IdentityInterface, IdentityOpts } from './identity';
 import { Identity } from './identity';
 
@@ -47,14 +46,17 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     );
 
     const cosignersPublicKeys = args.opts.cosigners.map(cosigner =>
-      cosignerToXPub(cosigner, this.network)
+      cosignerToXPub(cosigner, this.network, this.ecclib)
     );
-    cosignersPublicKeys.forEach(checkMasterPublicKey);
+    cosignersPublicKeys.forEach(isValidXpub);
 
     this.cosigners = cosignersPublicKeys
       .sort()
-      .map(xpub => bip32.fromBase58(xpub));
-    this.blindingKeyMasterNode = blindingKeyFromXPubs(this.cosigners);
+      .map(xpub => BIP32Factory(this.ecclib).fromBase58(xpub));
+    this.blindingKeyMasterNode = blindingKeyFromXPubs(
+      this.cosigners,
+      this.ecclib
+    );
 
     this.requiredSignatures = args.opts.requiredSignatures;
   }
@@ -151,11 +153,12 @@ function checkRequiredSignature(required: number, cosignersLength: number) {
 
 function cosignerToXPub(
   cosigner: CosignerMultisig,
-  network: networks.Network
+  network: networks.Network,
+  ecclib: TinySecp256k1Interface
 ): XPub {
   if (typeof cosigner === 'string') return cosigner;
-
   const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
+  const bip32 = BIP32Factory(ecclib);
   const baseNode = bip32
     .fromSeed(walletSeed, network)
     .derivePath(cosigner.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH);

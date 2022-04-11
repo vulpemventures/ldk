@@ -1,11 +1,8 @@
-import { ECPairInterface } from 'ecpair';
+import ECPairFactory, { ECPairInterface } from 'ecpair';
 import { Psbt, payments } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { ECPair } from '../ecpair';
-
 import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
-
 import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
 /**
@@ -94,7 +91,7 @@ export class PrivateKey extends Identity implements IdentityInterface {
   }
 
   private decodeFromWif(wif: string): ECPairInterface {
-    return ECPair.fromWIF(wif, this.network);
+    return ECPairFactory(this.ecclib).fromWIF(wif, this.network);
   }
 
   private getAddress(): AddressInterface {

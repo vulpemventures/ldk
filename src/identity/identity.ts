@@ -1,16 +1,16 @@
-import {
-  Transaction,
-  networks,
-  confidential,
-  TxOutput,
-  Psbt,
-} from 'liquidjs-lib';
+import { TinySecp256k1Interface as ecpairTinySecp256k1Interface } from 'ecpair';
+import { TinySecp256k1Interface as slip77TinySecp256k1Interface } from 'slip77';
+import { TinySecp256k1Interface as bip32TinySecp256k1Interface } from 'bip32';
+import { Transaction, networks, confidential, TxOutput } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-import { ecc } from '../ecclib';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import { AddressInterface, NetworkString } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
+
+export type TinySecp256k1Interface = bip32TinySecp256k1Interface &
+  slip77TinySecp256k1Interface &
+  ecpairTinySecp256k1Interface;
 
 /**
  * The identity interface.
@@ -51,6 +51,7 @@ export interface IdentityOpts<optsT> {
   chain: NetworkString;
   type: number;
   opts: optsT;
+  ecclib: TinySecp256k1Interface;
 }
 
 /**
@@ -59,6 +60,7 @@ export interface IdentityOpts<optsT> {
 export class Identity {
   network: Network;
   type: IdentityType;
+  ecclib: TinySecp256k1Interface;
 
   constructor(args: IdentityOpts<any>) {
     if (!args.chain || !networks.hasOwnProperty(args.chain)) {
@@ -71,6 +73,7 @@ export class Identity {
 
     this.network = (networks as Record<string, Network>)[args.chain];
     this.type = args.type;
+    this.ecclib = args.ecclib;
   }
 
   async blindPsetWithBlindKeysGetter(
@@ -146,7 +149,7 @@ export class Identity {
     }
 
     const blinded = await pset.blindOutputsByIndex(
-      Psbt.ECCKeysGenerator(ecc),
+      Psbt.ECCKeysGenerator(this.ecclib),
       inputsData,
       outputsKeys
     );

@@ -1,13 +1,10 @@
-import { BIP32Interface } from 'bip32';
+import BIP32Factory, { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
+import ECPairFactory from 'ecpair';
 import { address, networks, Psbt } from 'liquidjs-lib';
-import { ECPair } from '../ecpair';
 import { Network } from 'liquidjs-lib/src/networks';
-import { bip32 } from '../bip32';
-
 import { IdentityType, HDSignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
-
 import { IdentityInterface, IdentityOpts } from './identity';
 import {
   DEFAULT_BASE_DERIVATION_PATH,
@@ -30,7 +27,10 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
     const walletSeed = mnemonicToSeedSync(args.opts.signer.mnemonic);
     const network = (networks as Record<string, Network>)[args.chain];
-    const masterPrivateKeyNode = bip32.fromSeed(walletSeed, network);
+    const masterPrivateKeyNode = BIP32Factory(args.ecclib).fromSeed(
+      walletSeed,
+      network
+    );
 
     const baseNode = masterPrivateKeyNode.derivePath(
       args.opts.signer.baseDerivationPath || DEFAULT_BASE_DERIVATION_PATH
@@ -88,7 +88,9 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
           // if there is an address generated for the input script: build the signing key pair.
           const privKey = this.baseNode.derivePath(derivationPath).privateKey;
           if (!privKey) throw new Error('signing private key is undefined');
-          const signingKeyPair = ECPair.fromPrivateKey(privKey);
+          const signingKeyPair = ECPairFactory(this.ecclib).fromPrivateKey(
+            privKey
+          );
           // add the promise to array
           signInputPromises.push(pset.signInputAsync(index, signingKeyPair));
         }
@@ -102,7 +104,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
 
   getXPub(): string {
     return toXpub(
-      bip32
+      BIP32Factory(this.ecclib)
         .fromPublicKey(
           this.baseNode.publicKey,
           this.baseNode.chainCode,
