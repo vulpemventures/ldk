@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import { networks, address } from 'liquidjs-lib';
-
 import {
   IdentityOpts,
   IdentityType,
@@ -9,20 +8,21 @@ import {
   MultisigWatchOnly,
   multisigWatchOnlyFromEsplora,
 } from '../src';
-
+import * as ecc from 'tiny-secp256k1';
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
 const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest'),
-  Mnemonic.Random('regtest'),
-  Mnemonic.Random('regtest'),
+  Mnemonic.Random('regtest', ecc),
+  Mnemonic.Random('regtest', ecc),
+  Mnemonic.Random('regtest', ecc),
 ];
 
 const validOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
   chain: 'regtest',
   type: IdentityType.MultisigWatchOnly,
+  ecclib: ecc,
   opts: {
     cosigners: cosigners.map(m => m.getXPub()),
     requiredSignatures: 1,

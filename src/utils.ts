@@ -8,9 +8,6 @@ import {
   address,
 } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
-import { slip77 } from './slip77';
-import { bip32 } from './bip32';
-
 import {
   AddressInterface,
   Outpoint,
@@ -155,24 +152,15 @@ export function toXpub(anyPub: string) {
   return changeVersionBytes(anyPub, 'xpub');
 }
 
-export function isValidXpub(xpub: string, network?: Network): boolean {
-  try {
-    bip32.fromBase58(xpub, network);
-  } catch (e) {
-    return false;
-  }
+const extendedPubKeyRegexp = /[a-z]pub[a-km-zA-HJ-NP-Z1-9]{100,108}$/;
+const masterBlindKeyRegexp = /[0-9a-fA-F]{64}$/;
 
-  return true;
+export function isValidXpub(xpub: string): boolean {
+  return extendedPubKeyRegexp.test(xpub);
 }
 
 export function isValidExtendedBlindKey(masterBlind: string): boolean {
-  try {
-    slip77.fromMasterBlindingKey(masterBlind);
-  } catch (e) {
-    return false;
-  }
-
-  return true;
+  return masterBlindKeyRegexp.test(masterBlind);
 }
 
 export function psetToUnsignedHex(psetBase64: string): string {
@@ -254,14 +242,6 @@ export function checkIdentityType(actual: IdentityType, expect: IdentityType) {
 export function checkMnemonic(mnemonic: string, language?: string) {
   if (language) setDefaultWordlist(language);
   if (!validateMnemonic(mnemonic)) throw new Error('Mnemonic is not valid.');
-}
-
-export function checkMasterPublicKey(masterPublicKey: string) {
-  try {
-    bip32.fromBase58(masterPublicKey);
-  } catch {
-    throw new Error(`invalid master public key: ${masterPublicKey}`);
-  }
 }
 
 export function decodePset(psetBase64: string): Psbt {

@@ -1,7 +1,6 @@
 import { BIP32Interface } from 'bip32';
 import { networks, payments, crypto, address } from 'liquidjs-lib';
-import { Slip77Interface } from 'slip77';
-import { slip77 } from './slip77';
+import { SLIP77Factory, Slip77Interface, TinySecp256k1Interface } from 'slip77';
 import { MultisigPayment } from './types';
 
 /**
@@ -67,11 +66,12 @@ export function p2msPayment(
  * @param extendedKeys must be the first addresses of multi-sig stakeholders.
  */
 export function blindingKeyFromXPubs(
-  extendedKeys: BIP32Interface[]
+  extendedKeys: BIP32Interface[],
+  ecclib: TinySecp256k1Interface
 ): Slip77Interface {
   const chainCodes = extendedKeys.map(key => key.chainCode);
   const seed = blindingKeyFromChainCode(chainCodes);
-  return slip77.fromSeed(seed);
+  return SLIP77Factory(ecclib).fromSeed(seed);
 }
 
 /**

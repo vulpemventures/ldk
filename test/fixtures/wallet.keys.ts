@@ -1,7 +1,9 @@
+import ECPairFactory from 'ecpair';
 import { networks, payments } from 'liquidjs-lib';
 import { Mnemonic } from '../../src/identity/mnemonic';
-import { ECPair } from '../../src/ecpair';
+import * as ecc from 'tiny-secp256k1';
 
+const ECPair = ECPairFactory(ecc);
 const network = networks.regtest;
 // generate a random keyPair for bob
 const keyPair2 = ECPair.fromWIF(
@@ -14,7 +16,7 @@ const blindKeyPair2 = ECPair.fromWIF(
   network
 );
 
-export const newRandomMnemonic = () => Mnemonic.Random('regtest');
+export const newRandomMnemonic = () => Mnemonic.Random('regtest', ecc);
 
 // this is random address for who is receiving the withdrawal
 export const recipientAddress = payments.p2wpkh({

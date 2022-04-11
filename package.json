@@ -75,6 +75,7 @@
     "@types/tiny-secp256k1": "^2.0.1",
     "husky": "^4.3.7",
     "size-limit": "^4.9.1",
+    "tiny-secp256k1": "^2.2.1",
     "tsdx": "^0.14.1"
   },
   "dependencies": {
@@ -85,7 +86,6 @@
     "ecpair": "^2.0.1",
     "liquidjs-lib": "^6.0.2-liquid.5",
     "slip77": "^0.2.0",
-    "tiny-secp256k1": "^2.2.1",
     "tslib": "^2.3.1"
   }
 }

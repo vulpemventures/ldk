@@ -16,6 +16,7 @@ import {
 } from './transaction';
 import { fetchAndUnblindUtxos } from './explorer/utxos';
 import { Network } from 'liquidjs-lib/src/networks';
+import { TinySecp256k1Interface } from 'ecpair';
 
 /**
  * Wallet abstraction.
@@ -110,11 +111,12 @@ export class Wallet implements WalletInterface {
  * @param network network type
  */
 export async function walletFromAddresses(
+  ecclib: TinySecp256k1Interface,
   addresses: AddressInterface[],
   explorerUrl: string,
   network?: NetworkString
 ): Promise<WalletInterface> {
-  const utxos = await fetchAndUnblindUtxos(addresses, explorerUrl);
+  const utxos = await fetchAndUnblindUtxos(ecclib, addresses, explorerUrl);
   return walletFromCoins(utxos, network);
 }
 
