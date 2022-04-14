@@ -1,6 +1,5 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
-import { payments } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import { BlindingDataLike, payments } from 'liquidjs-lib';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
 import { AddressInterface, IdentityType } from '../types';
 import {

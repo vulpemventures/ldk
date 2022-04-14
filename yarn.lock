@@ -5446,10 +5446,9 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.2.4.tgz#eca284f75d2965079309dc0ad9255abb2ebc1632"
   integrity sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==
 
-liquidjs-lib@^6.0.2-liquid.5:
+"liquidjs-lib@git+https://github.com/louisinger/liquidjs-lib.git#witness_version_ser":
   version "6.0.2-liquid.5"
-  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-6.0.2-liquid.5.tgz#075f1b9d0152d832880806853e56249ae9cca885"
-  integrity sha512-9zaEGC7q+ermW9Zo3ia7CCOD2S7TfQlXynL5AumepMeG3NsmioIVp+nobC4NDAphUC5/56HRsu54M4hpqgkRtw==
+  resolved "git+https://github.com/louisinger/liquidjs-lib.git#d36c92730572e1998b0b8d0c764bdf34d2432abb"
   dependencies:
     "@types/randombytes" "^2.0.0"
     "@types/wif" "^2.0.2"
