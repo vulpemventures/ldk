@@ -24,3 +24,6 @@ export * from './balance';
 
 export * from './restorer/mnemonic-restorer';
 export * from './restorer/restorer';
+
+export * from './script-analyser';
+export * from './descriptors';
