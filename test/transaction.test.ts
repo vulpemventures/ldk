@@ -188,7 +188,7 @@ describe('sendTx', () => {
     const pset = wallet.sendTx(
       recipient,
       greedyCoinSelector(),
-      changeAddress,
+      () => changeAddress,
       substractScenario
     );
     const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>

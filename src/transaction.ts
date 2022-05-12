@@ -17,7 +17,7 @@ export function craftSingleRecipientPset(
   unspents: UnblindedOutput[],
   recipient: RecipientInterface,
   coinSelector: CoinSelector,
-  changeAddress: string,
+  changeAddressByAsset: ChangeAddressFromAssetGetter,
   substractFeeFromRecipient = false,
   satsPerByte = DEFAULT_SATS_PER_BYTE
 ) {
@@ -28,7 +28,7 @@ export function craftSingleRecipientPset(
   const firstSelection = coinSelector(throwErrorHandler)(
     unspents,
     [recipient],
-    () => changeAddress
+    changeAddressByAsset
   );
 
   const fee = createFeeOutput(
@@ -53,7 +53,7 @@ export function craftSingleRecipientPset(
   const { selectedUtxos, changeOutputs } = coinSelector(errorHandler)(
     unspents,
     [recipient, fee],
-    () => changeAddress
+    changeAddressByAsset
   );
 
   const outs = [recipient, ...changeOutputs, fee];
