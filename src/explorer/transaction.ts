@@ -1,7 +1,7 @@
 import axios from 'axios';
 import UnblindError from '../error/unblind-error';
 import { BlindingKeyGetter, isUnblindedOutput, TxInterface } from '../types';
-import { unblindOutput } from '../utils';
+import { isConfidentialOutput, unblindOutput } from '../utils';
 
 import { esploraTxToTxInterface } from './esplora';
 import { EsploraTx } from './types';
@@ -151,7 +151,7 @@ export async function unblindTransaction(
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
     const output = tx.vin[inputIndex].prevout;
-    if (output && !isUnblindedOutput(output)) {
+    if (output && isConfidentialOutput(output)) {
       const promise = async () => {
         const blindingKey = blindingPrivateKeyGetter(
           output.prevout.script.toString('hex')
