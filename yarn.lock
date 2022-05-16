@@ -5468,8 +5468,8 @@ lines-and-columns@^1.1.6:
   integrity sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==
 
 "liquidjs-lib@git+https://github.com/louisinger/liquidjs-lib.git#psbt-taproot-support":
-  version "6.0.2-liquid.7"
-  resolved "git+https://github.com/louisinger/liquidjs-lib.git#0b201df60d88919d3a6a32470dedbc0069bd90f5"
+  version "6.0.2-liquid.8"
+  resolved "git+https://github.com/louisinger/liquidjs-lib.git#680f5d94d27aa85935fe4a3caa444bf217e3739b"
   dependencies:
     "@types/randombytes" "^2.0.0"
     "@types/wif" "^2.0.2"
