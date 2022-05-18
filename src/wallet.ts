@@ -35,7 +35,7 @@ export interface WalletInterface {
   sendTx(
     recipient: RecipientInterface,
     coinSelector: CoinSelector,
-    changeAddress: string,
+    changeAddressByAsset: ChangeAddressFromAssetGetter,
     substractFee?: boolean,
     satsPerByte?: number
   ): string;
@@ -89,7 +89,7 @@ export class Wallet implements WalletInterface {
   sendTx(
     recipient: RecipientInterface,
     coinSelector: CoinSelector,
-    changeAddress: string,
+    changeAddressByAsset: ChangeAddressFromAssetGetter,
     substractFee = false,
     satsPerByte = DEFAULT_SATS_PER_BYTE
   ) {
@@ -97,7 +97,7 @@ export class Wallet implements WalletInterface {
       this.unspents,
       recipient,
       coinSelector,
-      changeAddress,
+      changeAddressByAsset,
       substractFee,
       satsPerByte
     );
