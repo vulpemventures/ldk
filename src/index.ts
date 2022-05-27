@@ -21,6 +21,7 @@ export * from './wallet';
 export * from './utils';
 export * from './types';
 export * from './balance';
+export * from './blinding';
 
 export * from './restorer/mnemonic-restorer';
 export * from './restorer/restorer';
