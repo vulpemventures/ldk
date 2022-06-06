@@ -20,7 +20,6 @@ export function processNamespaces(
   text: string
 ): string {
   const namespaces = findNamespaces(text);
-  console.log(namespaces);
   if (!namespaces.length) return text;
 
   let processedText = text;
