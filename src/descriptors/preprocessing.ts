@@ -1,4 +1,4 @@
-const namespaceRegexp = /[$][a-z]+/;
+const namespaceRegexp = /[$][a-zA-Z0-9|@_-.]+/;
 
 export interface Context {
   // map namespace token to public key
