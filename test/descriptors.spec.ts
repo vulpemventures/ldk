@@ -13,20 +13,22 @@ import {
   DescriptorsCompilerFactory,
 } from '../src/descriptors/ast';
 import { parseSCRIPT } from '../src/descriptors/parser';
-import { preprocessor } from '../src/descriptors/preprocessing';
+import { findNamespaces, preprocessor } from '../src/descriptors/preprocessing';
 
 const compile = DescriptorsCompilerFactory(ecc).compile;
 const evaluate = makeEvaluateDescriptor(ecc);
 
+const xpub =
+  'vpub5SLqN2bLY4WeaAsje9qzuLmXM3DYdtxWYG2PipZAki3fbdCfpum3hf4ZVgigwfJGk3BT9KvSpUkqNEJhdHQjXdqjSRxYq7AETSXPjVH7UMq';
+const key = BIP32Factory(ecc)
+  .fromBase58(toXpub(xpub))
+  .derivePath('0/1')
+  .publicKey.toString('hex');
+
 describe('evaluate', () => {
   it('should replace namespace tokens', () => {
-    const xpub =
-      'vpub5SLqN2bLY4WeaAsje9qzuLmXM3DYdtxWYG2PipZAki3fbdCfpum3hf4ZVgigwfJGk3BT9KvSpUkqNEJhdHQjXdqjSRxYq7AETSXPjVH7UMq';
     const text = `asm(OP_DUP OP_HASH160 $marina OP_EQUALVERIFY OP_CHECKSIG)`;
-    const key = BIP32Factory(ecc)
-      .fromBase58(toXpub(xpub))
-      .derivePath('0/1')
-      .publicKey.toString('hex');
+
     const ctx: Context = {
       namespaces: new Map().set('marina', { pubkey: key }),
     };
@@ -142,7 +144,7 @@ describe('parser', () => {
 
 const validateTests: [string, boolean][] = [
   ['', false],
-  ['eltr($test, { asm($test OP_CHECKSIG) })', false],
+  ['eltr($test, { asm($test OP_CHECKSIG) })', true],
   ['eltr($test, { asm($test OP_CHECKSIG), raw(00) })', true],
   ['raw(this is not an hex value)', false],
   ['raw(00)', true],
@@ -154,12 +156,53 @@ const validateTests: [string, boolean][] = [
     'asm(OP_CHECKSIG OP_TRUE OP_INSPECTOUTPUTASSET unexepectedstringattheend)',
     false,
   ],
+  ['eltr($pubKey, { asm($pubKey OP_CHECKSIG) })', true],
+  ['eltr($pubKey, { asm($pubKey OP_CHECKSIG), raw(00) })', true],
+  [
+    'eltr($pubKey, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG)}, raw(010203040506070809101112131415) })',
+    true,
+  ],
+  [
+    'eltr($pubKey, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG) }, raw(010203040506070809101112131415) })',
+    true,
+  ],
+  [
+    'eltr($pubKey, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG) }, { raw(010203040506070809101112131415), asm(OP_FALSE)} })',
+    true,
+  ],
+  [
+    'eltr($pukey@v1, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG) }, { raw(010203040506070809101112131415), asm(OP_FALSE)} })',
+    true,
+  ],
+  [
+    'eltr($pubKey, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG) }, { raw(010203040506070809101112131415), asm(OP_FALSE)} })',
+    true,
+  ],
 ];
 
 describe('validate', () => {
   for (const [text, expected] of validateTests) {
     it(`should${expected ? '' : ' not'} validate template: "${text}"`, () => {
       expect(validate(text)).toBe(expected);
+    });
+  }
+});
+
+const namespaceStringTest: [string, string[]][] = [
+  ['$test', ['test']],
+  ['$test@v1', ['test@v1']],
+  ['$test@v1 OP_CHECKSIG $test', ['test@v1', 'test']],
+  [
+    'eltr($pukey@v1, { { asm($pubKey OP_CHECKSIG), asm($pubKey OP_CHECKSIG) }, { raw(010203040506070809101112131415), asm(OP_FALSE)} })',
+    ['pukey@v1', 'pubKey'],
+  ],
+  ['$test_@-i $louis', ['test_@-i', 'louis']],
+];
+
+describe('findNamespace', () => {
+  for (const [text, expected] of namespaceStringTest) {
+    it(`should find namespace in template: "${text}"`, () => {
+      expect(findNamespaces(text)).toEqual(expected);
     });
   }
 });

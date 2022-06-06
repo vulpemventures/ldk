@@ -27,6 +27,7 @@ export function makeEvaluateDescriptor(ecc: bip341.TinySecp256k1Interface) {
  */
 export function validate(template: string): boolean {
   const namespaces = findNamespaces(template);
+  console.log(namespaces);
   if (namespaces.length > 0) {
     const fakeKey = Buffer.alloc(32).toString('hex');
     const fakeCtx: Context = {
@@ -39,12 +40,12 @@ export function validate(template: string): boolean {
 
     template = preprocessor(fakeCtx, template);
   }
-
+  console.log(template);
   try {
     const [ast] = parseSCRIPT(template);
     if (!ast) return false;
     return true;
-  } catch {
+  } catch (e) {
     return false;
   }
 }
