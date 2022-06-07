@@ -1,4 +1,4 @@
-const namespaceRegexp = /[$][a-z]+/;
+const namespaceRegexp = new RegExp('[$][a-zA-Z0-9|@_.-]+', 'g');
 
 export interface Context {
   // map namespace token to public key
@@ -10,7 +10,7 @@ function replaceAll(str: string, find: string, replace: string): string {
 }
 
 export function findNamespaces(text: string): Array<string> {
-  const namespaces = namespaceRegexp.exec(text);
+  const namespaces = Array.from(new Set(text.match(namespaceRegexp)));
   if (!namespaces) return [];
   return namespaces.map(n => n.slice(1)); // remove the '$' token
 }

@@ -39,12 +39,11 @@ export function validate(template: string): boolean {
 
     template = preprocessor(fakeCtx, template);
   }
-
   try {
     const [ast] = parseSCRIPT(template);
     if (!ast) return false;
     return true;
-  } catch {
+  } catch (e) {
     return false;
   }
 }

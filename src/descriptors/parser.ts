@@ -2,7 +2,8 @@ import { script } from 'liquidjs-lib';
 import { ScriptType, TypeAST, AST } from './ast';
 import { readHex, readUntil } from './utils';
 
-const EXPECT_TOKEN = (token: string) => new Error(`Expected ${token}`);
+const EXPECT_TOKEN = (token: string, got: string) =>
+  new Error(`Expected "${token}" got "${got}"`);
 
 function cmd(type: ScriptType): string {
   return type.toString();
@@ -56,7 +57,7 @@ const parseHEX: Parser = (text: string) => {
 const parseKEY: Parser = (text: string) => {
   const [hex, remainingText] = readHex(text);
   if (hex.length !== 64) {
-    throw EXPECT_TOKEN('key (hex string with len=64)');
+    throw EXPECT_TOKEN('key (hex string with len=64)', hex);
   }
 
   return [{ type: TypeAST.KEY, value: hex, children: [] }, remainingText];
@@ -77,7 +78,7 @@ const parseToken = (token: string): Parser => (text: string) => {
     return [undefined, text.slice(token.length)];
   }
 
-  throw EXPECT_TOKEN(token);
+  throw EXPECT_TOKEN(token, text.slice(0, token.length));
 };
 
 const parseTreeToken: Parser = (text: string) => {
@@ -88,15 +89,18 @@ const parseTreeToken: Parser = (text: string) => {
   ];
 };
 
+const parseEndTreeToken = parseToken('}');
+
 // tree parser
 const parseTREE: Parser = (text: string) => {
   if (text.startsWith('{')) {
     return compose(
       parseTreeToken,
       parseTREE,
-      parseComma,
-      parseTREE,
-      parseToken('}')
+      oneOf(
+        compose(parseComma, parseTREE, parseEndTreeToken),
+        parseEndTreeToken
+      )
     )(text);
   }
 
