@@ -22,8 +22,12 @@ export type TinySecp256k1Interface = bip32TinySecp256k1Interface &
 export interface IdentityInterface {
   network: Network;
   type: IdentityType;
-  getNextAddress(): Promise<AddressInterface>;
-  getNextChangeAddress(): Promise<AddressInterface>;
+  getNextAddress(
+    constructorParams?: Record<string, string | number[]>
+  ): Promise<AddressInterface>;
+  getNextChangeAddress(
+    constructorParams?: Record<string, string | number[]>
+  ): Promise<AddressInterface>;
   signPset(psetBase64: string): Promise<string>;
   getAddresses(): Promise<AddressInterface[]>;
   getBlindingPrivateKey(script: string): Promise<string>;
