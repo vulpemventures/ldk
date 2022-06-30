@@ -23,10 +23,10 @@ export interface IdentityInterface {
   network: Network;
   type: IdentityType;
   getNextAddress(
-    constructorParams?: Record<string, string | number[]>
+    constructorParams?: Record<string, string | number>
   ): Promise<AddressInterface>;
   getNextChangeAddress(
-    constructorParams?: Record<string, string | number[]>
+    constructorParams?: Record<string, string | number>
   ): Promise<AddressInterface>;
   signPset(psetBase64: string): Promise<string>;
   getAddresses(): Promise<AddressInterface[]>;
