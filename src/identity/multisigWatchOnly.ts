@@ -157,7 +157,7 @@ function cosignerToXPub(
   ecclib: TinySecp256k1Interface
 ): XPub {
   if (typeof cosigner === 'string') return cosigner;
-  const walletSeed = mnemonicToSeedSync(cosigner.mnemonic);
+  const walletSeed = mnemonicToSeedSync(cosigner.mnemonic, cosigner.passphrase);
   const bip32 = BIP32Factory(ecclib);
   const baseNode = bip32
     .fromSeed(walletSeed, network)

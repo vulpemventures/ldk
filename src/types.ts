@@ -118,6 +118,7 @@ export type MultisigPayment = AddressInterface & {
 
 export interface HDSignerMultisig {
   mnemonic: string;
+  passphrase?: string;
   baseDerivationPath?: string;
 }
 

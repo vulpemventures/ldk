@@ -25,7 +25,10 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
     checkIdentityType(args.type, IdentityType.Multisig);
     checkMnemonic(args.opts.signer.mnemonic);
 
-    const walletSeed = mnemonicToSeedSync(args.opts.signer.mnemonic);
+    const walletSeed = mnemonicToSeedSync(
+      args.opts.signer.mnemonic,
+      args.opts.signer.passphrase
+    );
     const network = (networks as Record<string, Network>)[args.chain];
     const masterPrivateKeyNode = BIP32Factory(args.ecclib).fromSeed(
       walletSeed,
