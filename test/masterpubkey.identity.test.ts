@@ -6,10 +6,10 @@ import {
   IdentityType,
   MasterPublicKey,
   Mnemonic,
-  fromXpub,
   masterPubKeyRestorerFromEsplora,
   MasterPublicKeyOpts,
   MnemonicOpts,
+  toXpub,
 } from '../src';
 import { faucet, sleep } from './_regtest';
 
@@ -20,9 +20,8 @@ const validOpts: IdentityOpts<MasterPublicKeyOpts> = {
   ecclib: ecc,
   type: IdentityType.MasterPublicKey,
   opts: {
-    masterPublicKey: fromXpub(
-      'tpubD6NzVbkrYhZ4XzWjD4v6Q3aNJzvGYFrCNvL5FvWkpE5yBwXwzPeUAF7KrdUKQ4feKGquMXJNn5dkm3xL8eFyDjSrD1C5s5Byh3ZTiBU1wHd',
-      'regtest'
+    masterPublicKey: toXpub(
+      'tpubD6NzVbkrYhZ4XzWjD4v6Q3aNJzvGYFrCNvL5FvWkpE5yBwXwzPeUAF7KrdUKQ4feKGquMXJNn5dkm3xL8eFyDjSrD1C5s5Byh3ZTiBU1wHd'
     ),
     masterBlindingKey:
       'c90591b4766a23ca881767626f4c2222641c944b21ad23bcadb699c031868c85',

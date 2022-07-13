@@ -12,7 +12,6 @@ import {
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import {
-  fromXpub,
   IdentityOpts,
   IdentityType,
   Mnemonic,
@@ -499,8 +498,8 @@ describe('Mnemonic extended public key', () => {
           baseDerivationPath: t.baseDerivationPath,
         },
       });
-      const vpub = mnemonicId.masterPublicKey;
-      assert.deepStrictEqual(vpub, fromXpub(t.xpub, 'regtest'));
+      const xpub = mnemonicId.masterPublicKey;
+      assert.deepStrictEqual(xpub, t.xpub);
     });
   }
 });
