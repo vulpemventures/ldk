@@ -51,15 +51,12 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
 
     // compute and expose the masterPublicKey in this.masterPublicKey
     const baseNode = masterPrivateKeyNode.derivePath(
-      MasterPublicKey.INITIAL_BASE_PATH
+      args.opts.baseDerivationPath || MasterPublicKey.INITIAL_BASE_PATH
     );
 
-    const pubkey = baseNode.publicKey;
-    const accountPublicKey = bip32
-      .fromPublicKey(pubkey, baseNode.chainCode, baseNode.network)
-      .toBase58();
-
-    const masterPublicKey = fromXpub(accountPublicKey, args.chain);
+    const accountMasterPubKey = baseNode.neutered().toBase58();
+    // we need to convert to elements extended key
+    const masterPublicKey = fromXpub(accountMasterPubKey, args.chain);
 
     // generate the master blinding key from the seed
     const masterBlindingKeyNode = SLIP77Factory(args.ecclib).fromSeed(
