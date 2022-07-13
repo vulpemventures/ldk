@@ -14,6 +14,7 @@ import ECPairFactory from 'ecpair';
 
 export interface MnemonicOpts {
   mnemonic: string;
+  passphrase?: string;
   language?: string;
   baseDerivationPath?: string;
 }
@@ -43,7 +44,10 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     checkMnemonic(args.opts.mnemonic);
 
     // retreive the wallet's seed from mnemonic
-    const walletSeed = bip39.mnemonicToSeedSync(args.opts.mnemonic);
+    const walletSeed = bip39.mnemonicToSeedSync(
+      args.opts.mnemonic,
+      args.opts.passphrase
+    );
     // generate the master private key from the wallet seed
     const network = (networks as Record<string, Network>)[args.chain];
     const bip32 = BIP32Factory(args.ecclib);
