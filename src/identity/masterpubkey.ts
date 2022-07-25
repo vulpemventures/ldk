@@ -6,7 +6,6 @@ import {
   checkIdentityType,
   isValidExtendedBlindKey,
   isValidXpub,
-  toXpub,
 } from '../utils';
 import { Identity, IdentityInterface, IdentityOpts } from './identity';
 
@@ -36,13 +35,11 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   constructor(args: IdentityOpts<MasterPublicKeyOpts>) {
     super(args);
 
-    const xpub = toXpub(args.opts.masterPublicKey);
-
     // check the identity type
     checkIdentityType(args.type, IdentityType.MasterPublicKey);
 
     // validate xpub
-    if (!isValidXpub(xpub)) {
+    if (!isValidXpub(args.opts.masterPublicKey)) {
       throw new Error('Master public key is not valid');
     }
     // validate master blinding key
@@ -50,7 +47,9 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
       throw new Error('Master blinding key is not valid');
     }
 
-    this.masterPublicKeyNode = BIP32Factory(args.ecclib).fromBase58(xpub);
+    this.masterPublicKeyNode = BIP32Factory(args.ecclib).fromBase58(
+      args.opts.masterPublicKey
+    );
     this.masterBlindingKeyNode = SLIP77Factory(
       args.ecclib
     ).fromMasterBlindingKey(args.opts.masterBlindingKey);

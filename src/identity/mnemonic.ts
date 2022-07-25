@@ -6,7 +6,7 @@ import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
 
 import { IdentityType } from '../types';
-import { checkIdentityType, checkMnemonic, fromXpub } from '../utils';
+import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 
 import { IdentityInterface, IdentityOpts } from './identity';
 import { MasterPublicKey } from './masterpubkey';
@@ -54,16 +54,14 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     const masterPrivateKeyNode = bip32.fromSeed(walletSeed, network);
 
     // compute and expose the masterPublicKey in this.masterPublicKey
-    const baseNode = masterPrivateKeyNode.derivePath(
-      MasterPublicKey.INITIAL_BASE_PATH
+    const masterPublicKey = toXpub(
+      masterPrivateKeyNode
+        .derivePath(
+          args.opts.baseDerivationPath || MasterPublicKey.INITIAL_BASE_PATH
+        )
+        .neutered()
+        .toBase58()
     );
-
-    const pubkey = baseNode.publicKey;
-    const accountPublicKey = bip32
-      .fromPublicKey(pubkey, baseNode.chainCode, baseNode.network)
-      .toBase58();
-
-    const masterPublicKey = fromXpub(accountPublicKey, args.chain);
 
     // generate the master blinding key from the seed
     const masterBlindingKeyNode = SLIP77Factory(args.ecclib).fromSeed(

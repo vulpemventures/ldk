@@ -11,7 +11,6 @@ import {
   AssetHash,
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
-
 import {
   IdentityOpts,
   IdentityType,
@@ -469,4 +468,38 @@ describe('Identity: Mnemonic', () => {
       });
     });
   });
+});
+
+const tests = [
+  {
+    mnemonic:
+      'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
+    baseDerivationPath: "m/84'/0'/0'",
+    xpub:
+      'xpub6CDtoWw3acLw7xLBtNi4qdVn64Dtzhf4KLrYjGNErU3pmt1sYqPXquDYkf6kHHeiMmQGhPEQ5WyogbjCuGTZ46EeQVKkDmDb1nu2XWUDehT',
+  },
+  {
+    mnemonic:
+      'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
+    baseDerivationPath: "m/84'/4'/2'",
+    xpub:
+      'xpub6DTDDZV5YtVyN78BSCdsFtvUt4hJywiRXRhKewvAzmA5jHVfXxJHBY2m2j2WqUKZQBMfB31qWPoztqNcBuB8CuEL1YMfSvSmztwUB5Z4jgu',
+  },
+];
+
+describe('Mnemonic extended public key', () => {
+  for (const t of tests) {
+    it(`should derive the correct xpub with "${t.mnemonic}" and ${t.baseDerivationPath}`, async () => {
+      const mnemonicId = new Mnemonic({
+        ...validOpts,
+        opts: {
+          ...validOpts.opts,
+          mnemonic: t.mnemonic,
+          baseDerivationPath: t.baseDerivationPath,
+        },
+      });
+      const xpub = mnemonicId.masterPublicKey;
+      assert.deepStrictEqual(xpub, t.xpub);
+    });
+  }
 });
