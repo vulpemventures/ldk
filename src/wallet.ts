@@ -116,7 +116,7 @@ export async function walletFromAddresses(
   explorerUrl: string,
   network?: NetworkString
 ): Promise<WalletInterface> {
-  const utxos = await fetchAndUnblindUtxos(ecclib, addresses, explorerUrl);
+  const { utxos } = await fetchAndUnblindUtxos(ecclib, addresses, explorerUrl);
   return walletFromCoins(utxos, network);
 }
 

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { axiosInstance } from '../explorer/esplora';
 import { IdentityInterface } from '../identity/identity';
 import { Multisig } from '../identity/multisig';
 import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
@@ -86,8 +86,15 @@ async function addressHasBeenUsed(
   address: string,
   esploraURL: string
 ): Promise<boolean> {
-  const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
-  return data.length > 0;
+  try {
+    const data = (
+      await axiosInstance.get(`${esploraURL}/address/${address}/txs`)
+    ).data;
+    return data.length > 0;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
 }
 
 /**

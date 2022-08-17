@@ -39,7 +39,7 @@ describe('buildTx', () => {
     // mint and fund with USDT
     const minted = await mint(senderAddress, 100);
     USDT = minted.asset;
-    const senderUtxos = await fetchAndUnblindUtxos(
+    const { utxos: senderUtxos } = await fetchAndUnblindUtxos(
       ecc,
       [
         {

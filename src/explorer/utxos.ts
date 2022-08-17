@@ -73,7 +73,7 @@ export async function fetchAndUnblindUtxos(
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: Output) => boolean
-): Promise<UnblindedOutput[]> {
+): Promise<{ utxos: UnblindedOutput[]; errors: Error[] }> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(
     ecclib,
     addressesAndBlindingKeys,
@@ -81,14 +81,15 @@ export async function fetchAndUnblindUtxos(
     skip
   );
   const utxos: UnblindedOutput[] = [];
-
   let iterator = await utxosGenerator.next();
   while (!iterator.done) {
     utxos.push(iterator.value);
     iterator = await utxosGenerator.next();
   }
 
-  return utxos;
+  const { errors } = iterator.value;
+
+  return { utxos, errors };
 }
 
 /**

@@ -1,9 +1,7 @@
-import axios from 'axios';
 import UnblindError from '../error/unblind-error';
 import { BlindingKeyGetter, isUnblindedOutput, TxInterface } from '../types';
 import { isConfidentialOutput, unblindOutput } from '../utils';
-
-import { esploraTxToTxInterface } from './esplora';
+import { axiosInstance, esploraTxToTxInterface } from './esplora';
 import { EsploraTx } from './types';
 
 /**
@@ -213,6 +211,6 @@ async function fetch25newestTxsForAddress(
     url += `/${lastSeenTxid}`;
   }
 
-  const response = await axios.get(url);
+  const response = await axiosInstance.get(url);
   return response.data;
 }

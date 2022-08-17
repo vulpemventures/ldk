@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import { Transaction, TxOutput } from 'liquidjs-lib';
 import {
   TxInterface,
@@ -11,13 +11,43 @@ import {
 } from '../types';
 import { EsploraTx, EsploraUtxo } from './types';
 
+const makeRetryAxios = (options: {
+  maxRetryTime: number;
+  retryOnCodes: Array<number>;
+}): AxiosInstance => {
+  const instance = axios.create();
+  let counter = 0;
+  instance.interceptors.response.use(undefined, (error: AxiosError) => {
+    const config = error.config;
+    // you could defined status you want to retry, such as 503
+    // if (counter < max_time && error.response.status === retry_status_code) {
+    if (
+      counter < options.maxRetryTime &&
+      error.response &&
+      options.retryOnCodes.includes(error.response.status)
+    ) {
+      counter++;
+      return new Promise(resolve => {
+        resolve(instance(config));
+      });
+    }
+    return Promise.reject(error);
+  });
+  return instance;
+};
+
+export const axiosInstance = makeRetryAxios({
+  maxRetryTime: 3,
+  retryOnCodes: [500, 502, 503, 504],
+});
+
 /**
  * Fetch the raw transaction by txid
  * @param txId txID to fetch
  * @param url esplora URL
  */
 export async function fetchTxHex(txId: string, url: string): Promise<string> {
-  return (await axios.get(`${url}/tx/${txId}/hex`)).data;
+  return (await axiosInstance.get(`${url}/tx/${txId}/hex`)).data;
 }
 
 /**
@@ -27,7 +57,7 @@ export async function fetchTxHex(txId: string, url: string): Promise<string> {
  */
 export async function fetchTx(txId: string, url: string): Promise<TxInterface> {
   return esploraTxToTxInterface(
-    (await axios.get(`${url}/tx/${txId}`)).data,
+    (await axiosInstance.get(`${url}/tx/${txId}`)).data,
     url
   );
 }
@@ -42,7 +72,7 @@ export async function fetchUtxos(
   url: string
 ): Promise<Output[]> {
   const esploraUtxos: EsploraUtxo[] = (
-    await axios.get(`${url}/address/${address}/utxo`)
+    await axiosInstance.get(`${url}/address/${address}/utxo`)
   ).data;
   return Promise.all(esploraUtxos.map(outpointToUtxo(url)));
 }
