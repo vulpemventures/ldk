@@ -36,7 +36,7 @@ describe('esplora', () => {
 
   describe('fetchAndUnblindUtxos', () => {
     it('should fetch the utxo prevout, even if unconfidential address is provided', async () => {
-      const { utxos: senderUtxos } = await fetchAndUnblindUtxos(
+      const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
         [
           {
@@ -52,7 +52,7 @@ describe('esplora', () => {
     });
 
     it('should fetch the utxos, even if wrong blinding key is provided', async () => {
-      const { utxos: senderUtxos } = await fetchAndUnblindUtxos(
+      const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
         [
           {
@@ -68,7 +68,7 @@ describe('esplora', () => {
     });
 
     it('should unblind utxos if the blinding key is provided', async () => {
-      const { utxos: senderUtxos } = await fetchAndUnblindUtxos(
+      const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
         [
           {
@@ -84,7 +84,7 @@ describe('esplora', () => {
     });
 
     it('should skip unblinding step if the skip predicate returns true', async () => {
-      const { utxos: senderUtxos } = await fetchAndUnblindUtxos(
+      const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
         [
           {
