@@ -92,7 +92,7 @@ async function addressHasBeenUsed(
     ).data;
     return data.length > 0;
   } catch (e) {
-    console.error(e);
+    console.debug(e);
     return false;
   }
 }
