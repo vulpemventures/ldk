@@ -104,7 +104,7 @@ describe('esplora', () => {
 
   describe('fetchAndUnblindTxs', () => {
     it('should return txs if the blinding key is provided', async () => {
-      const senderTxs = await fetchAndUnblindTxs(
+      const { transactions } = await fetchAndUnblindTxs(
         [senderAddress.confidentialAddress],
         (script: string) => {
           if (
@@ -118,11 +118,11 @@ describe('esplora', () => {
         APIURL
       );
 
-      const faucetTx = senderTxs.find(t => t.txid === txid);
+      const faucetTx = transactions.find(t => t.txid === txid);
       assert.notStrictEqual(faucetTx, undefined);
     });
     it('should skip transaction specified by skip function (and does not return it)', async () => {
-      const senderTxs = await fetchAndUnblindTxs(
+      const { transactions: senderTxs } = await fetchAndUnblindTxs(
         [senderAddress.confidentialAddress],
         () => senderAddress.blindingPrivateKey,
         APIURL,
@@ -134,7 +134,7 @@ describe('esplora', () => {
     });
 
     it('should work with duplicate addresses', async () => {
-      const senderTxs = await fetchAndUnblindTxs(
+      const { transactions: senderTxs } = await fetchAndUnblindTxs(
         [senderAddress.confidentialAddress],
         (script: string) => {
           if (
@@ -163,7 +163,7 @@ describe('esplora', () => {
       await faucet(address1.confidentialAddress);
       sleep(3000);
 
-      const txs = await fetchAndUnblindTxs(
+      const { transactions: txs } = await fetchAndUnblindTxs(
         [address1, address0].map(a => a.confidentialAddress),
         (script: string) => {
           if (
