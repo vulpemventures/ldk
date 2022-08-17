@@ -72,7 +72,7 @@ export async function fetchAndUnblindTxs(
   blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string,
   skip?: (tx: TxInterface) => boolean
-): Promise<{ transactions: TxInterface[]; errors: Error[] }> {
+): Promise<TxInterface[]> {
   const generator = fetchAndUnblindTxsGenerator(
     addresses,
     blindingKeyGetter,
@@ -88,7 +88,7 @@ export async function fetchAndUnblindTxs(
     iterator = await generator.next();
   }
 
-  return { transactions: txs, errors: iterator.value.errors };
+  return txs;
 }
 
 /**
