@@ -33,6 +33,9 @@ export type ChangeAddressFromAssetGetter = (asset: string) => string;
 
 // define function that takes a script as input and returns a blinding key (or undefined)
 export type BlindingKeyGetter = (script: string) => string | undefined;
+export type BlindingKeyGetterAsync = (
+  script: string
+) => Promise<string | undefined>;
 
 export interface RecipientInterface {
   value: number;

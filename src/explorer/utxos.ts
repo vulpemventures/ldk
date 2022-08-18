@@ -98,7 +98,7 @@ export async function fetchAndUnblindUtxos(
  * @param blindPrivKey the blinding private key using to unblind
  * @param url esplora endpoint URL
  */
-async function tryToUnblindUtxo(
+export async function tryToUnblindUtxo(
   utxo: Output,
   blindPrivKey: string
 ): Promise<UnblindedOutput> {

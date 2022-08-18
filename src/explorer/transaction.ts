@@ -1,8 +1,12 @@
 import axios from 'axios';
 import UnblindError from '../error/unblind-error';
-import { BlindingKeyGetter, isUnblindedOutput, TxInterface } from '../types';
+import {
+  BlindingKeyGetter,
+  BlindingKeyGetterAsync,
+  isUnblindedOutput,
+  TxInterface,
+} from '../types';
 import { isConfidentialOutput, unblindOutput } from '../utils';
-
 import { esploraTxToTxInterface } from './esplora';
 import { EsploraTx } from './types';
 
@@ -39,7 +43,7 @@ export async function* fetchAndUnblindTxsGenerator(
 
         const { unblindedTx, errors: errs } = await unblindTransaction(
           tx,
-          blindingKeyGetter
+          async (script: string) => blindingKeyGetter(script)
         );
         errors.push(...errs);
         yield unblindedTx;
@@ -143,7 +147,7 @@ async function* fetchTxsGenerator(
  */
 export async function unblindTransaction(
   tx: TxInterface,
-  blindingPrivateKeyGetter: BlindingKeyGetter
+  blindingPrivateKeyGetter: BlindingKeyGetterAsync
 ): Promise<{ unblindedTx: TxInterface; errors: UnblindError[] }> {
   const promises: Promise<void>[] = [];
   const errors: UnblindError[] = [];
@@ -153,7 +157,7 @@ export async function unblindTransaction(
     const output = tx.vin[inputIndex].prevout;
     if (output && isConfidentialOutput(output)) {
       const promise = async () => {
-        const blindingKey = blindingPrivateKeyGetter(
+        const blindingKey = await blindingPrivateKeyGetter(
           output.prevout.script.toString('hex')
         );
         if (blindingKey) {
@@ -181,7 +185,7 @@ export async function unblindTransaction(
     const output = tx.vout[outputIndex];
     if (!isUnblindedOutput(output)) {
       const promise = async () => {
-        const blindingKey = blindingPrivateKeyGetter(
+        const blindingKey = await blindingPrivateKeyGetter(
           output.prevout.script.toString('hex')
         );
         if (blindingKey) {

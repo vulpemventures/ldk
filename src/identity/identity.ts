@@ -4,7 +4,11 @@ import { TinySecp256k1Interface as bip32TinySecp256k1Interface } from 'bip32';
 import { Transaction, networks, confidential, TxOutput } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
-import { AddressInterface, NetworkString } from '../types';
+import {
+  AddressInterface,
+  BlindingKeyGetterAsync,
+  NetworkString,
+} from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
 
@@ -160,4 +164,12 @@ export class Identity {
 
     return blinded.toBase64();
   }
+}
+
+export function privateBlindKeyGetter(
+  identity: IdentityInterface
+): BlindingKeyGetterAsync {
+  return async (script: string) => {
+    return identity.getBlindingPrivateKey(script);
+  };
 }

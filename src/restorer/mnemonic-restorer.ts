@@ -86,8 +86,12 @@ async function addressHasBeenUsed(
   address: string,
   esploraURL: string
 ): Promise<boolean> {
-  const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
-  return data.length > 0;
+  try {
+    const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
+    return data.length > 0;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -196,3 +200,5 @@ export function mnemonicRestorerFromState(toRestore: Mnemonic) {
 export function masterPubKeyRestorerFromState(toRestore: MasterPublicKey) {
   return restorerFromState<MasterPublicKey>(toRestore);
 }
+
+// export function restorerFromChainAPI(chainAPI: ChainAPI): Restorer<
