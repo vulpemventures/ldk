@@ -200,5 +200,3 @@ export function mnemonicRestorerFromState(toRestore: Mnemonic) {
 export function masterPubKeyRestorerFromState(toRestore: MasterPublicKey) {
   return restorerFromState<MasterPublicKey>(toRestore);
 }
-
-// export function restorerFromChainAPI(chainAPI: ChainAPI): Restorer<
