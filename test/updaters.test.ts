@@ -12,13 +12,13 @@ import * as ecc from 'tiny-secp256k1';
 jest.setTimeout(100000);
 
 describe('Electrs', () => {
-  it('should fetch on mainnet using ElectrsBatchServer', async () => {
+  it.skip('should fetch on mainnet using ElectrsBatchServer', async () => {
     const id = new Mnemonic({
       chain: 'liquid',
       ecclib: ecc,
       type: IdentityType.Mnemonic,
       opts: {
-        mnemonic: ''
+        mnemonic: '',
       },
     });
 
