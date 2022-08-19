@@ -15,6 +15,8 @@ export * from './explorer/types';
 export * from './explorer/esplora';
 export * from './explorer/transaction';
 export * from './explorer/utxos';
+export * from './explorer/chainsync';
+export * from './explorer/api';
 
 export * from './transaction';
 export * from './wallet';
@@ -25,6 +27,7 @@ export * from './blinding';
 
 export * from './restorer/mnemonic-restorer';
 export * from './restorer/restorer';
+export * from './restorer/chainsync';
 
 export * from './script-analyser';
 export * from './descriptors';

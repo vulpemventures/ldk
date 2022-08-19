@@ -86,8 +86,12 @@ async function addressHasBeenUsed(
   address: string,
   esploraURL: string
 ): Promise<boolean> {
-  const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
-  return data.length > 0;
+  try {
+    const data = (await axios.get(`${esploraURL}/address/${address}/txs`)).data;
+    return data.length > 0;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
