@@ -108,10 +108,16 @@ export async function* txsFetchGenerator(
 export async function fetchAllTxs(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
-  api: ChainAPI
+  api: ChainAPI,
+  skip?: (tx: TxInterface) => boolean
 ): Promise<TxInterface[]> {
   const txs: TxInterface[] = [];
-  for await (const tx of txsFetchGenerator(addresses, blindingKeyGetter, api)) {
+  for await (const tx of txsFetchGenerator(
+    addresses,
+    blindingKeyGetter,
+    api,
+    skip
+  )) {
     txs.push(tx);
   }
   return txs;
@@ -120,13 +126,15 @@ export async function fetchAllTxs(
 export async function fetchAllUtxos(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
-  api: ChainAPI
+  api: ChainAPI,
+  skip?: (utxo: Output) => boolean
 ): Promise<UnblindedOutput[]> {
   const utxos: UnblindedOutput[] = [];
   for await (const utxo of utxosFetchGenerator(
     addresses,
     blindingKeyGetter,
-    api
+    api,
+    skip
   )) {
     utxos.push(utxo);
   }
