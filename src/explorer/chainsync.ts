@@ -1,20 +1,16 @@
 import { confidential } from 'liquidjs-lib';
-import {
-  BlindingKeyGetterAsync,
-  Output,
-  TxInterface,
-  UnblindedOutput,
-} from '../types';
+import { BlindingKeyGetterAsync, TxInterface, UnblindedOutput } from '../types';
 import { isConfidentialOutput } from '../utils';
 import { ChainAPI } from './api';
 import { unblindTransaction } from './transaction';
+import { EsploraTx, EsploraUtxo } from './types';
 import { tryToUnblindUtxo } from './utxos';
 
 export async function* utxosFetchGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
-  skip?: (utxo: Output) => boolean
+  skip?: (utxo: EsploraUtxo) => boolean
 ): AsyncGenerator<
   UnblindedOutput,
   { numberOfUtxos: number; errors: Error[] },
@@ -22,9 +18,8 @@ export async function* utxosFetchGenerator(
 > {
   let numberOfUtxos = 0;
   const errors = [];
-  const utxos = await api.fetchUtxos(addresses);
+  const utxos = await api.fetchUtxos(addresses, skip);
   for (const utxo of utxos) {
-    if (skip?.(utxo)) continue;
     try {
       if (!isConfidentialOutput(utxo.prevout)) {
         yield {
@@ -71,7 +66,7 @@ export async function* txsFetchGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
-  skip?: (tx: TxInterface) => boolean
+  skip?: (tx: EsploraTx) => boolean
 ): AsyncGenerator<
   TxInterface,
   { txIDs: string[]; errors: Error[] },
@@ -79,9 +74,8 @@ export async function* txsFetchGenerator(
 > {
   const txIDs: string[] = [];
   const errors: Error[] = [];
-  const transactions = await api.fetchTxs(addresses);
+  const transactions = await api.fetchTxs(addresses, skip);
   for (const tx of transactions) {
-    if (skip?.(tx)) continue;
     try {
       const { unblindedTx, errors: errs } = await unblindTransaction(
         tx,
@@ -109,7 +103,7 @@ export async function fetchAllTxs(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
-  skip?: (tx: TxInterface) => boolean
+  skip?: (tx: EsploraTx) => boolean
 ): Promise<TxInterface[]> {
   const txs: TxInterface[] = [];
   for await (const tx of txsFetchGenerator(
@@ -127,7 +121,7 @@ export async function fetchAllUtxos(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
-  skip?: (utxo: Output) => boolean
+  skip?: (utxo: EsploraUtxo) => boolean
 ): Promise<UnblindedOutput[]> {
   const utxos: UnblindedOutput[] = [];
   for await (const utxo of utxosFetchGenerator(
