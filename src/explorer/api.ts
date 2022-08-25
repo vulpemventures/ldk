@@ -204,7 +204,7 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
 
   async fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]> {
     const response = await this.axios.post(
-      `${this.batchServerURL}/txids/transactions/hex`,
+      `${this.batchServerURL}/transactions/hex`,
       { txids }
     );
     return response.data;
