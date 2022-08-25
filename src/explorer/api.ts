@@ -1,11 +1,18 @@
 import axios, { AxiosInstance } from 'axios';
 import { Transaction, TxOutput } from 'liquidjs-lib';
 import { InputInterface, Outpoint, Output, TxInterface } from '../types';
-import { EsploraTx } from './types';
+import { EsploraTx, EsploraUtxo } from './types';
 
 export interface ChainAPI {
-  fetchUtxos(addresses: string[]): Promise<Output[]>;
-  fetchTxs(addresses: string[]): Promise<TxInterface[]>;
+  fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]>;
+  fetchTxs(
+    addresses: string[],
+    skip?: (esploraTx: EsploraTx) => boolean
+  ): Promise<TxInterface[]>;
+  fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]>;
   addressesHasBeenUsed(addresses: string[]): Promise<boolean[]>;
 }
 
@@ -40,7 +47,10 @@ export class Electrs implements ChainAPI {
     return Promise.all(addresses.map(hasBeenUsed));
   }
 
-  async fetchUtxos(addresses: string[]): Promise<Output[]> {
+  async fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]> {
     const reqs = addresses.map(address =>
       this.axios.get(`${this.electrsURL}/address/${address}/utxo`)
     );
@@ -49,14 +59,25 @@ export class Electrs implements ChainAPI {
       r.status === 'fulfilled' ? r.value.data : []
     );
     const utxos = resolvedResponses.map(r => (r ? r : []));
-    return Promise.all(utxos.flat().map(this.outpointToUtxo()));
+    return Promise.all(
+      utxos
+        .flat()
+        .filter((u: EsploraUtxo) => (skip ? !skip(u) : true))
+        .map(this.outpointToUtxo())
+    );
   }
 
-  async fetchTxs(addresses: string[]): Promise<TxInterface[]> {
+  async fetchTxs(
+    addresses: string[],
+    skip?: (tx: EsploraTx) => boolean
+  ): Promise<TxInterface[]> {
     const esploraTxs = await Promise.all(
       addresses.map(this.fetchAllTxsForAddress())
     );
-    const txs = esploraTxs.flat().map(this.esploraTxToTxInterface());
+    const txs = esploraTxs
+      .flat()
+      .filter((tx: EsploraTx) => (skip ? !skip(tx) : true))
+      .map(esploraTxToTxInterface(ids => this.fetchTxsHex(ids)));
     return Promise.all(txs);
   }
 
@@ -65,8 +86,14 @@ export class Electrs implements ChainAPI {
     return h;
   }
 
+  async fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]> {
+    return Promise.all(
+      txids.map(async txid => ({ txid, hex: await this.fetchTxHex(txid) }))
+    );
+  }
+
   async fetchTx(txid: string): Promise<TxInterface> {
-    return this.esploraTxToTxInterface()(
+    return esploraTxToTxInterface(ids => this.fetchTxsHex(ids))(
       (await this.axios.get(`${this.electrsURL}/tx/${txid}`)).data
     );
   }
@@ -102,72 +129,6 @@ export class Electrs implements ChainAPI {
 
     const response = await this.axios.get(url);
     return response.data;
-  }
-
-  protected esploraTxToTxInterface() {
-    return async (esploraTx: EsploraTx): Promise<TxInterface> => {
-      const inputTxIds: string[] = [];
-      const inputVouts: number[] = [];
-
-      for (const input of esploraTx.vin) {
-        inputTxIds.push(input.txid);
-        inputVouts.push(input.vout);
-      }
-
-      const prevoutTxHexs = await Promise.all(
-        inputTxIds.map((txid, index) => {
-          if (!esploraTx.vin[index].is_pegin) return this.fetchTxHex(txid);
-          return Promise.resolve(undefined); // return undefined in case of pegin
-        })
-      );
-
-      const prevoutAsOutput = prevoutTxHexs.map(
-        (hex: string | undefined, index: number) => {
-          if (!hex) return undefined;
-          return makeOutput(
-            { txid: inputTxIds[index], vout: inputVouts[index] },
-            Transaction.fromHex(hex).outs[inputVouts[index]]
-          );
-        }
-      );
-
-      const txInputs: InputInterface[] = inputTxIds.map(
-        (txid: string, index: number) => {
-          return {
-            prevout: prevoutAsOutput[index],
-            txid: txid,
-            vout: inputVouts[index],
-            isPegin: esploraTx.vin[index].is_pegin,
-          };
-        }
-      );
-
-      const txHex = await this.fetchTxHex(esploraTx.txid);
-      const transaction = Transaction.fromHex(txHex);
-
-      const makeOutpoint = (index: number): Outpoint => ({
-        txid: esploraTx.txid,
-        vout: index,
-      });
-      const makeOutputFromTxout = (txout: TxOutput, index: number): Output =>
-        makeOutput(makeOutpoint(index), txout);
-      const txOutputs = transaction.outs.map(makeOutputFromTxout);
-
-      const tx: TxInterface = {
-        txid: esploraTx.txid,
-        vin: txInputs,
-        vout: txOutputs,
-        fee: esploraTx.fee,
-        status: {
-          confirmed: esploraTx.status.confirmed,
-          blockHash: esploraTx.status.block_hash,
-          blockHeight: esploraTx.status.block_height,
-          blockTime: esploraTx.status.block_time,
-        },
-      };
-
-      return tx;
-    };
   }
 
   protected outpointToUtxo() {
@@ -211,13 +172,14 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
     return results;
   }
 
-  async fetchUtxos(addresses: string[]): Promise<Output[]> {
-    console.time('addresses/utxo');
+  async fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]> {
     const response = await this.axios.post(
       `${this.batchServerURL}/addresses/utxo`,
       { addresses }
     );
-    console.timeEnd('addresses/utxo');
     if (response.status !== 200) {
       throw new Error(`Error fetching utxos: ${response.status}`);
     }
@@ -233,21 +195,38 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
       utxos.push(...utxo);
     }
 
-    return await Promise.all(utxos.map(super.outpointToUtxo()));
+    return await Promise.all(
+      utxos
+        .filter((u: EsploraUtxo) => (skip ? !skip(u) : true))
+        .map(super.outpointToUtxo())
+    );
   }
 
-  async fetchTxs(addresses: string[]): Promise<TxInterface[]> {
-    console.time('req');
+  async fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]> {
+    const response = await this.axios.post(
+      `${this.batchServerURL}/transactions/hex`,
+      { txids }
+    );
+    return response.data;
+  }
+
+  async fetchTxs(
+    addresses: string[],
+    skip?: (tx: EsploraTx) => boolean
+  ): Promise<TxInterface[]> {
     const response = await this.axios.post(
       `${this.batchServerURL}/addresses/transactions`,
       { addresses }
     );
-    console.timeEnd('req');
     const promises = [];
 
     for (const { transaction } of response.data) {
       if (transaction.length === 0) continue;
-      promises.push(...transaction.map(super.esploraTxToTxInterface()));
+      promises.push(
+        ...transaction
+          .filter((tx: EsploraTx) => (skip ? !skip(tx) : true))
+          .map(esploraTxToTxInterface(ids => this.fetchTxsHex(ids)))
+      );
     }
     return Promise.all(promises);
   }
@@ -258,5 +237,60 @@ function makeOutput(outpoint: Outpoint, txOutput: TxOutput): Output {
   return {
     ...outpoint,
     prevout: txOutput,
+  };
+}
+
+function esploraTxToTxInterface(
+  fetchTxFn: (txIDs: string[]) => Promise<{ txid: string; hex: string }[]>
+) {
+  return async (esploraTx: EsploraTx): Promise<TxInterface> => {
+    // make an unique call to the api to fetch all the transaction needed
+    // prevouts transactions (except pegin) + the current transaction
+    const transactions = await fetchTxFn([
+      ...esploraTx.vin.filter(input => !input.is_pegin).map(i => i.txid),
+      esploraTx.txid,
+    ]);
+
+    const makePrevout = ({ txid, vout }: Outpoint): Output => {
+      const hex = transactions.find(t => t.txid === txid);
+      if (!hex) throw new Error(`Could not find tx ${txid}`);
+      const prevout = Transaction.fromHex(hex.hex).outs[vout];
+      return makeOutput({ txid, vout }, prevout);
+    };
+
+    const txInputs: InputInterface[] = esploraTx.vin.map(input => ({
+      prevout: input.is_pegin ? undefined : makePrevout(input),
+      txid: input.txid,
+      vout: input.vout,
+      isPegin: input.is_pegin,
+    }));
+
+    const txHex = transactions.find(t => t.txid === esploraTx.txid)?.hex;
+    if (!txHex) throw new Error(`Could not find tx ${esploraTx.txid}`);
+    const transaction = Transaction.fromHex(txHex);
+
+    const makeOutpoint = (index: number): Outpoint => ({
+      txid: esploraTx.txid,
+      vout: index,
+    });
+
+    const makeOutputFromTxout = (txout: TxOutput, index: number): Output =>
+      makeOutput(makeOutpoint(index), txout);
+    const txOutputs = transaction.outs.map(makeOutputFromTxout);
+
+    const tx: TxInterface = {
+      txid: esploraTx.txid,
+      vin: txInputs,
+      vout: txOutputs,
+      fee: esploraTx.fee,
+      status: {
+        confirmed: esploraTx.status.confirmed,
+        blockHash: esploraTx.status.block_hash,
+        blockHeight: esploraTx.status.block_height,
+        blockTime: esploraTx.status.block_time,
+      },
+    };
+
+    return tx;
   };
 }
