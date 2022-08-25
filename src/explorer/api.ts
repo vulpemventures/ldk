@@ -1,11 +1,17 @@
 import axios, { AxiosInstance } from 'axios';
 import { Transaction, TxOutput } from 'liquidjs-lib';
 import { InputInterface, Outpoint, Output, TxInterface } from '../types';
-import { EsploraTx } from './types';
+import { EsploraTx, EsploraUtxo } from './types';
 
 export interface ChainAPI {
-  fetchUtxos(addresses: string[]): Promise<Output[]>;
-  fetchTxs(addresses: string[]): Promise<TxInterface[]>;
+  fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]>;
+  fetchTxs(
+    addresses: string[],
+    skip?: (esploraTx: EsploraTx) => boolean
+  ): Promise<TxInterface[]>;
   fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]>;
   addressesHasBeenUsed(addresses: string[]): Promise<boolean[]>;
 }
@@ -41,7 +47,10 @@ export class Electrs implements ChainAPI {
     return Promise.all(addresses.map(hasBeenUsed));
   }
 
-  async fetchUtxos(addresses: string[]): Promise<Output[]> {
+  async fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]> {
     const reqs = addresses.map(address =>
       this.axios.get(`${this.electrsURL}/address/${address}/utxo`)
     );
@@ -50,15 +59,24 @@ export class Electrs implements ChainAPI {
       r.status === 'fulfilled' ? r.value.data : []
     );
     const utxos = resolvedResponses.map(r => (r ? r : []));
-    return Promise.all(utxos.flat().map(this.outpointToUtxo()));
+    return Promise.all(
+      utxos
+        .flat()
+        .filter((u: EsploraUtxo) => (skip ? !skip(u) : true))
+        .map(this.outpointToUtxo())
+    );
   }
 
-  async fetchTxs(addresses: string[]): Promise<TxInterface[]> {
+  async fetchTxs(
+    addresses: string[],
+    skip?: (tx: EsploraTx) => boolean
+  ): Promise<TxInterface[]> {
     const esploraTxs = await Promise.all(
       addresses.map(this.fetchAllTxsForAddress())
     );
     const txs = esploraTxs
       .flat()
+      .filter((tx: EsploraTx) => (skip ? !skip(tx) : true))
       .map(esploraTxToTxInterface(ids => this.fetchTxsHex(ids)));
     return Promise.all(txs);
   }
@@ -154,7 +172,10 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
     return results;
   }
 
-  async fetchUtxos(addresses: string[]): Promise<Output[]> {
+  async fetchUtxos(
+    addresses: string[],
+    skip?: (utxo: EsploraUtxo) => boolean
+  ): Promise<Output[]> {
     const response = await this.axios.post(
       `${this.batchServerURL}/addresses/utxo`,
       { addresses }
@@ -174,7 +195,11 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
       utxos.push(...utxo);
     }
 
-    return await Promise.all(utxos.map(super.outpointToUtxo()));
+    return await Promise.all(
+      utxos
+        .filter((u: EsploraUtxo) => (skip ? !skip(u) : true))
+        .map(super.outpointToUtxo())
+    );
   }
 
   async fetchTxsHex(txids: string[]): Promise<{ txid: string; hex: string }[]> {
@@ -185,7 +210,10 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
     return response.data;
   }
 
-  async fetchTxs(addresses: string[]): Promise<TxInterface[]> {
+  async fetchTxs(
+    addresses: string[],
+    skip?: (tx: EsploraTx) => boolean
+  ): Promise<TxInterface[]> {
     const response = await this.axios.post(
       `${this.batchServerURL}/addresses/transactions`,
       { addresses }
@@ -195,7 +223,9 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
     for (const { transaction } of response.data) {
       if (transaction.length === 0) continue;
       promises.push(
-        ...transaction.map(esploraTxToTxInterface(ids => this.fetchTxsHex(ids)))
+        ...transaction
+          .filter((tx: EsploraTx) => (skip ? !skip(tx) : true))
+          .map(esploraTxToTxInterface(ids => this.fetchTxsHex(ids)))
       );
     }
     return Promise.all(promises);
