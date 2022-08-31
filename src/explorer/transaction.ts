@@ -155,7 +155,7 @@ export async function unblindTransaction(
   // try to unblind prevouts, if success replace blinded prevout by unblinded prevout
   for (let inputIndex = 0; inputIndex < tx.vin.length; inputIndex++) {
     const output = tx.vin[inputIndex].prevout;
-    if (output && isConfidentialOutput(output)) {
+    if (output && isConfidentialOutput(output.prevout)) {
       const promise = async () => {
         const blindingKey = await blindingPrivateKeyGetter(
           output.prevout.script.toString('hex')
