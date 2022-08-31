@@ -207,7 +207,7 @@ export class ElectrsBatchServer extends Electrs implements ChainAPI {
       `${this.batchServerURL}/transactions/hex`,
       { txids }
     );
-    return response.data;
+    return response.data || [];
   }
 
   async fetchTxs(
@@ -252,7 +252,7 @@ function esploraTxToTxInterface(
     ]);
 
     const makePrevout = ({ txid, vout }: Outpoint): Output => {
-      const hex = transactions.find(t => t.txid === txid);
+      const hex = transactions?.find(t => t.txid === txid);
       if (!hex) throw new Error(`Could not find tx ${txid}`);
       const prevout = Transaction.fromHex(hex.hex).outs[vout];
       return makeOutput({ txid, vout }, prevout);
@@ -265,7 +265,7 @@ function esploraTxToTxInterface(
       isPegin: input.is_pegin,
     }));
 
-    const txHex = transactions.find(t => t.txid === esploraTx.txid)?.hex;
+    const txHex = transactions?.find(t => t.txid === esploraTx.txid)?.hex;
     if (!txHex) throw new Error(`Could not find tx ${esploraTx.txid}`);
     const transaction = Transaction.fromHex(txHex);
 
