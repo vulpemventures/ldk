@@ -317,16 +317,10 @@ function calcInputsSize(withWitness: boolean, numInputs: number): number {
 }
 
 function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
-  // asset + value + empty nonce
-  const baseOutputSize = 33 + (isConfidential ? 33 : 9) + 1;
-  let size = baseOutputSize * numOutputs;
-
-  if (isConfidential) {
-    // rangeproof + surjectionproof + 32 bytes for nonce
-    size += (4174 + 67 + 32) * numOutputs;
-  }
-
-  return size;
+  // asset + value + nonce + proofs (if confidential)
+  const baseOutputSize =
+    33 + (isConfidential ? 33 : 9) + (isConfidential ? 4174 + 67 + 32 : 1);
+  return baseOutputSize * numOutputs;
 }
 
 function varIntSerializeSize(val: number): number {
