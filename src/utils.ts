@@ -1,3 +1,4 @@
+import BIP32Factory, { TinySecp256k1Interface } from 'bip32';
 import { setDefaultWordlist, validateMnemonic } from 'bip39';
 import b58 from 'bs58check';
 import {
@@ -272,4 +273,17 @@ export function groupBy<T extends Record<string, any>>(
     rv[k] = [...row, x];
     return rv;
   }, {} as Record<string, T[]>);
+}
+
+/**
+ * this function should be used only if you need to migrate from former MasterPublicKey.masterPublicKey to new one.
+ * DO NOT use this function to compute an xpub
+ */
+export function computeOldLDKxpub(
+  xpub: string,
+  ecc: TinySecp256k1Interface
+): string {
+  const bip32 = BIP32Factory(ecc);
+  const decoded = bip32.fromBase58(xpub);
+  return bip32.fromPublicKey(decoded.publicKey, decoded.chainCode).toBase58();
 }

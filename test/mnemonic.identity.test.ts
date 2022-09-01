@@ -12,6 +12,7 @@ import {
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import {
+  computeOldLDKxpub,
   IdentityOpts,
   IdentityType,
   Mnemonic,
@@ -470,24 +471,24 @@ describe('Identity: Mnemonic', () => {
   });
 });
 
-const tests = [
-  {
-    mnemonic:
-      'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
-    baseDerivationPath: "m/84'/0'/0'",
-    xpub:
-      'xpub6CDtoWw3acLw7xLBtNi4qdVn64Dtzhf4KLrYjGNErU3pmt1sYqPXquDYkf6kHHeiMmQGhPEQ5WyogbjCuGTZ46EeQVKkDmDb1nu2XWUDehT',
-  },
-  {
-    mnemonic:
-      'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
-    baseDerivationPath: "m/84'/4'/2'",
-    xpub:
-      'xpub6DTDDZV5YtVyN78BSCdsFtvUt4hJywiRXRhKewvAzmA5jHVfXxJHBY2m2j2WqUKZQBMfB31qWPoztqNcBuB8CuEL1YMfSvSmztwUB5Z4jgu',
-  },
-];
-
 describe('Mnemonic extended public key', () => {
+  const tests = [
+    {
+      mnemonic:
+        'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
+      baseDerivationPath: "m/84'/0'/0'",
+      xpub:
+        'xpub6CDtoWw3acLw7xLBtNi4qdVn64Dtzhf4KLrYjGNErU3pmt1sYqPXquDYkf6kHHeiMmQGhPEQ5WyogbjCuGTZ46EeQVKkDmDb1nu2XWUDehT',
+    },
+    {
+      mnemonic:
+        'envelope bubble dinner meat pumpkin despair eager inflict wet around cash mask',
+      baseDerivationPath: "m/84'/4'/2'",
+      xpub:
+        'xpub6DTDDZV5YtVyN78BSCdsFtvUt4hJywiRXRhKewvAzmA5jHVfXxJHBY2m2j2WqUKZQBMfB31qWPoztqNcBuB8CuEL1YMfSvSmztwUB5Z4jgu',
+    },
+  ];
+
   for (const t of tests) {
     it(`should derive the correct xpub with "${t.mnemonic}" and ${t.baseDerivationPath}`, async () => {
       const mnemonicId = new Mnemonic({
@@ -500,6 +501,23 @@ describe('Mnemonic extended public key', () => {
       });
       const xpub = mnemonicId.masterPublicKey;
       assert.deepStrictEqual(xpub, t.xpub);
+    });
+  }
+});
+
+describe('computeOldLDKxpub', () => {
+  const test = [
+    {
+      oldXPub:
+        'xpub661MyMwAqRbcG5vnRFXwaCfzduFwfZ5iPgy2UsjMdBzHcZZmFEkryzyEvxsrV34Sg4dfqjFyuc5psv1BA9smVfDWzSFS5nnx3BR2LNSyrCd',
+      xpub:
+        'xpub6Cnm8WGd1FKRWk7qbU4eTHwdas7oLLLyDpmCt1uD888uM3p7Q4dTi7rFfzMmUKuctLQNH3DRWocxsBvZV5mokc5Bm32vko4LNronynt4J4F',
+    },
+  ];
+
+  for (const t of test) {
+    it('should compute the right xpub from old one', () => {
+      assert.deepStrictEqual(computeOldLDKxpub(t.xpub, ecc), t.oldXPub);
     });
   }
 });
