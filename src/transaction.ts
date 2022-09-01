@@ -318,16 +318,13 @@ function calcInputsSize(withWitness: boolean, numInputs: number): number {
 
 function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
   // asset + value + empty nonce
-  const baseOutputSize = 33 + 33 + 1;
+  const baseOutputSize = 33 + (isConfidential ? 33 : 9) + 1;
   let size = baseOutputSize * numOutputs;
 
   if (isConfidential) {
     // rangeproof + surjectionproof + 32 bytes for nonce
     size += (4174 + 67 + 32) * numOutputs;
   }
-
-  // fee asset + fee empty nonce + fee value
-  size += 33 + 1 + 9;
 
   return size;
 }
