@@ -5522,7 +5522,7 @@ lines-and-columns@^1.1.6:
 
 "liquidjs-lib@github:altafan/liquidjs-lib#psetv2":
   version "6.0.2-liquid.7"
-  resolved "https://codeload.github.com/altafan/liquidjs-lib/tar.gz/8f8a16be47774b55ef844c0e000d1abd8ed50430"
+  resolved "https://codeload.github.com/altafan/liquidjs-lib/tar.gz/a31069b44a09ac21fda18209234f4abd646bb4de"
   dependencies:
     "@types/randombytes" "^2.0.0"
     "@types/wif" "^2.0.2"
