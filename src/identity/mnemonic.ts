@@ -1,12 +1,6 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
-import {
-  Psbt,
-  networks,
-  Pset,
-  BIP174SigningData,
-  script,
-} from 'liquidjs-lib';
+import { Psbt, networks, Pset, BIP174SigningData, script } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { SLIP77Factory, Slip77Interface } from 'slip77';

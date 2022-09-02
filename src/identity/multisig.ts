@@ -141,7 +141,7 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
         };
         signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
       }
-      i++
+      i++;
     }
 
     return pset.toBase64();
