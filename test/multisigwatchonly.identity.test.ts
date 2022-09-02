@@ -62,6 +62,12 @@ describe('Identity:  Multisig watch only', () => {
       assert.throws(() => multisig.signPset(''));
     });
   });
+  describe('MultisigWatchOnly.signPsetV2', () => {
+    it('should throw an error', () => {
+      const multisig = new MultisigWatchOnly(validOpts);
+      assert.throws(() => multisig.signPsetV2(''));
+    });
+  });
 
   describe('MultisigWatchOnly.getAddresses', () => {
     it('should return all the generated addresses', async () => {

@@ -2,11 +2,16 @@ import * as assert from 'assert';
 import {
   Psbt,
   Transaction,
-  confidential,
   networks,
   payments,
   address,
   AssetHash,
+  ElementsValue,
+  Pset,
+  Creator,
+  CreatorInput,
+  CreatorOutput,
+  Updater,
 } from 'liquidjs-lib';
 import {
   AddressInterface,
@@ -20,7 +25,7 @@ import * as ecc from 'tiny-secp256k1';
 import ECPairFactory from 'ecpair';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 // increase default timeout of jest
 jest.setTimeout(15000);
@@ -94,13 +99,13 @@ describe('Identity: Private key', () => {
         .addOutputs([
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(49999500),
+            value: ElementsValue.fromNumber(49999500).bytes,
             script: p2wpkh.output!,
             asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(60000000),
+            value: ElementsValue.fromNumber(60000000).bytes,
             script: Buffer.alloc(0),
             asset: lbtc.bytes,
           },
@@ -113,6 +118,42 @@ describe('Identity: Private key', () => {
         () =>
           (isValid = signedPsbt.validateSignaturesOfAllInputs(
             Psbt.ECDSASigValidator(ecc)
+          ))
+      );
+      assert.deepStrictEqual(isValid, true);
+    });
+  });
+  describe('PrivateKey.signPsetV2', () => {
+    it("should sign all the inputs with scriptPubKey = PrivateKey instance p2wpkh's scriptPubKey", async () => {
+      const { unconfidentialAddress } = address.fromConfidential(
+        p2wpkh.confidentialAddress!
+      );
+      await faucet(unconfidentialAddress);
+      const utxo = (await fetchUtxos(unconfidentialAddress))[0];
+      const prevoutHex = await fetchTxHex(utxo.txid);
+      const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+      const pset: Pset = Creator.newPset({
+        inputs: [new CreatorInput(utxo.txid, utxo.vout)],
+        outputs: [
+          new CreatorOutput(lbtc.hex, 99999500, p2wpkh.address),
+          new CreatorOutput(lbtc.hex, 500),
+        ],
+      });
+
+      const updater = new Updater(pset);
+      updater.addInWitnessUtxo(0, prevout);
+      updater.addInSighashType(0, Transaction.SIGHASH_ALL);
+
+      const privateKey = new PrivateKey(validOpts);
+      const signedBase64 = await privateKey.signPsetV2(pset.toBase64());
+      const signedPsbt = Pset.fromBase64(signedBase64);
+
+      let isValid = false;
+      assert.doesNotThrow(
+        () =>
+          (isValid = signedPsbt.validateAllSignatures(
+            Pset.ECDSASigValidator(ecc)
           ))
       );
       assert.deepStrictEqual(isValid, true);

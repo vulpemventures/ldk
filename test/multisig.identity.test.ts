@@ -8,6 +8,12 @@ import {
   confidential,
   TxOutput,
   AssetHash,
+  ElementsValue,
+  Pset,
+  Creator,
+  CreatorInput,
+  CreatorOutput,
+  Updater,
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 
@@ -25,7 +31,9 @@ import * as ecc from 'tiny-secp256k1';
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
+const receiver =
+  'el1qqtvxtcq8dk99vq53psrehwyn55fsrh9kuvr8yu8mtwaegkt3mjxauj3nfjnr8rsukhw56la23fzmzlr6ku20wuk04nlydw6qn';
 
 jest.setTimeout(60000);
 
@@ -107,13 +115,13 @@ describe('Identity:  Multisig', () => {
         .addOutputs([
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(49999500),
+            value: ElementsValue.fromNumber(49999500).bytes,
             script,
             asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(60000000),
+            value: ElementsValue.fromNumber(60000000).bytes,
             script: Buffer.alloc(0),
             asset: lbtc.bytes,
           },
@@ -139,6 +147,66 @@ describe('Identity:  Multisig', () => {
       assert.doesNotThrow(
         () =>
           (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
+      );
+      assert.deepStrictEqual(isValid, true);
+    });
+  });
+
+  describe('Multisig.signPsetV2', () => {
+    it('should sign the inputs of the previously generated addresses (2-of-3 signatures)', async () => {
+      const signer1 = new Multisig(validOpts);
+      const generated = await signer1.getNextAddress();
+
+      const { unconfidentialAddress } = address.fromConfidential(
+        generated.confidentialAddress
+      );
+      const txid = await faucet(unconfidentialAddress);
+      const utxo = (await fetchUtxos(unconfidentialAddress)).find(
+        u => u.txid === txid
+      );
+
+      const prevoutHex = await fetchTxHex(utxo.txid);
+      const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+      const pset = Creator.newPset({
+        inputs: [new CreatorInput(utxo.txid, utxo.vout)],
+        outputs: [
+          new CreatorOutput(lbtc.hex, 99999500, unconfidentialAddress),
+          new CreatorOutput(lbtc.hex, 500),
+        ],
+      });
+
+      const updater = new Updater(pset);
+
+      updater.addInWitnessUtxo(0, prevout);
+      updater.addInWitnessScript(
+        0,
+        Buffer.from(generated.witnessScript, 'hex')
+      );
+      updater.addInSighashType(0, Transaction.SIGHASH_ALL);
+
+      let signedBase64 = await signer1.signPsetV2(pset.toBase64());
+
+      // create the second signer
+      const signer2 = new Multisig({
+        ...validOpts,
+        opts: {
+          cosigners: [signer1.getXPub(), cosigners[1].getXPub()],
+          requiredSignatures: 2,
+          signer: { mnemonic: cosigners[0].mnemonic },
+        },
+      });
+      await signer2.getNextAddress(); // used to "restore" the address
+
+      signedBase64 = await signer2.signPsetV2(signedBase64);
+
+      const signedPset = Pset.fromBase64(signedBase64);
+      let isValid = false;
+      assert.doesNotThrow(
+        () =>
+          (isValid = signedPset.validateAllSignatures(
             Psbt.ECDSASigValidator(ecc)
           ))
       );
@@ -181,13 +249,13 @@ describe('Identity:  Multisig', () => {
         .addOutputs([
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(49999500),
+            value: ElementsValue.fromNumber(49999500).bytes,
             script,
             asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(60000000),
+            value: ElementsValue.fromNumber(60000000).bytes,
             script: Buffer.alloc(0),
             asset: lbtc.bytes,
           },
@@ -205,6 +273,57 @@ describe('Identity:  Multisig', () => {
       assert.doesNotThrow(
         () =>
           (isValid = signedPsbt.validateSignaturesOfAllInputs(
+            Psbt.ECDSASigValidator(ecc)
+          ))
+      );
+      assert.deepStrictEqual(isValid, true);
+    });
+  });
+
+  describe('Multisig.blindPsetV2', () => {
+    it('should blind the transaction', async () => {
+      const multisig = new Multisig(validOpts);
+      const generated = await multisig.getNextAddress();
+
+      const txid = await faucet(generated.confidentialAddress);
+      const utxo = (await fetchUtxos(generated.confidentialAddress)).find(
+        u => u.txid === txid
+      );
+
+      const prevoutHex = await fetchTxHex(utxo.txid);
+      const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+
+      const pset = Creator.newPset({
+        inputs: [new CreatorInput(utxo.txid, utxo.vout)],
+        outputs: [
+          new CreatorOutput(
+            lbtc.hex,
+            49999500,
+            generated.confidentialAddress,
+            0
+          ),
+          new CreatorOutput(lbtc.hex, 50000000, receiver, 0),
+          new CreatorOutput(lbtc.hex, 500, ''),
+        ],
+      });
+
+      const updater = new Updater(pset);
+
+      updater.addInWitnessUtxo(0, prevout);
+      updater.addInUtxoRangeProof(0, prevout.rangeProof!);
+      updater.addInWitnessScript(
+        0,
+        Buffer.from(generated.witnessScript, 'hex')
+      );
+      updater.addInSighashType(0, Transaction.SIGHASH_ALL);
+
+      const blindBase64 = await multisig.blindPsetV2(pset.toBase64(), true);
+      const signedBase64 = await multisig.signPsetV2(blindBase64);
+      const signedPset = Pset.fromBase64(signedBase64);
+      let isValid = false;
+      assert.doesNotThrow(
+        () =>
+          (isValid = signedPset.validateAllSignatures(
             Psbt.ECDSASigValidator(ecc)
           ))
       );
