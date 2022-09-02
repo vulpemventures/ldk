@@ -6,6 +6,7 @@ import {
   confidential,
   networks,
   address,
+  ElementsValue,
 } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import {
@@ -32,7 +33,7 @@ export function fromAssetHash(x: string): Buffer {
 }
 
 export function toNumber(x: Buffer): number {
-  return confidential.confidentialValueToSatoshi(x);
+  return ElementsValue.fromBytes(x).number;
 }
 
 export function isValidAmount(amount: number): boolean {
@@ -200,9 +201,7 @@ export async function unblindOutput(
       ...utxo,
       unblindData: {
         asset: utxo.prevout.asset.slice(1),
-        value: confidential
-          .confidentialValueToSatoshi(utxo.prevout.value)
-          .toString(10),
+        value: ElementsValue.fromBytes(utxo.prevout.value).number.toString(10),
         assetBlindingFactor: ZERO,
         valueBlindingFactor: ZERO,
       },

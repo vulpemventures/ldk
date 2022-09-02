@@ -13,7 +13,7 @@ import {
   Psbt,
   address as laddress,
   AssetHash,
-  confidential,
+  ElementsValue,
 } from 'liquidjs-lib';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 import { decodePset } from './utils';
@@ -212,8 +212,8 @@ export function addToTx(
     const script =
       address === '' ? Buffer.alloc(0) : laddress.toOutputScript(address);
     pset.addOutput({
-      asset: AssetHash.fromHex(asset, false).bytes,
-      value: confidential.satoshiToConfidentialValue(value),
+      asset: AssetHash.fromHex(asset).bytes,
+      value: ElementsValue.fromNumber(value).bytes,
       script,
       nonce,
     });
