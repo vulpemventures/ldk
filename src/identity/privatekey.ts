@@ -1,6 +1,12 @@
 import ECPairFactory, { ECPairInterface } from 'ecpair';
-import { Psbt, payments } from 'liquidjs-lib';
+import { Psbt, payments, script } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import {
+  Signer,
+  Pset,
+  BIP174SigningData,
+  OwnedInput,
+} from 'liquidjs-lib/src/psetv2';
 import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
 import { Identity, IdentityInterface, IdentityOpts } from './identity';
@@ -147,6 +153,57 @@ export class PrivateKey extends Identity implements IdentityInterface {
     );
 
     return pset.toBase64();
+  }
+
+  /**
+   * iterate through inputs and sign when it's possible, then returns the signed psetv2 (base64 encoded).
+   * @param psetBase64 the base64 encoded pset.
+   */
+  async signPsetV2(psetBase64: string): Promise<string> {
+    const pset = Pset.fromBase64(psetBase64);
+    const indexOfInputs: number[] = [];
+
+    pset.inputs.forEach((input, i) => {
+      if (input.sighashType === undefined) {
+        throw new Error(`Missing sighash type for input ${i}`);
+      }
+      const prevout = input.getUtxo();
+      if (!prevout) {
+        throw new Error(`Missing prevout for input ${i}`);
+      }
+      if (prevout.script.equals(this.scriptPubKey)) {
+        indexOfInputs.push(i);
+      }
+    });
+
+    const signer = new Signer(pset);
+    indexOfInputs.forEach(i => {
+      const sighashType = pset.inputs[i].sighashType!;
+      const preimage = pset.getInputPreimage(i, sighashType);
+      const sig: BIP174SigningData = {
+        partialSig: {
+          pubkey: this.signingKeyPair.publicKey,
+          signature: script.signature.encode(
+            this.signingKeyPair.sign(preimage),
+            sighashType
+          ),
+        },
+      };
+      signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
+    });
+
+    return pset.toBase64();
+  }
+
+  async blindPsetV2(
+    psetBase64: string,
+    lastBlinder: boolean,
+    unblindedInputs?: OwnedInput[]
+  ): Promise<string> {
+    return super.blindPsetV2WithSource(psetBase64, lastBlinder, {
+      unblindedInputs,
+      blindingKeys: [Buffer.from(this.blindingPrivateKey, 'hex')],
+    });
   }
 
   /**

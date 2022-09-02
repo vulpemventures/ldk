@@ -84,7 +84,7 @@
     "bip39": "^3.0.3",
     "bs58check": "^2.1.2",
     "ecpair": "^2.0.1",
-    "liquidjs-lib": "^6.0.2-liquid.7",
+    "liquidjs-lib": "github:altafan/liquidjs-lib#psetv2",
     "slip77": "^0.2.0",
     "tslib": "^2.3.1"
   }

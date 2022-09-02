@@ -1,5 +1,5 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
-import { BlindingDataLike, payments } from 'liquidjs-lib';
+import { BlindingDataLike, OwnedInput, payments } from 'liquidjs-lib';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
 import { AddressInterface, IdentityType } from '../types';
 import {
@@ -70,6 +70,17 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
       outputsPubKeys,
       inputsBlindingDataLike
     );
+  }
+
+  async blindPsetV2(
+    psetBase64: string,
+    lastBlinder: boolean,
+    unblindedInputs?: OwnedInput[]
+  ): Promise<string> {
+    return super.blindPsetV2WithSource(psetBase64, lastBlinder, {
+      unblindedInputs,
+      masterBlindingKey: this.masterBlindingKeyNode.masterKey,
+    });
   }
 
   isAbleToSign(): boolean {
@@ -182,6 +193,12 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   }
 
   signPset(_: string): Promise<string> {
+    throw new Error(
+      'MasterPublicKey is a watch only identity. Use Mnemonic to sign transactions'
+    );
+  }
+
+  signPsetV2(_: string): Promise<string> {
     throw new Error(
       'MasterPublicKey is a watch only identity. Use Mnemonic to sign transactions'
     );

@@ -1,8 +1,9 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import ECPairFactory from 'ecpair';
-import { address, networks, Psbt } from 'liquidjs-lib';
+import { address, networks, Psbt, script } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
+import { BIP174SigningData, Signer, Pset } from 'liquidjs-lib/src/psetv2';
 import { IdentityType, HDSignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 import { IdentityInterface, IdentityOpts } from './identity';
@@ -102,6 +103,45 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
     // wait that all signing promise resolved
     await Promise.all(signInputPromises);
     // return the signed pset, base64 encoded.
+    return pset.toBase64();
+  }
+
+  async signPsetV2(psetBase64: string): Promise<string> {
+    const pset = Pset.fromBase64(psetBase64);
+    const signer = new Signer(pset);
+
+    pset.inputs.forEach((input, i) => {
+      const sighashType = input.sighashType;
+      if (sighashType === undefined) {
+        throw new Error(`Missing sighash type for input ${i}`);
+      }
+      const prevout = input.getUtxo();
+      if (!prevout) {
+        throw new Error(`Missing prevout for input ${i}`);
+      }
+      const derivationPath = this.scriptToPath[prevout.script.toString('hex')];
+
+      if (derivationPath) {
+        // if there is an address generated for the input script: build the signing key pair.
+        const privKey = this.baseNode.derivePath(derivationPath).privateKey;
+        if (!privKey) throw new Error('signing private key is undefined');
+        const signingKeyPair = ECPairFactory(this.ecclib).fromPrivateKey(
+          privKey
+        );
+        const preimage = pset.getInputPreimage(i, sighashType);
+        const sig: BIP174SigningData = {
+          partialSig: {
+            pubkey: signingKeyPair.publicKey,
+            signature: script.signature.encode(
+              signingKeyPair.sign(preimage),
+              sighashType
+            ),
+          },
+        };
+        signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
+      }
+    });
+
     return pset.toBase64();
   }
 
