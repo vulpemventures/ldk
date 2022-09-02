@@ -110,7 +110,8 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
     const pset = Pset.fromBase64(psetBase64);
     const signer = new Signer(pset);
 
-    pset.inputs.forEach((input, i) => {
+    let i = 0;
+    for (const input of pset.inputs) {
       const sighashType = input.sighashType;
       if (sighashType === undefined) {
         throw new Error(`Missing sighash type for input ${i}`);
@@ -140,7 +141,8 @@ export class Multisig extends MultisigWatchOnly implements IdentityInterface {
         };
         signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
       }
-    });
+      i++
+    }
 
     return pset.toBase64();
   }

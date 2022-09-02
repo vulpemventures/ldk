@@ -3,7 +3,6 @@ import * as bip39 from 'bip39';
 import {
   Psbt,
   networks,
-  OwnedInput,
   Pset,
   BIP174SigningData,
   script,
@@ -110,17 +109,6 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     );
   }
 
-  async blindPsetV2(
-    psetBase64: string,
-    lastBlinder: boolean,
-    unblindedInputs?: OwnedInput[]
-  ): Promise<string> {
-    return super.blindPsetV2WithSource(psetBase64, lastBlinder, {
-      unblindedInputs,
-      masterBlindingKey: this.masterBlindingKeyNode.masterKey,
-    });
-  }
-
   isAbleToSign(): boolean {
     return true;
   }
@@ -183,7 +171,8 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     const pset = Pset.fromBase64(psetBase64);
     const signer = new Signer(pset);
 
-    pset.inputs.forEach((input, i) => {
+    let i = 0;
+    for (const input of pset.inputs) {
       const sighashType = input.sighashType;
       if (sighashType === undefined) {
         throw new Error(`Missing sighash type for input ${i}`);
@@ -216,7 +205,8 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
         };
         signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
       }
-    });
+      i++;
+    }
 
     return pset.toBase64();
   }
