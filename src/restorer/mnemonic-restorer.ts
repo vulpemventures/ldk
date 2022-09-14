@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { BIP44Account, BIP44Identity } from '../identity/bip44';
 import { IdentityInterface } from '../identity/identity';
 import { Multisig } from '../identity/multisig';
 import { MultisigWatchOnly } from '../identity/multisigWatchOnly';
@@ -199,4 +200,38 @@ export function mnemonicRestorerFromState(toRestore: Mnemonic) {
  */
 export function masterPubKeyRestorerFromState(toRestore: MasterPublicKey) {
   return restorerFromState<MasterPublicKey>(toRestore);
+}
+
+export type BIP44StateRestorerOpts = Array<StateRestorerOpts & BIP44Account>;
+
+export function BIP44restorerFromState<T extends BIP44Identity>(
+  bip44identity: T
+): Restorer<BIP44StateRestorerOpts, T> {
+  return async (opts: BIP44StateRestorerOpts) => {
+    for (const accountWithStateOpts of opts) {
+      const account = bip44identity.getAccount(accountWithStateOpts);
+      await restorerFromState(account)(accountWithStateOpts);
+    }
+    return bip44identity;
+  };
+}
+
+export type BIP44EsploraRestorerOpts = EsploraRestorerOpts & {
+  accounts: BIP44Account[];
+};
+
+export function BIP44restorerFromEsplora<T extends BIP44Identity>(
+  bip44Identity: T
+): Restorer<BIP44EsploraRestorerOpts, T> {
+  return async (opts: BIP44EsploraRestorerOpts) => {
+    for (const account of opts.accounts) {
+      const accountIdentity = bip44Identity.getAccount(account);
+      if (accountIdentity instanceof Mnemonic) {
+        await mnemonicRestorerFromEsplora(accountIdentity)(opts);
+      } else if (accountIdentity instanceof MasterPublicKey) {
+        await masterPubKeyRestorerFromEsplora(accountIdentity)(opts);
+      }
+    }
+    return bip44Identity;
+  };
 }

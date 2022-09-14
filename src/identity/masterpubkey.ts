@@ -27,7 +27,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
   private index: number = MasterPublicKey.INITIAL_INDEX;
   private changeIndex: number = MasterPublicKey.INITIAL_INDEX;
   protected scriptToAddressCache: Record<string, AddressInterfaceExtended> = {};
-  private baseDerivationPath: string;
+  readonly baseDerivationPath: string;
 
   readonly masterPublicKeyNode: BIP32Interface;
   readonly masterBlindingKeyNode: Slip77Interface;
@@ -91,7 +91,7 @@ export class MasterPublicKey extends Identity implements IdentityInterface {
    * Derives the script given as parameter to a keypair (SLIP77).
    * @param scriptPubKey script to derive.
    */
-  protected getBlindingKeyPair(
+  getBlindingKeyPair(
     scriptPubKey: string,
     checkScript = false
   ): { publicKey: Buffer; privateKey: Buffer } {

@@ -7,6 +7,7 @@ export * from './identity/masterpubkey';
 export * from './identity/browserinject';
 export * from './identity/multisig';
 export * from './identity/multisigWatchOnly';
+export * from './identity/bip44';
 
 export * from './coinselection/coinSelector';
 export * from './coinselection/greedy';

@@ -13,6 +13,8 @@ export enum IdentityType {
   Trezor,
   MultisigWatchOnly,
   Multisig,
+  BIP44Mnemonic,
+  BIP44MasterPublicKey,
 }
 
 /**

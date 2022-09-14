@@ -66,6 +66,7 @@ export interface IdentityOpts<optsT> {
  * Abstract class for Identity.
  */
 export class Identity {
+  chain: NetworkString;
   network: Network;
   type: IdentityType;
   ecclib: TinySecp256k1Interface;
@@ -82,6 +83,7 @@ export class Identity {
     this.network = (networks as Record<string, Network>)[args.chain];
     this.type = args.type;
     this.ecclib = args.ecclib;
+    this.chain = args.chain;
   }
 
   async blindPsetWithBlindKeysGetter(

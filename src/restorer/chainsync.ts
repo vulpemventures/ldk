@@ -1,13 +1,14 @@
 import { ChainAPI } from '../explorer/api';
+import { BIP44Identity } from '../identity/bip44';
 import { IdentityInterface } from '../identity/identity';
-import { Mnemonic } from '../identity/mnemonic';
+import { MasterPublicKey } from '../identity/masterpubkey';
 import { restorerFromState } from './mnemonic-restorer';
 import { Restorer } from './restorer';
 
 function makeRestorerFromChainAPI<T extends IdentityInterface>(
   id: T,
   getAddress: (isChange: boolean, index: number) => string
-): Restorer<{ api: ChainAPI; gapLimit: number }, IdentityInterface> {
+): Restorer<{ api: ChainAPI; gapLimit: number }, T> {
   return async ({ gapLimit, api }) => {
     const restoreFunc = async function(
       getAddrFunc: (index: number) => Promise<string>
@@ -64,10 +65,32 @@ function makeRestorerFromChainAPI<T extends IdentityInterface>(
   };
 }
 
-export function mnemonicRestorerFromChain(mnemonicToRestore: Mnemonic) {
-  return makeRestorerFromChainAPI<Mnemonic>(
+export function mnemonicRestorerFromChain<T extends MasterPublicKey>(
+  mnemonicToRestore: T
+) {
+  return makeRestorerFromChainAPI<T>(
     mnemonicToRestore,
     (isChange, index) =>
       mnemonicToRestore.getAddress(isChange, index).address.confidentialAddress
   );
+}
+
+export function BIP44RestorerFromChain<T extends BIP44Identity>(
+  identityToRestore: T
+): Restorer<{ api: ChainAPI; gapLimit: number }, T> {
+  const restorers: Restorer<
+    { api: ChainAPI; gapLimit: number },
+    MasterPublicKey
+  >[] = [];
+  for (const account of identityToRestore.accounts) {
+    restorers.push(mnemonicRestorerFromChain(account));
+  }
+
+  return async ({ gapLimit, api }) => {
+    const restoredAccounts = await Promise.all(
+      restorers.map(r => r({ gapLimit, api }))
+    );
+    identityToRestore.accounts = restoredAccounts;
+    return identityToRestore;
+  };
 }
