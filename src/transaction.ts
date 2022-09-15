@@ -14,9 +14,10 @@ import {
   address as laddress,
   AssetHash,
   confidential,
+  address,
 } from 'liquidjs-lib';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
-import { decodePset } from './utils';
+import { decodePset, isConfidentialOutput } from './utils';
 
 export function craftSingleRecipientPset(
   unspents: UnblindedOutput[],
@@ -36,10 +37,21 @@ export function craftSingleRecipientPset(
     changeAddressByAsset
   );
 
+  let nbConfOutputs = 0;
+  let nbUnconfOutputs = 1; // init to 1 for the future fee output
+
+  if (address.isConfidential(recipient.address)) nbConfOutputs++;
+  else nbUnconfOutputs++;
+
+  for (const change of firstSelection.changeOutputs) {
+    if (address.isConfidential(change.address)) nbConfOutputs++;
+    else nbUnconfOutputs++;
+  }
+
   const fee = createFeeOutput(
     firstSelection.selectedUtxos.length,
-    // Change outputs + 1 recipient + 1 fee
-    firstSelection.changeOutputs.length + 2,
+    nbConfOutputs,
+    nbUnconfOutputs,
     satsPerByte,
     network.assetHash
   );
@@ -172,25 +184,43 @@ function createFeeOutputFromPset(
   const pset = decodePset(psetBase64);
   const nbInputs =
     pset.data.inputs.length + firstSelection.selectedUtxos.length + 1;
-  let nbOutputs =
-    pset.data.outputs.length +
-    recipients.length +
-    firstSelection.changeOutputs.length +
-    1;
+
+  let nbConfOutputs = 0;
+  let nbUnconfOutputs = 1; // init to 1 for the future fee output
+  for (const output of pset.TX.outs) {
+    if (isConfidentialOutput(output)) nbConfOutputs++;
+    else nbUnconfOutputs++;
+  }
+
+  for (const recipient of recipients) {
+    if (address.isConfidential(recipient.address)) nbConfOutputs++;
+    else nbUnconfOutputs++;
+  }
 
   const feeAssetHash = laddress.getNetwork(recipients[0].address).assetHash;
-  const fee = createFeeOutput(nbInputs, nbOutputs, satsPerByte!, feeAssetHash);
+  const fee = createFeeOutput(
+    nbInputs,
+    nbConfOutputs,
+    nbUnconfOutputs,
+    satsPerByte!,
+    feeAssetHash
+  );
   return fee;
 }
 
 // this function create a recipient interface for Fee output using tx size estimation
 export function createFeeOutput(
   numInputs: number,
-  numOutputs: number,
+  numConfidentialOutputs: number,
+  numUnconfidentialOutputs: number,
   satsPerByte: number,
   assetHash: string
 ): RecipientInterface {
-  const sizeEstimation = estimateTxSize(numInputs, numOutputs);
+  const sizeEstimation = estimateTxSize(
+    numInputs,
+    numConfidentialOutputs,
+    numUnconfidentialOutputs
+  );
   const feeEstimation = Math.ceil(sizeEstimation * satsPerByte);
 
   return {
@@ -231,9 +261,24 @@ export function addToTx(
 }
 
 // estimate segwit transaction size in bytes depending on number of inputs and outputs
-export function estimateTxSize(numInputs: number, numOutputs: number): number {
-  const base = calcTxSize(false, numInputs, numOutputs, false);
-  const total = calcTxSize(true, numInputs, numOutputs, true);
+export function estimateTxSize(
+  numInputs: number,
+  numConfidentialOutputs: number,
+  numUnconfidentialOutputs: number
+): number {
+  // we do not include confidential proofs in the base size estimation
+  const base = calcTxSize(
+    false,
+    numInputs,
+    0,
+    numConfidentialOutputs + numUnconfidentialOutputs
+  );
+  const total = calcTxSize(
+    true,
+    numInputs,
+    numConfidentialOutputs,
+    numUnconfidentialOutputs
+  );
   const weight = base * 3 + total;
   const vsize = (weight + 3) / 4;
 
@@ -243,15 +288,17 @@ export function estimateTxSize(numInputs: number, numOutputs: number): number {
 function calcTxSize(
   withWitness: boolean,
   numInputs: number,
-  numOutputs: number,
-  isConfidential: boolean
+  numConfidentialOutputs: number,
+  numUnconfidentialOutputs: number
 ) {
   const inputsSize = calcInputsSize(withWitness, numInputs);
-  const outputsSize = calcOutputsSize(isConfidential, numOutputs);
+  const outputsSize =
+    calcOutputsSize(true, numConfidentialOutputs) +
+    calcOutputsSize(false, numUnconfidentialOutputs);
 
   return (
     9 +
-    varIntSerializeSize(numOutputs) +
+    varIntSerializeSize(numConfidentialOutputs + numUnconfidentialOutputs) +
     varIntSerializeSize(numInputs) +
     inputsSize +
     outputsSize
@@ -270,19 +317,10 @@ function calcInputsSize(withWitness: boolean, numInputs: number): number {
 }
 
 function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
-  // asset + value + empty nonce
-  const baseOutputSize = 33 + 33 + 1;
-  let size = baseOutputSize * numOutputs;
-
-  if (isConfidential) {
-    // rangeproof + surjectionproof + 32 bytes for nonce
-    size += (4174 + 67 + 32) * numOutputs;
-  }
-
-  // fee asset + fee empty nonce + fee value
-  size += 33 + 1 + 9;
-
-  return size;
+  // asset + value + nonce + proofs (if confidential)
+  const baseOutputSize =
+    33 + (isConfidential ? 33 : 9) + (isConfidential ? 4174 + 67 + 32 : 1);
+  return baseOutputSize * numOutputs;
 }
 
 function varIntSerializeSize(val: number): number {
