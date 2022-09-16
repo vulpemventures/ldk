@@ -47,7 +47,6 @@ export async function* utxosFetchGenerator(
       yield unblindedUtxo;
       numberOfUtxos++;
     } catch (err) {
-      console.log(err);
       if (err instanceof Error) {
         errors.push(err);
       }

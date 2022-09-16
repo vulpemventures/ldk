@@ -11,13 +11,13 @@ import {
 } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import {
-  BIP44MnemonicOpts,
+  CointypeMnemonic,
+  CointypeMnemonicOpts,
+  cointypeRestorerFromEsplora,
+  cointypeRestorerFromState,
   IdentityOpts,
   IdentityType,
-  BIP44Mnemonic,
   MnemonicOpts,
-  BIP44restorerFromState,
-  BIP44restorerFromEsplora,
 } from '../src';
 import * as ecc from 'tiny-secp256k1';
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
@@ -27,13 +27,13 @@ const lbtc = AssetHash.fromHex(network.assetHash, false);
 
 jest.setTimeout(500_000);
 
-const validOpts: IdentityOpts<BIP44MnemonicOpts> = {
+const validOpts: IdentityOpts<CointypeMnemonicOpts> = {
   chain: 'regtest',
-  type: IdentityType.BIP44Mnemonic,
+  type: IdentityType.CointypeMnemonic,
   ecclib: ecc,
   opts: {
     mnemonic:
-      'barely aerobic fresh half love truck uncle final like seminar clump agree spoon bracket vicious',
+      'onion patch term elite chest family body boil pass extend dog peasant inmate asset need',
   },
 };
 
@@ -58,38 +58,38 @@ const unvalidMnemonicOpts: IdentityOpts<MnemonicOpts> = {
   },
 };
 
-describe('Identity: BIP44Mnemonic', () => {
+describe('Identity: CointypeMnemonic', () => {
   describe('Constructor', () => {
-    const validMnemonic = new BIP44Mnemonic(validOpts);
+    const validMnemonic = new CointypeMnemonic(validOpts);
 
-    it('should build a valid BIP44Mnemonic class if the constructor arguments are valid', () => {
-      assert.deepStrictEqual(validMnemonic instanceof BIP44Mnemonic, true);
+    it('should build a valid CointypeMnemonic class if the constructor arguments are valid', () => {
+      assert.deepStrictEqual(validMnemonic instanceof CointypeMnemonic, true);
     });
 
     it('should work if a language is specified', () => {
-      const frenchMnemonic = new BIP44Mnemonic(validOptsFrench);
-      assert.deepStrictEqual(frenchMnemonic instanceof BIP44Mnemonic, true);
+      const frenchMnemonic = new CointypeMnemonic(validOptsFrench);
+      assert.deepStrictEqual(frenchMnemonic instanceof CointypeMnemonic, true);
     });
 
-    it('should throw an error if type is not IdentityType.BIP44Mnemonic', () => {
-      assert.throws(() => new BIP44Mnemonic(unvalidTypeOpts));
+    it('should throw an error if type is not IdentityType.CointypeMnemonic', () => {
+      assert.throws(() => new CointypeMnemonic(unvalidTypeOpts));
     });
 
     it('should throw an error if the mnemonic is unvalid', () => {
-      assert.throws(() => new BIP44Mnemonic(unvalidMnemonicOpts));
+      assert.throws(() => new CointypeMnemonic(unvalidMnemonicOpts));
     });
   });
 
-  describe('BIP44Mnemonic.isAbleToSign', () => {
+  describe('CointypeMnemonic.isAbleToSign', () => {
     it('should return true', () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       assert.deepStrictEqual(mnemonic.isAbleToSign(), true);
     });
   });
 
-  describe('BIP44Mnemonic.signPset', () => {
+  describe('CointypeMnemonic.signPset', () => {
     it('should sign the inputs of the previously generated addresses', async () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       const generated = await mnemonic.getNextAddress({
         cointype: 1776,
         account: 0,
@@ -142,9 +142,9 @@ describe('Identity: BIP44Mnemonic', () => {
     });
   });
 
-  describe('BIP44Mnemonic.blindPset', () => {
+  describe('CointypeMnemonic.blindPset', () => {
     it('should blind the transaction', async () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       const generated = await mnemonic.getNextAddress({
         cointype: 1776,
         account: 0,
@@ -210,7 +210,7 @@ describe('Identity: BIP44Mnemonic', () => {
     });
 
     it('should throw an error if one of the output to blind does not contain blinding public key (and it is not an identity script)', async () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       const generated = await mnemonic.getNextAddress({
         cointype: 1776,
         account: 0,
@@ -252,9 +252,9 @@ describe('Identity: BIP44Mnemonic', () => {
     });
   });
 
-  describe('BIP44Mnemonic.getAddresses', () => {
+  describe('CointypeMnemonic.getAddresses', () => {
     it('should return all the generated addresses', async () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       const generated1 = await mnemonic.getNextAddress({
         cointype: 1776,
         account: 0,
@@ -270,9 +270,9 @@ describe('Identity: BIP44Mnemonic', () => {
     });
   });
 
-  describe('BIP44Mnemonic.getBlindingPrivateKey', () => {
+  describe('CointypeMnemonic.getBlindingPrivateKey', () => {
     it('should return the privateKey according to slip77 spec', async () => {
-      const mnemonic = new BIP44Mnemonic(validOpts);
+      const mnemonic = new CointypeMnemonic(validOpts);
       const {
         confidentialAddress,
         blindingPrivateKey,
@@ -291,14 +291,14 @@ describe('Identity: BIP44Mnemonic', () => {
       );
     });
   });
-  describe('BIP44Mnemonic restoration', () => {
-    describe('BIP44Mnemonic restoration (from Esplora)', () => {
-      let mnemonic: BIP44Mnemonic;
-      let restoredMnemonic: BIP44Mnemonic;
+  describe('CointypeMnemonic restoration', () => {
+    describe('CointypeMnemonic restoration (from Esplora)', () => {
+      let mnemonic: CointypeMnemonic;
+      let restoredMnemonic: CointypeMnemonic;
 
       beforeAll(async () => {
         const numberOfAddresses = 21;
-        mnemonic = new BIP44Mnemonic(validOpts);
+        mnemonic = new CointypeMnemonic(validOpts);
         // faucet all the addresses
         for (let i = 0; i < numberOfAddresses; i++) {
           const addr = await mnemonic.getNextAddress({
@@ -314,14 +314,16 @@ describe('Identity: BIP44Mnemonic', () => {
             await faucet(changeAddr.confidentialAddress);
           }
         }
-        const toRestoreMnemonic = new BIP44Mnemonic({
+        const toRestoreMnemonic = new CointypeMnemonic({
           ...validOpts,
         });
-        restoredMnemonic = await BIP44restorerFromEsplora(toRestoreMnemonic)({
-          gapLimit: 30,
-          esploraURL: 'http://localhost:3001',
-          accounts: [{ cointype: 1776, account: 0 }],
-        });
+        restoredMnemonic = await cointypeRestorerFromEsplora(toRestoreMnemonic)(
+          {
+            gapLimit: 30,
+            esploraURL: 'http://localhost:3001',
+            accounts: [{ cointype: 1776, account: 0 }],
+          }
+        );
       });
 
       it('should restore already used addresses', async () => {
@@ -361,9 +363,9 @@ describe('Identity: BIP44Mnemonic', () => {
       });
     });
 
-    describe('BIP44Mnemonic restoration (from State)', () => {
-      const restorer = BIP44restorerFromState<BIP44Mnemonic>(
-        new BIP44Mnemonic({
+    describe('CointypeMnemonic restoration (from State)', () => {
+      const restorer = cointypeRestorerFromState<CointypeMnemonic>(
+        new CointypeMnemonic({
           ...validOpts,
         })
       );
@@ -381,7 +383,7 @@ describe('Identity: BIP44Mnemonic', () => {
         assert.deepStrictEqual(
           (await restored.getNextAddress({ cointype: 1776, account: 0 }))
             .derivationPath,
-          "m/44'/1776'/0'/0/16"
+          "m/84'/1776'/0'/0/16"
         );
       });
     });

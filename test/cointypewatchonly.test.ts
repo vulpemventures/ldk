@@ -4,32 +4,32 @@ import * as ecc from 'tiny-secp256k1';
 import {
   IdentityOpts,
   IdentityType,
-  BIP44MasterPublicKey,
-  BIP44MasterPublicKeyOpts,
-  BIP44restorerFromEsplora,
+  CointypeWatchOnly,
+  CointypeWatchOnlyOpts,
+  cointypeRestorerFromEsplora,
 } from '../src';
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
-const validOpts: IdentityOpts<BIP44MasterPublicKeyOpts> = {
+const validOpts: IdentityOpts<CointypeWatchOnlyOpts> = {
   chain: 'regtest',
   ecclib: ecc,
-  type: IdentityType.BIP44MasterPublicKey,
+  type: IdentityType.CointypeWatchOnly,
   opts: {
     masterBlindingKey:
-      '0b7616adc564e4d155453f086f7b7f41dbcb56b343b740746dec06d9b61c31aa',
+      '421e0d75a1b27143dab957e9f2a41712a885e3b6332abfb4063a719ddac5125f',
     accounts: [
       {
         masterPublicKey:
-          'xpub6DR4jgbx6dunzs4EXDfRZ6qHNFbkDmZqryUJK2xiH9fWtNuzZ3nob42hCDNqXbqE1ChEhJTPzyU3eADFDJpg3YmKG5ZVDczn7HuwP7wm5QD',
-        derivationPath: "m/44'/1776'/0'",
+          'xpub6BpYi2MgsY6a2DJmfjmHT6BhKLRRHaET7oDxPPyMRFM6CgMymhThfUbgWXXrAasHi9jnRufXmuGUcg4CwwSTNRe5onEGKmhE5XNBHZTpUUu',
+        derivationPath: "m/84'/1776'/0'",
       },
     ],
   },
 };
 
-const invalidKeysOpts: IdentityOpts<BIP44MasterPublicKeyOpts> = {
+const invalidKeysOpts: IdentityOpts<CointypeWatchOnlyOpts> = {
   ...validOpts,
   opts: {
     accounts: [
@@ -42,7 +42,7 @@ const invalidKeysOpts: IdentityOpts<BIP44MasterPublicKeyOpts> = {
   },
 };
 
-const wrongTypeOpts: IdentityOpts<BIP44MasterPublicKeyOpts> = {
+const wrongTypeOpts: IdentityOpts<CointypeWatchOnlyOpts> = {
   ...validOpts,
   type: IdentityType.Mnemonic,
 };
@@ -50,36 +50,36 @@ const wrongTypeOpts: IdentityOpts<BIP44MasterPublicKeyOpts> = {
 describe('Identity: Master Pub Key', () => {
   describe('Constructor', () => {
     it('should build a valid MasterPubkey class instance if the constructor arguments are valid', () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
-      assert.deepStrictEqual(pubKey instanceof BIP44MasterPublicKey, true);
+      const pubKey = new CointypeWatchOnly(validOpts);
+      assert.deepStrictEqual(pubKey instanceof CointypeWatchOnly, true);
     });
 
     it('should throw an error if the identity type is not IdentityType.MasterPubKey', () => {
-      assert.throws(() => new BIP44MasterPublicKey(wrongTypeOpts));
+      assert.throws(() => new CointypeWatchOnly(wrongTypeOpts));
     });
 
     it('should throw an error if the masterPublicKey and masterBlindingKey are not valid key', () => {
-      assert.throws(() => new BIP44MasterPublicKey(invalidKeysOpts));
+      assert.throws(() => new CointypeWatchOnly(invalidKeysOpts));
     });
   });
 
   describe('isAbleToSign', () => {
     it('should return false', () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
       assert.deepStrictEqual(pubKey.isAbleToSign(), false);
     });
   });
 
   describe('MasterPubKey.signPset', () => {
     it('should throw an error', () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
       assert.throws(() => pubKey.signPset(''));
     });
   });
 
   describe('MasterPubKey.getAddresses', () => {
     it('should return all the generated addresses', async () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
       const addr0 = await pubKey.getNextAddress({ cointype: 1776, account: 0 });
       const addr1 = await pubKey.getNextAddress({ cointype: 1776, account: 0 });
 
@@ -89,21 +89,21 @@ describe('Identity: Master Pub Key', () => {
     });
 
     it('should throw an error if account is unknown', async () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
       assert.throws(() =>
         pubKey.getNextAddress({ cointype: 1776, account: 1 })
       );
     });
 
     it('should throw an error if coinType is unknown', async () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
       assert.throws(() => pubKey.getNextAddress({ cointype: 0, account: 0 }));
     });
   });
 
   describe('MasterPubKey.getBlindingPrivateKey', () => {
     it('should return privateKey according to slip77 spec', async () => {
-      const pubKey = new BIP44MasterPublicKey(validOpts);
+      const pubKey = new CointypeWatchOnly(validOpts);
 
       const {
         confidentialAddress,
@@ -125,12 +125,12 @@ describe('Identity: Master Pub Key', () => {
   });
 
   describe('MasterPubKey.restore', () => {
-    let pubkey: BIP44MasterPublicKey;
-    let restoredPubKey: BIP44MasterPublicKey;
+    let pubkey: CointypeWatchOnly;
+    let restoredPubKey: CointypeWatchOnly;
 
     beforeAll(async () => {
       const numberOfAddresses = 2;
-      pubkey = new BIP44MasterPublicKey(validOpts);
+      pubkey = new CointypeWatchOnly(validOpts);
       // faucet all the addresses
       for (let i = 0; i < numberOfAddresses; i++) {
         const addr = await pubkey.getNextAddress({
@@ -146,8 +146,8 @@ describe('Identity: Master Pub Key', () => {
       }
       await sleep(3000);
 
-      const toRestorePubKey = new BIP44MasterPublicKey({ ...validOpts });
-      restoredPubKey = await BIP44restorerFromEsplora(toRestorePubKey)({
+      const toRestorePubKey = new CointypeWatchOnly({ ...validOpts });
+      restoredPubKey = await cointypeRestorerFromEsplora(toRestorePubKey)({
         gapLimit: 20,
         esploraURL: 'http://localhost:3001',
         accounts: [{ account: 0, cointype: 1776 }],

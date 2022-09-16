@@ -1,5 +1,5 @@
 import { ChainAPI } from '../explorer/api';
-import { BIP44Identity } from '../identity/bip44';
+import { CointypeIdentity } from '../identity/cointype';
 import { IdentityInterface } from '../identity/identity';
 import { MasterPublicKey } from '../identity/masterpubkey';
 import { restorerFromState } from './mnemonic-restorer';
@@ -75,7 +75,7 @@ export function mnemonicRestorerFromChain<T extends MasterPublicKey>(
   );
 }
 
-export function BIP44RestorerFromChain<T extends BIP44Identity>(
+export function cointypeRestorerFromChain<T extends CointypeIdentity>(
   identityToRestore: T
 ): Restorer<{ api: ChainAPI; gapLimit: number }, T> {
   const restorers: Restorer<

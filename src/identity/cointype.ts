@@ -7,10 +7,10 @@ import { Identity, IdentityInterface, IdentityOpts } from './identity';
 import { MasterPublicKey, MasterPublicKeyOpts } from './masterpubkey';
 import { Mnemonic, MnemonicOpts } from './mnemonic';
 
-// Params needed by BIP44 address derivation
+// Params needed by BIP84 address derivation
 // defines an hardened coin account derivation path
 // use "type" instead of "interface" to be compliant with identityInterface
-export type BIP44Account = {
+export type CointypeAccount = {
   cointype: number;
   account: number;
 };
@@ -20,35 +20,35 @@ export interface MasterKeyWithAccountPath {
   derivationPath: string;
 }
 
-export interface BIP44MasterPublicKeyOpts {
+export interface CointypeWatchOnlyOpts {
   accounts: MasterKeyWithAccountPath[];
   masterBlindingKey: MasterPublicKeyOpts['masterBlindingKey'];
 }
 
-export function derivationPathBIP44(cointype: number, account: number) {
-  return `m/44'/${cointype}'/${account}'`;
+export function derivationPathBIP84(cointype: number, account: number) {
+  return `m/84'/${cointype}'/${account}'`;
 }
 
-export class BIP44NoAccountError extends Error {
+export class NoAccountError extends Error {
   constructor(account: number, coinType: number) {
     super(`No account #${account} for coin type ${coinType}`);
   }
 }
 
-export type BIP44Identity<
+export type CointypeIdentity<
   T extends MasterPublicKey = MasterPublicKey
 > = IdentityInterface & {
-  getAccount: (opts: BIP44Account) => T;
+  getAccount: (opts: CointypeAccount) => T;
   accounts: T[];
 };
 
-export class BIP44MasterPublicKey extends Identity
-  implements BIP44Identity<MasterPublicKey> {
+export class CointypeWatchOnly extends Identity
+  implements CointypeIdentity<MasterPublicKey> {
   readonly accounts: MasterPublicKey[] = [];
 
-  constructor(args: IdentityOpts<BIP44MasterPublicKeyOpts>) {
+  constructor(args: IdentityOpts<CointypeWatchOnlyOpts>) {
     super(args);
-    checkIdentityType(args.type, IdentityType.BIP44MasterPublicKey);
+    checkIdentityType(args.type, IdentityType.CointypeWatchOnly);
     this.accounts = args.opts.accounts.map(accountAndKey => {
       return new MasterPublicKey({
         ...args,
@@ -62,15 +62,15 @@ export class BIP44MasterPublicKey extends Identity
     });
   }
 
-  getAccount(param: BIP44Account): MasterPublicKey {
+  getAccount(param: CointypeAccount): MasterPublicKey {
     const masterPublicKey = this.accounts.find(masterPublicKey => {
       return (
         masterPublicKey.baseDerivationPath ===
-        derivationPathBIP44(param.cointype, param.account)
+        derivationPathBIP84(param.cointype, param.account)
       );
     });
     if (!masterPublicKey) {
-      throw new BIP44NoAccountError(param.account, param.cointype);
+      throw new NoAccountError(param.account, param.cointype);
     }
     return masterPublicKey;
   }
@@ -89,11 +89,11 @@ export class BIP44MasterPublicKey extends Identity
     throw new Error('Blinding key pair not found');
   }
 
-  getNextAddress(params: BIP44Account): Promise<AddressInterface> {
+  getNextAddress(params: CointypeAccount): Promise<AddressInterface> {
     return this.getAccount(params).getNextAddress();
   }
 
-  getNextChangeAddress(params: BIP44Account): Promise<AddressInterface> {
+  getNextChangeAddress(params: CointypeAccount): Promise<AddressInterface> {
     return this.getAccount(params).getNextChangeAddress();
   }
 
@@ -134,14 +134,20 @@ export class BIP44MasterPublicKey extends Identity
   }
 }
 
-export type BIP44MnemonicOpts = Omit<MnemonicOpts, 'baseDerivationPath'>;
+export type CointypeMnemonicOpts = Omit<MnemonicOpts, 'baseDerivationPath'>;
 
-export class BIP44Mnemonic extends Identity implements BIP44Identity<Mnemonic> {
-  readonly opts: BIP44MnemonicOpts;
+/**
+ * @class CointypeMnemonic
+ * @classdesc CointypeMnemonic is a class that represents a mnemonic identity with multiple accounts for different cointypes, each account is the hardened derivation of the cointype + account index (m/84'/cointype'/account')
+ * the identity is able to sign pset
+ */
+export class CointypeMnemonic extends Identity
+  implements CointypeIdentity<Mnemonic> {
+  readonly opts: CointypeMnemonicOpts;
   readonly masterBlindingKey: string;
   readonly accounts: Mnemonic[] = [];
 
-  constructor(args: IdentityOpts<BIP44MnemonicOpts>) {
+  constructor(args: IdentityOpts<CointypeMnemonicOpts>) {
     super(args);
     if (
       !validateMnemonic(
@@ -152,7 +158,7 @@ export class BIP44Mnemonic extends Identity implements BIP44Identity<Mnemonic> {
       throw new Error('Invalid mnemonic');
     }
 
-    checkIdentityType(args.type, IdentityType.BIP44Mnemonic);
+    checkIdentityType(args.type, IdentityType.CointypeMnemonic);
 
     const walletSeed = mnemonicToSeedSync(
       args.opts.mnemonic,
@@ -167,8 +173,8 @@ export class BIP44Mnemonic extends Identity implements BIP44Identity<Mnemonic> {
     this.masterBlindingKey = masterBlindingKey;
   }
 
-  getAccount(param: BIP44Account): Mnemonic {
-    const path = derivationPathBIP44(param.cointype, param.account);
+  getAccount(param: CointypeAccount): Mnemonic {
+    const path = derivationPathBIP84(param.cointype, param.account);
     const account = this.accounts.find(
       accountKey => accountKey.baseDerivationPath === path
     );
@@ -179,18 +185,18 @@ export class BIP44Mnemonic extends Identity implements BIP44Identity<Mnemonic> {
       type: IdentityType.Mnemonic,
       opts: {
         ...this.opts,
-        baseDerivationPath: derivationPathBIP44(param.cointype, param.account),
+        baseDerivationPath: derivationPathBIP84(param.cointype, param.account),
       },
     });
     this.accounts.push(newAccount);
     return newAccount;
   }
 
-  getNextAddress(params: BIP44Account): Promise<AddressInterface> {
+  getNextAddress(params: CointypeAccount): Promise<AddressInterface> {
     return this.getAccount(params).getNextAddress();
   }
 
-  getNextChangeAddress(params: BIP44Account): Promise<AddressInterface> {
+  getNextChangeAddress(params: CointypeAccount): Promise<AddressInterface> {
     return this.getAccount(params).getNextChangeAddress();
   }
 
@@ -246,7 +252,7 @@ export class BIP44Mnemonic extends Identity implements BIP44Identity<Mnemonic> {
     return pset;
   }
 
-  getBIP44MasterPublicKeyOpts(): BIP44MasterPublicKeyOpts {
+  getCointypeWatchOnlyOpts(): CointypeWatchOnlyOpts {
     return {
       masterBlindingKey: this.masterBlindingKey,
       accounts: this.accounts.map(account => ({
