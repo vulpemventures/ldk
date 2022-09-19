@@ -5520,9 +5520,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.2.4.tgz#eca284f75d2965079309dc0ad9255abb2ebc1632"
   integrity sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==
 
-"liquidjs-lib@github:altafan/liquidjs-lib#psetv2":
-  version "6.0.2-liquid.7"
-  resolved "https://codeload.github.com/altafan/liquidjs-lib/tar.gz/a31069b44a09ac21fda18209234f4abd646bb4de"
+liquidjs-lib@^6.0.2-liquid.10:
+  version "6.0.2-liquid.10"
+  resolved "https://registry.yarnpkg.com/liquidjs-lib/-/liquidjs-lib-6.0.2-liquid.10.tgz#778ad095b25bbb3d03985edeb838f3ded3289e1a"
+  integrity sha512-KWtj0jF0VWWfc/AYqRVTLaea94bHT2KRR3cjWGompWUnYHRZD7Nj9HZuvfDs3XyE++Q/e/TGhFVkpJ2TdBIRqQ==
   dependencies:
     "@types/randombytes" "^2.0.0"
     "@types/wif" "^2.0.2"
