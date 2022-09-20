@@ -39,11 +39,11 @@ export function craftSingleRecipientPset(
   let nbConfOutputs = 0;
   let nbUnconfOutputs = 1; // init to 1 for the future fee output
 
-  if (address.isConfidential(recipient.address)) nbConfOutputs++;
+  if (laddress.isConfidential(recipient.address)) nbConfOutputs++;
   else nbUnconfOutputs++;
 
   for (const change of firstSelection.changeOutputs) {
-    if (address.isConfidential(change.address)) nbConfOutputs++;
+    if (laddress.isConfidential(change.address)) nbConfOutputs++;
     else nbUnconfOutputs++;
   }
 
@@ -192,7 +192,7 @@ function createFeeOutputFromPset(
   }
 
   for (const recipient of recipients) {
-    if (address.isConfidential(recipient.address)) nbConfOutputs++;
+    if (laddress.isConfidential(recipient.address)) nbConfOutputs++;
     else nbUnconfOutputs++;
   }
 
