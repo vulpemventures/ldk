@@ -17,6 +17,7 @@ import {
 } from 'liquidjs-lib';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 import { decodePset, isConfidentialOutput } from './utils';
+import { varSliceSize, varuint } from 'liquidjs-lib/src/bufferutils';
 
 export function craftSingleRecipientPset(
   unspents: UnblindedOutput[],
@@ -37,12 +38,16 @@ export function craftSingleRecipientPset(
   );
 
   let nbConfOutputs = 0;
-  let nbUnconfOutputs = 1; // init to 1 for the future fee output
+  let nbUnconfOutputs = 0;
+  const outScriptSizes = [
+    varSliceSize(laddress.toOutputScript(recipient.address)),
+  ];
 
   if (laddress.isConfidential(recipient.address)) nbConfOutputs++;
   else nbUnconfOutputs++;
 
   for (const change of firstSelection.changeOutputs) {
+    outScriptSizes.push(varSliceSize(laddress.toOutputScript(change.address)));
     if (laddress.isConfidential(change.address)) nbConfOutputs++;
     else nbUnconfOutputs++;
   }
@@ -51,6 +56,7 @@ export function craftSingleRecipientPset(
     firstSelection.selectedUtxos.length,
     nbConfOutputs,
     nbUnconfOutputs,
+    outScriptSizes,
     satsPerByte,
     network.assetHash
   );
@@ -61,7 +67,7 @@ export function craftSingleRecipientPset(
       if (asset === recipient.asset) {
         recipient.value = has - fee.value;
         return;
-      } // do not throw error if not enougt fund with recipient's asset.
+      } // do not throw error if not enough fund with recipient's asset.
       throwErrorHandler(asset, need, has);
     };
   }
@@ -182,16 +188,21 @@ function createFeeOutputFromPset(
 ) {
   const pset = decodePset(psetBase64);
   const nbInputs =
-    pset.data.inputs.length + firstSelection.selectedUtxos.length + 1;
+    pset.data.inputs.length + firstSelection.selectedUtxos.length;
 
   let nbConfOutputs = 0;
-  let nbUnconfOutputs = 1; // init to 1 for the future fee output
+  let nbUnconfOutputs = 0;
+  const outScriptSizes: number[] = [];
   for (const output of pset.TX.outs) {
+    outScriptSizes.push(varSliceSize(output.script));
     if (isConfidentialOutput(output)) nbConfOutputs++;
     else nbUnconfOutputs++;
   }
 
   for (const recipient of recipients) {
+    outScriptSizes.push(
+      varSliceSize(laddress.toOutputScript(recipient.address))
+    );
     if (laddress.isConfidential(recipient.address)) nbConfOutputs++;
     else nbUnconfOutputs++;
   }
@@ -201,6 +212,7 @@ function createFeeOutputFromPset(
     nbInputs,
     nbConfOutputs,
     nbUnconfOutputs,
+    outScriptSizes,
     satsPerByte!,
     feeAssetHash
   );
@@ -212,13 +224,15 @@ export function createFeeOutput(
   numInputs: number,
   numConfidentialOutputs: number,
   numUnconfidentialOutputs: number,
+  outScriptSizes: number[],
   satsPerByte: number,
   assetHash: string
 ): RecipientInterface {
   const sizeEstimation = estimateTxSize(
     numInputs,
     numConfidentialOutputs,
-    numUnconfidentialOutputs
+    numUnconfidentialOutputs,
+    outScriptSizes
   );
   const feeEstimation = Math.ceil(sizeEstimation * satsPerByte);
 
@@ -263,20 +277,23 @@ export function addToTx(
 export function estimateTxSize(
   numInputs: number,
   numConfidentialOutputs: number,
-  numUnconfidentialOutputs: number
+  numUnconfidentialOutputs: number,
+  outScriptSizes: number[]
 ): number {
   // we do not include confidential proofs in the base size estimation
   const base = calcTxSize(
     false,
     numInputs,
-    0,
-    numConfidentialOutputs + numUnconfidentialOutputs
+    numUnconfidentialOutputs,
+    numConfidentialOutputs,
+    outScriptSizes
   );
   const total = calcTxSize(
     true,
     numInputs,
+    numUnconfidentialOutputs,
     numConfidentialOutputs,
-    numUnconfidentialOutputs
+    outScriptSizes
   );
   const weight = base * 3 + total;
   const vsize = (weight + 3) / 4;
@@ -287,56 +304,67 @@ export function estimateTxSize(
 function calcTxSize(
   withWitness: boolean,
   numInputs: number,
+  numUnconfidentialOutputs: number,
   numConfidentialOutputs: number,
-  numUnconfidentialOutputs: number
-) {
-  const inputsSize = calcInputsSize(withWitness, numInputs);
-  const outputsSize =
-    calcOutputsSize(true, numConfidentialOutputs) +
-    calcOutputsSize(false, numUnconfidentialOutputs);
+  outScriptSizes: number[]
+): number {
+  let txSize = calcTxBaseSize(
+    numInputs,
+    numUnconfidentialOutputs,
+    numConfidentialOutputs,
+    outScriptSizes
+  );
+  if (withWitness) {
+    txSize += calcTxWitnessSize(
+      numInputs,
+      numUnconfidentialOutputs,
+      numConfidentialOutputs
+    );
+  }
+  return txSize;
+}
+
+// TODO: at the moment calcTxBaseSize and calcTxWitnessSize assume ALL inputs
+// are of type p2wpkh. These function should be made more generic by expecting
+// a list of input script types and an optional list of auxiliary redeem script
+// sizes and witness sizes respectively.
+function calcTxBaseSize(
+  numInputs: number,
+  numUnconfidentialOutputs: number,
+  numConfidentialOutputs: number,
+  outScriptSizes: number[]
+): number {
+  // hash + index + sequence
+  const inBaseSize = (40 + 1) * numInputs;
+  // asset + value + nonce commitments
+  let outBaseSize = (33 + 33 + 33) * numConfidentialOutputs;
+  // asset + value + empty nonce
+  outBaseSize += (33 + 9 + 1) * numUnconfidentialOutputs;
+  // add output script sizes
+  outBaseSize = outScriptSizes.reduce((a, b) => a + b, outBaseSize);
+  // add size of unconf fee out
+  // asset + value + empty script + empty nonce
+  outBaseSize += 33 + 9 + 1 + 1;
 
   return (
     9 +
-    varIntSerializeSize(numConfidentialOutputs + numUnconfidentialOutputs) +
-    varIntSerializeSize(numInputs) +
-    inputsSize +
-    outputsSize
+    varuint.encodingLength(numInputs) +
+    varuint.encodingLength(outScriptSizes.length + 1) +
+    inBaseSize +
+    outBaseSize
   );
 }
 
-function calcInputsSize(withWitness: boolean, numInputs: number): number {
-  // prevout hash + prevout index
-  let size = (32 + 8) * numInputs;
-  if (withWitness) {
-    // scriptsig + pubkey
-    size += numInputs * (72 + 33);
-  }
-
-  return size;
-}
-
-function calcOutputsSize(isConfidential: boolean, numOutputs: number): number {
-  // asset + value + nonce + proofs (if confidential)
-  const baseOutputSize =
-    33 + (isConfidential ? 33 : 9) + (isConfidential ? 4174 + 67 + 32 : 1);
-  return baseOutputSize * numOutputs;
-}
-
-function varIntSerializeSize(val: number): number {
-  const maxUINT16 = 65535;
-  const maxUINT32 = 4294967295;
-
-  if (val < 0xfd) {
-    return 1;
-  }
-
-  if (val <= maxUINT16) {
-    return 3;
-  }
-
-  if (val <= maxUINT32) {
-    return 5;
-  }
-
-  return 9;
+function calcTxWitnessSize(
+  numInputs: number,
+  numUnconfidentialOutputs: number,
+  numConfidentialOutputs: number
+): number {
+  // len(witness) + witness[sig, pubkey] + empty issuance proof + empty token proof + empty pegin witness
+  const insSize = (1 + 107 + 1 + 1 + 1) * numInputs;
+  // size(range proof) + proof + size(surjection proof) + proof
+  let outsSize = (3 + 4174 + 1 + 67) * numConfidentialOutputs;
+  // empty range proof + empty surjection proof for unconf outs + fee out
+  outsSize += (1 + 1) * numUnconfidentialOutputs + 1;
+  return insSize + outsSize;
 }
