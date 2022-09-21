@@ -1,3 +1,4 @@
+import { OwnedInput } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
@@ -51,6 +52,9 @@ export class BrowserInject extends Identity implements IdentityInterface {
   signPset(psetBase64: string): Promise<string> {
     return this.provider.signTransaction(psetBase64);
   }
+  signPsetV2(psetBase64: string): Promise<string> {
+    return this.provider.signTransaction(psetBase64);
+  }
   getAddresses(): Promise<AddressInterface[]> {
     return this.provider.getAddresses();
   }
@@ -66,6 +70,9 @@ export class BrowserInject extends Identity implements IdentityInterface {
     ___?: Map<number, string>,
     ____?: Map<number, BlindingDataLike>
   ): Promise<string> {
+    throw new Error('Method not implemented.');
+  }
+  blindPsetV2(_: string, __: boolean, ___?: OwnedInput[]): Promise<string> {
     throw new Error('Method not implemented.');
   }
 }

@@ -1,4 +1,4 @@
-import { TxOutput, confidential } from 'liquidjs-lib';
+import { TxOutput, confidential, ElementsValue, AssetHash } from 'liquidjs-lib';
 import { isConfidentialOutput } from './utils';
 
 /**
@@ -63,7 +63,7 @@ export function isUnblindedOutput(output: Output): output is UnblindedOutput {
 export function getSats(output: Output | UnblindedOutput): number {
   if (isUnblindedOutput(output)) return parseInt(output.unblindData.value, 10);
   if (!isConfidentialOutput(output.prevout)) {
-    return confidential.confidentialValueToSatoshi(output.prevout.value);
+    return ElementsValue.fromBytes(output.prevout.value).number;
   }
 
   throw new Error(
@@ -78,10 +78,7 @@ export function getAsset(output: Output | UnblindedOutput): string {
   }
 
   if (!isConfidentialOutput(output.prevout)) {
-    const asset = Buffer.from(output.prevout.asset)
-      .slice(1)
-      .reverse();
-    return asset.toString('hex');
+    return AssetHash.fromBytes(output.prevout.asset).hex;
   }
 
   throw new Error(

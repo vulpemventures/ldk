@@ -1,4 +1,4 @@
-import { confidential } from 'liquidjs-lib';
+import { ElementsValue } from 'liquidjs-lib';
 import { BlindingKeyGetterAsync, TxInterface, UnblindedOutput } from '../types';
 import { isConfidentialOutput } from '../utils';
 import { ChainAPI } from './api';
@@ -26,9 +26,9 @@ export async function* utxosFetchGenerator(
           ...utxo,
           unblindData: {
             asset: utxo.prevout.asset.slice(1),
-            value: confidential
-              .confidentialValueToSatoshi(utxo.prevout.value)
-              .toString(10),
+            value: ElementsValue.fromBytes(utxo.prevout.value).number.toString(
+              10
+            ),
             assetBlindingFactor: Buffer.alloc(32),
             valueBlindingFactor: Buffer.alloc(32),
           },

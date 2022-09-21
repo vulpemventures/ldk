@@ -1,7 +1,15 @@
 import { TinySecp256k1Interface as ecpairTinySecp256k1Interface } from 'ecpair';
 import { TinySecp256k1Interface as slip77TinySecp256k1Interface } from 'slip77';
 import { TinySecp256k1Interface as bip32TinySecp256k1Interface } from 'bip32';
-import { Transaction, networks, confidential, TxOutput } from 'liquidjs-lib';
+import {
+  Transaction,
+  networks,
+  confidential,
+  TxOutput,
+  Pset,
+  Blinder,
+  OwnedInput,
+} from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import {
@@ -11,6 +19,7 @@ import {
 } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
+import { ZKPGenerator, ZKPValidator } from 'liquidjs-lib/src/confidential';
 
 export type TinySecp256k1Interface = bip32TinySecp256k1Interface &
   slip77TinySecp256k1Interface &
@@ -33,6 +42,7 @@ export interface IdentityInterface {
     constructorParams?: Record<string, string | number>
   ): Promise<AddressInterface>;
   signPset(psetBase64: string): Promise<string>;
+  signPsetV2(psetBase64: string): Promise<string>;
   getAddresses(): Promise<AddressInterface[]>;
   getBlindingPrivateKey(script: string): Promise<string>;
   isAbleToSign(): boolean;
@@ -46,6 +56,14 @@ export interface IdentityInterface {
     outputsPubKeysByIndex?: Map<number, string>,
     // BlindingDataLike to use to blind the outputs by input index
     inputsBlindingDataLike?: Map<number, BlindingDataLike>
+  ): Promise<string>;
+  blindPsetV2(
+    // the pset to blind
+    psetBase64: string,
+    // blinding as last blinder
+    lastBlinder: boolean,
+    // optionally, the list of unblinded inputs owned by the identity
+    unblindedInputs?: OwnedInput[]
   ): Promise<string>;
 }
 
@@ -163,6 +181,46 @@ export class Identity {
     );
 
     return blinded.toBase64();
+  }
+
+  async blindPsetV2WithSource(
+    psetBase64: string,
+    lastBlinder: boolean,
+    blindingSource: {
+      unblindedInputs?: OwnedInput[];
+      blindingKeys?: Buffer[];
+      masterBlindingKey?: Buffer;
+    }
+  ): Promise<string> {
+    const pset = Pset.fromBase64(psetBase64);
+
+    const validator = new ZKPValidator();
+    let generator: ZKPGenerator;
+    const { unblindedInputs, blindingKeys, masterBlindingKey } = blindingSource;
+    if (!unblindedInputs && !blindingKeys && !masterBlindingKey) {
+      throw new Error('Missing blinding source');
+    }
+    if (unblindedInputs) {
+      generator = ZKPGenerator.fromOwnedInputs(unblindedInputs);
+    } else if (masterBlindingKey) {
+      generator = ZKPGenerator.fromMasterBlindingKey(masterBlindingKey);
+    } else {
+      generator = ZKPGenerator.fromInBlindingKeys(blindingKeys!);
+    }
+
+    const ownedInputs = await generator.unblindInputs(pset);
+    const outputBlindingArgs = await generator.blindOutputs(
+      pset,
+      ZKPGenerator.ECCKeysGenerator(this.ecclib)
+    );
+    const blinder = new Blinder(pset, ownedInputs, validator, generator);
+    if (lastBlinder) {
+      await blinder.blindLast({ outputBlindingArgs });
+    } else {
+      await blinder.blindNonLast({ outputBlindingArgs });
+    }
+
+    return pset.toBase64();
   }
 }
 

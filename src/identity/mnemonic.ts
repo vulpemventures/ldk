@@ -1,6 +1,6 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
-import { Psbt, networks } from 'liquidjs-lib';
+import { Psbt, networks, Pset, BIP174SigningData, script } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
@@ -11,6 +11,7 @@ import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 import { IdentityInterface, IdentityOpts } from './identity';
 import { MasterPublicKey } from './masterpubkey';
 import ECPairFactory from 'ecpair';
+import { Signer } from 'liquidjs-lib/src/psetv2';
 
 export interface MnemonicOpts {
   mnemonic: string;
@@ -155,6 +156,52 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
     // wait that all signing promise resolved
     await Promise.all(signInputPromises);
     // return the signed pset, base64 encoded.
+    return pset.toBase64();
+  }
+
+  async signPsetV2(psetBase64: string): Promise<string> {
+    if (!this.ecclib) throw new Error('ecclib is missing, cannot sign pset');
+
+    const pset = Pset.fromBase64(psetBase64);
+    const signer = new Signer(pset);
+
+    let i = 0;
+    for (const input of pset.inputs) {
+      const sighashType = input.sighashType;
+      if (sighashType === undefined) {
+        throw new Error(`Missing sighash type for input ${i}`);
+      }
+      const prevout = input.getUtxo();
+      if (!prevout) {
+        throw new Error(`Missing prevout for input ${i}`);
+      }
+
+      const addressGeneration = this.scriptToAddressCache[
+        prevout.script.toString('hex')
+      ];
+
+      if (addressGeneration) {
+        const privateKeyBuffer = this.derivePath(
+          addressGeneration.address.derivationPath!
+        ).privateKey;
+        const signingKeyPair = ECPairFactory(this.ecclib).fromPrivateKey(
+          privateKeyBuffer
+        );
+        const preimage = pset.getInputPreimage(i, sighashType);
+        const sig: BIP174SigningData = {
+          partialSig: {
+            pubkey: signingKeyPair.publicKey,
+            signature: script.signature.encode(
+              signingKeyPair.sign(preimage),
+              sighashType
+            ),
+          },
+        };
+        signer.addSignature(i, sig, Pset.ECDSASigValidator(this.ecclib));
+      }
+      i++;
+    }
+
     return pset.toBase64();
   }
 

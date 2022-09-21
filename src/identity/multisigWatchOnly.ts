@@ -1,6 +1,6 @@
 import BIP32Factory, { BIP32Interface, TinySecp256k1Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
-import { networks } from 'liquidjs-lib';
+import { networks, OwnedInput } from 'liquidjs-lib';
 import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { Slip77Interface } from 'slip77';
 import { blindingKeyFromXPubs, p2msPayment } from '../p2ms';
@@ -112,6 +112,10 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
     throw new Error('WatchOnly Multisig Identity is not able to sign pset');
   }
 
+  signPsetV2(_: string): Promise<string> {
+    throw new Error('WatchOnly Multisig Identity is not able to sign psetv2');
+  }
+
   blindPset(
     psetBase64: string,
     outputsIndexToBlind: number[],
@@ -125,6 +129,17 @@ export class MultisigWatchOnly extends Identity implements IdentityInterface {
       outputsPubKeysByIndex,
       inputsBlindingDataLike
     );
+  }
+
+  async blindPsetV2(
+    psetBase64: string,
+    lastBlinder: boolean,
+    unblindedInputs?: OwnedInput[]
+  ): Promise<string> {
+    return super.blindPsetV2WithSource(psetBase64, lastBlinder, {
+      unblindedInputs,
+      masterBlindingKey: this.blindingKeyMasterNode.masterKey,
+    });
   }
 
   getMultisigAddress(change: number, index: number): MultisigPayment {

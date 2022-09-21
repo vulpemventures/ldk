@@ -71,6 +71,13 @@ describe('Identity: Master Pub Key', () => {
     });
   });
 
+  describe('MasterPubKey.signPsetV2', () => {
+    it('should throw an error', () => {
+      const pubKey = new MasterPublicKey(validOpts);
+      assert.throws(() => pubKey.signPsetV2(''));
+    });
+  });
+
   describe('MasterPubKey.getAddresses', () => {
     it('should have private method getAddress return an AddressInterfaceExtended', () => {
       const pubKey = new MasterPublicKey(validOpts);

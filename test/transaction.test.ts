@@ -5,7 +5,7 @@ import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
 import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
-import { decodePset, psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
+import { decodePset, psetToUnsignedHex } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
 import { BuildTxArgs, craftMultipleRecipientsPset } from '../src/transaction';
 import { RecipientInterface } from '../src/types';
@@ -192,19 +192,22 @@ describe('sendTx', () => {
       () => changeAddress,
       substractScenario
     );
-    const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>
-      out.script.equals(
-        address.toOutputScript(recipient.address, networks.regtest)
-      )
+
+    const p = Psbt.fromBase64(pset);
+    const outsToBlind = [0];
+    const outBlindngKeys = new Map().set(
+      0,
+      address.fromConfidential(recipient.address).blindingKey
     );
-    const blinded = await sender.blindPset(
-      pset,
-      [recipientIndex],
-      new Map().set(
-        recipientIndex,
-        address.fromConfidential(recipient.address).blindingKey
-      )
-    );
+    if (p.data.outputs.length > 2) {
+      outsToBlind.push(1);
+      outBlindngKeys.set(
+        1,
+        address.fromConfidential(changeAddress).blindingKey
+      );
+    }
+
+    const blinded = await sender.blindPset(pset, outsToBlind, outBlindngKeys);
     const signed = await sender.signPset(blinded);
     const txHex = decodePset(signed)
       .finalizeAllInputs()
