@@ -242,7 +242,7 @@ export function addToTx(
     const script =
       address === '' ? Buffer.alloc(0) : laddress.toOutputScript(address);
     pset.addOutput({
-      asset: AssetHash.fromHex(asset, false).bytes,
+      asset: AssetHash.fromHex(asset).bytes,
       value: confidential.satoshiToConfidentialValue(value),
       script,
       nonce,

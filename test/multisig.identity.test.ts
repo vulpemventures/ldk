@@ -25,7 +25,7 @@ import * as ecc from 'tiny-secp256k1';
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(60000);
 

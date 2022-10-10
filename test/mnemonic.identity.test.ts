@@ -27,7 +27,7 @@ import BIP32Factory from 'bip32';
 import { SLIP77Factory } from 'slip77';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(500_000);
 

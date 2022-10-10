@@ -20,7 +20,7 @@ import * as ecc from 'tiny-secp256k1';
 import ECPairFactory from 'ecpair';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 // increase default timeout of jest
 jest.setTimeout(15000);
