@@ -190,7 +190,8 @@ describe('sendTx', () => {
       recipient,
       greedyCoinSelector(),
       () => changeAddress,
-      substractScenario
+      substractScenario,
+      0.25 // avoid min-fee-relay error
     );
     const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>
       out.script.equals(
