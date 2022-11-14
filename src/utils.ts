@@ -11,10 +11,10 @@ import {
   NetworkString,
   UnblindedOutput,
 } from './types';
-import secp256k1 from '@vulpemventures/secp256k1-zkp';
 import {
   Confidential,
   confidentialValueToSatoshi,
+  ZKPInterface,
 } from 'liquidjs-lib/src/confidential';
 
 const ZERO = Buffer.alloc(32);
@@ -190,10 +190,12 @@ export function getNetwork(str?: NetworkString): Network {
  * Compute the blinding data for a given output
  * @param utxo blinded utxo
  * @param blindPrivKey blinding private key
+ * @param zkplib
  */
 export async function unblindOutput(
   utxo: Output,
-  blindPrivKey: string
+  blindPrivKey: string,
+  zkplib: ZKPInterface
 ): Promise<UnblindedOutput> {
   if (!isConfidentialOutput(utxo.prevout)) {
     return {
@@ -206,9 +208,7 @@ export async function unblindOutput(
       },
     };
   }
-
-  const zkpLib = await secp256k1();
-  const confidential = new Confidential(zkpLib);
+  const confidential = new Confidential(zkplib);
   const unblindData = await confidential.unblindOutputWithKey(
     utxo.prevout,
     Buffer.from(blindPrivKey, 'hex')

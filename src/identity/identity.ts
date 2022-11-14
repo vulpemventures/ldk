@@ -11,7 +11,6 @@ import {
 } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
-import secp256k1 from '@vulpemventures/secp256k1-zkp';
 import { Confidential, ZKPInterface } from 'liquidjs-lib/src/confidential';
 
 export type TinySecp256k1Interface = bip32TinySecp256k1Interface &
@@ -72,6 +71,7 @@ export class Identity {
   network: Network;
   type: IdentityType;
   ecclib: TinySecp256k1Interface;
+  zkplib: ZKPInterface;
 
   constructor(args: IdentityOpts<any>) {
     if (!args.chain || !networks.hasOwnProperty(args.chain)) {
@@ -85,6 +85,7 @@ export class Identity {
     this.network = (networks as Record<string, Network>)[args.chain];
     this.type = args.type;
     this.ecclib = args.ecclib;
+    this.zkplib = args.zkplib;
   }
 
   async blindPsetWithBlindKeysGetter(
@@ -151,8 +152,7 @@ export class Identity {
 
       // else, get the private blinding key and use it as blindingDataLike
       const privKey = getBlindingKeyPair(script).privateKey;
-      const zkpLib = await secp256k1();
-      const confidential = new Confidential(zkpLib);
+      const confidential = new Confidential(this.zkplib);
       const blinders = await confidential.unblindOutputWithKey(
         input.witnessUtxo as TxOutput,
         privKey
