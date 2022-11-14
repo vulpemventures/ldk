@@ -34,38 +34,44 @@ const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(60000);
 
-const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
-  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
-];
-
-const validOpts: IdentityOpts<MultisigOpts> = {
-  chain: 'regtest',
-  type: IdentityType.Multisig,
-  ecclib: ecc,
-  opts: {
-    signer: {
-      mnemonic: generateMnemonic(),
-      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
-    }, // 1 signer
-    cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
-    requiredSignatures: 2, // need 2 signatures among 3 pubkeys
-  },
-};
-
-const invalidOpts: IdentityOpts<MultisigOpts> = {
-  ...validOpts,
-  opts: {
-    signer: {
-      mnemonic: generateMnemonic(),
-      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
-    }, // 1 signer
-    cosigners: cosigners.map(m => m.getXPub()),
-    requiredSignatures: 10000000,
-  },
-};
+let cosigners: Mnemonic[];
+let validOpts: IdentityOpts<MultisigOpts>;
+let invalidOpts: IdentityOpts<MultisigOpts>;
 
 describe('Identity:  Multisig', () => {
+  beforeAll(async () => {
+    const zkplib = await secp256k1();
+    cosigners = [
+      Mnemonic.Random('regtest', ecc, zkplib, DEFAULT_BASE_DERIVATION_PATH),
+      Mnemonic.Random('regtest', ecc, zkplib, DEFAULT_BASE_DERIVATION_PATH),
+    ];
+    validOpts = {
+      chain: 'regtest',
+      type: IdentityType.Multisig,
+      ecclib: ecc,
+      zkplib: zkplib,
+      opts: {
+        signer: {
+          mnemonic: generateMnemonic(),
+          baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
+        }, // 1 signer
+        cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
+        requiredSignatures: 2, // need 2 signatures among 3 pubkeys
+      },
+    };
+    invalidOpts = {
+      ...validOpts,
+      opts: {
+        signer: {
+          mnemonic: generateMnemonic(),
+          baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
+        }, // 1 signer
+        cosigners: cosigners.map(m => m.getXPub()),
+        requiredSignatures: 10000000,
+      },
+    };
+  });
+
   describe('Constructor', () => {
     it('should build a valid Multisig class instance if the constructor arguments are valid', () => {
       const multisig = new Multisig(validOpts);

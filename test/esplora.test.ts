@@ -17,6 +17,8 @@ import {
 import { newRandomMnemonic } from './fixtures/wallet.keys';
 // @ts-ignore
 import { APIURL, faucet, sleep } from './_regtest';
+import { ZKPInterface } from 'liquidjs-lib/src/confidential';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 jest.setTimeout(80000);
 
@@ -24,9 +26,10 @@ describe('esplora', () => {
   let txid: string;
   let senderAddress: AddressInterface;
   let unconfidentialSenderAddress: string;
+  let zkplib: ZKPInterface;
 
   beforeAll(async () => {
-    const sender = newRandomMnemonic();
+    const sender = await newRandomMnemonic();
     senderAddress = await sender.getNextAddress();
     unconfidentialSenderAddress = address.fromConfidential(
       senderAddress.confidentialAddress
@@ -34,12 +37,14 @@ describe('esplora', () => {
 
     txid = await faucet(senderAddress.confidentialAddress);
     await faucet(unconfidentialSenderAddress);
+    zkplib = await secp256k1();
   });
 
   describe('fetchAndUnblindUtxos', () => {
     it('should fetch the utxo prevout, even if unconfidential address is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
+        zkplib,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -56,6 +61,7 @@ describe('esplora', () => {
     it('should fetch the utxos, even if wrong blinding key is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
+        zkplib,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -72,6 +78,7 @@ describe('esplora', () => {
     it('should unblind utxos if the blinding key is provided', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
+        zkplib,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -88,6 +95,7 @@ describe('esplora', () => {
     it('should skip unblinding step if the skip predicate returns true', async () => {
       const senderUtxos = await fetchAndUnblindUtxos(
         ecc,
+        zkplib,
         [
           {
             confidentialAddress: senderAddress.confidentialAddress,
@@ -117,7 +125,8 @@ describe('esplora', () => {
             return senderAddress.blindingPrivateKey;
           } else return undefined;
         },
-        APIURL
+        APIURL,
+        zkplib
       );
 
       const faucetTx = senderTxs.find(t => t.txid === txid);
@@ -128,6 +137,7 @@ describe('esplora', () => {
         [senderAddress.confidentialAddress],
         () => senderAddress.blindingPrivateKey,
         APIURL,
+        zkplib,
         tx => tx.txid === txid
       );
 
@@ -147,7 +157,8 @@ describe('esplora', () => {
             return senderAddress.blindingPrivateKey;
           } else return undefined;
         },
-        APIURL
+        APIURL,
+        zkplib
       );
 
       const faucetTx = senderTxs.find(t => t.txid === txid);
@@ -157,7 +168,7 @@ describe('esplora', () => {
 
   describe('unspents from transactions', () => {
     it('should compute utxos set from transactions', async () => {
-      const identity = Mnemonic.Random('regtest', ecc);
+      const identity = Mnemonic.Random('regtest', ecc, zkplib);
       const address0 = await identity.getNextAddress();
       const address1 = await identity.getNextAddress();
 
@@ -182,7 +193,8 @@ describe('esplora', () => {
             return address1.blindingPrivateKey;
           } else return undefined;
         },
-        APIURL
+        APIURL,
+        zkplib
       );
 
       const utxos = utxosFromTransactions(

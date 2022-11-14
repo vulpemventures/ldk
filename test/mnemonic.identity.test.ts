@@ -27,8 +27,8 @@ import * as ecc from 'tiny-secp256k1';
 import { Restorer } from '../src';
 // @ts-ignore
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
-import BIP32Factory from 'bip32';
-import { SLIP77Factory } from 'slip77';
+import BIP32Factory, { BIP32Interface } from 'bip32';
+import { SLIP77Factory, Slip77Interface } from 'slip77';
 import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 const network = networks.regtest;
@@ -36,57 +36,68 @@ const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(500_000);
 
-const validOpts: IdentityOpts<MnemonicOpts> = {
-  chain: 'regtest',
-  type: IdentityType.Mnemonic,
-  ecclib: ecc,
-  opts: {
-    mnemonic:
-      'turn manual grain tobacco pluck onion off chief drive amount slice forward',
-  },
-};
-
-const seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
-const masterPrivateKeyFromValidMnemonic = BIP32Factory(ecc).fromSeed(
-  seedFromValidMnemonic,
-  network
-);
-const masterBlindingKeyFromValidMnemonic = SLIP77Factory(ecc).fromSeed(
-  seedFromValidMnemonic
-);
-
-const validOptsFrench: IdentityOpts<MnemonicOpts> = {
-  ...validOpts,
-  opts: {
-    mnemonic:
-      'mutuel ourson soupape vertu atelier dynastie silicium absolu océan légume pyramide skier météore tulipe alchimie élargir gourmand étaler saboter cocotier aisance mairie jeton créditer',
-    language: 'french',
-  },
-};
-
-const unvalidLanguageOpts: IdentityOpts<MnemonicOpts> = {
-  ...validOpts,
-  opts: {
-    ...validOpts.opts,
-    language: 'corsican',
-  },
-};
-
-const unvalidTypeOpts: IdentityOpts<MnemonicOpts> = {
-  ...validOpts,
-  type: IdentityType.PrivateKey,
-};
-
-const unvalidMnemonicOpts: IdentityOpts<MnemonicOpts> = {
-  ...validOpts,
-  opts: {
-    mnemonic: 'tbh nigiri is awesome for Liquid / bitcoin unit testing',
-  },
-};
+let validOpts: IdentityOpts<MnemonicOpts>;
+let validOptsFrench: IdentityOpts<MnemonicOpts>;
+let unvalidLanguageOpts: IdentityOpts<MnemonicOpts>;
+let unvalidTypeOpts: IdentityOpts<MnemonicOpts>;
+let unvalidMnemonicOpts: IdentityOpts<MnemonicOpts>;
+let seedFromValidMnemonic: Buffer;
+let masterPrivateKeyFromValidMnemonic: BIP32Interface;
+let masterBlindingKeyFromValidMnemonic: Slip77Interface;
 
 describe('Identity: Mnemonic', () => {
+  beforeAll(async () => {
+    const zkplib = await secp256k1();
+    validOpts = {
+      chain: 'regtest',
+      type: IdentityType.Mnemonic,
+      ecclib: ecc,
+      zkplib: zkplib,
+      opts: {
+        mnemonic:
+          'turn manual grain tobacco pluck onion off chief drive amount slice forward',
+      },
+    };
+    validOptsFrench = {
+      ...validOpts,
+      opts: {
+        mnemonic:
+          'mutuel ourson soupape vertu atelier dynastie silicium absolu océan légume pyramide skier météore tulipe alchimie élargir gourmand étaler saboter cocotier aisance mairie jeton créditer',
+        language: 'french',
+      },
+    };
+    unvalidLanguageOpts = {
+      ...validOpts,
+      opts: {
+        ...validOpts.opts,
+        language: 'corsican',
+      },
+    };
+    unvalidTypeOpts = {
+      ...validOpts,
+      type: IdentityType.PrivateKey,
+    };
+    unvalidMnemonicOpts = {
+      ...validOpts,
+      opts: {
+        mnemonic: 'tbh nigiri is awesome for Liquid / bitcoin unit testing',
+      },
+    };
+    seedFromValidMnemonic = mnemonicToSeedSync(validOpts.opts.mnemonic);
+    masterPrivateKeyFromValidMnemonic = BIP32Factory(ecc).fromSeed(
+      seedFromValidMnemonic,
+      network
+    );
+    masterBlindingKeyFromValidMnemonic = SLIP77Factory(ecc).fromSeed(
+      seedFromValidMnemonic
+    );
+  });
+
   describe('Constructor', () => {
-    const validMnemonic = new Mnemonic(validOpts);
+    let validMnemonic: Mnemonic;
+    beforeAll(() => {
+      validMnemonic = new Mnemonic(validOpts);
+    });
 
     it('should build a valid Mnemonic class if the constructor arguments are valid', () => {
       assert.deepStrictEqual(validMnemonic instanceof Mnemonic, true);
@@ -496,6 +507,7 @@ const tests = [
 
 describe('Mnemonic extended public key', () => {
   for (const t of tests) {
+    // eslint-disable-next-line no-loop-func
     it(`should derive the correct xpub with "${t.mnemonic}" and ${t.baseDerivationPath}`, async () => {
       const mnemonicId = new Mnemonic({
         ...validOpts,

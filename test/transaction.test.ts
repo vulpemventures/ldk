@@ -2,7 +2,7 @@ import * as ecc from 'tiny-secp256k1';
 import * as assert from 'assert';
 import { address, networks, Transaction } from 'liquidjs-lib';
 import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
-import { walletFromAddresses, WalletInterface } from '../src';
+import { Mnemonic, walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
 import { decodePset, psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
@@ -13,25 +13,28 @@ import { RecipientInterface } from '../src/types';
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
 // @ts-ignore
 import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 jest.setTimeout(50000);
 
 let senderWallet: WalletInterface;
+let sender: Mnemonic;
 
 describe('buildTx', () => {
   let USDT = '';
   let args: BuildTxArgs;
   let senderAddress = '';
   let senderBlindingKey = '';
-  const sender = newRandomMnemonic();
 
   beforeAll(async () => {
+    const zkplib = await secp256k1();
+    sender = await newRandomMnemonic();
     const addrI = await sender.getNextAddress();
     senderAddress = addrI.confidentialAddress;
     senderBlindingKey = addrI.blindingPrivateKey;
-
     senderWallet = await walletFromAddresses(
       ecc,
+      zkplib,
       await sender.getAddresses(),
       APIURL,
       'regtest'
@@ -43,6 +46,7 @@ describe('buildTx', () => {
     USDT = minted.asset;
     const senderUtxos = await fetchAndUnblindUtxos(
       ecc,
+      zkplib,
       [
         {
           confidentialAddress: senderAddress,
@@ -180,14 +184,21 @@ describe('sendTx', () => {
     recipient: RecipientInterface,
     substractScenario: boolean
   ) => {
-    const sender = newRandomMnemonic();
+    const zkplib = await secp256k1();
+    const sender = await newRandomMnemonic();
     const addrI = await sender.getNextAddress();
     const changeAddress = (await sender.getNextChangeAddress())
       .confidentialAddress;
     const senderAddress = addrI.confidentialAddress;
 
     await faucet(senderAddress); // send 1_0000_0000
-    const wallet = await walletFromAddresses(ecc, [addrI], APIURL, 'regtest');
+    const wallet = await walletFromAddresses(
+      ecc,
+      zkplib,
+      [addrI],
+      APIURL,
+      'regtest'
+    );
     const pset = wallet.sendTx(
       recipient,
       greedyCoinSelector(),

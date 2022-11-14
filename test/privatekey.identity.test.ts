@@ -18,47 +18,59 @@ import {
 // @ts-ignore
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import * as ecc from 'tiny-secp256k1';
-import ECPairFactory from 'ecpair';
+import ECPairFactory, { ECPairInterface } from 'ecpair';
+import { Payment } from 'liquidjs-lib/src/payments';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 const network = networks.regtest;
 const lbtc = AssetHash.fromHex(network.assetHash);
 
 // increase default timeout of jest
 jest.setTimeout(15000);
-const validOpts: IdentityOpts<PrivateKeyOpts> = {
-  chain: 'regtest',
-  type: IdentityType.PrivateKey,
-  ecclib: ecc,
-  opts: {
-    signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
-    blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
-  },
-};
-const unvalidTypeOpts: IdentityOpts<PrivateKeyOpts> = {
-  ...validOpts,
-  type: IdentityType.Mnemonic,
-};
-const unvalidWIF: IdentityOpts<PrivateKeyOpts> = {
-  ...validOpts,
-  opts: {
-    signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
-    blindingKeyWIF: 'invalidWIF',
-  },
-};
-const keypair = ECPairFactory(ecc).fromWIF(
-  validOpts.opts.signingKeyWIF,
-  network
-);
-const keypair2 = ECPairFactory(ecc).fromWIF(
-  validOpts.opts.blindingKeyWIF,
-  network
-);
-const p2wpkh = payments.p2wpkh({
-  pubkey: keypair.publicKey!,
-  blindkey: keypair2.publicKey!,
-  network: network,
-});
+
+let validOpts: IdentityOpts<PrivateKeyOpts>;
+let unvalidTypeOpts: IdentityOpts<PrivateKeyOpts>;
+let unvalidWIF: IdentityOpts<PrivateKeyOpts>;
+let keypair: ECPairInterface;
+let keypair2: ECPairInterface;
+let p2wpkh: Payment;
+
 describe('Identity: Private key', () => {
+  beforeAll(async () => {
+    const zkplib = await secp256k1();
+    validOpts = {
+      chain: 'regtest',
+      type: IdentityType.PrivateKey,
+      ecclib: ecc,
+      zkplib: zkplib,
+      opts: {
+        signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
+        blindingKeyWIF: 'cRdrvnPMLV7CsEak2pGrgG4MY7S3XN1vjtcgfemCrF7KJRPeGgW6',
+      },
+    };
+    unvalidTypeOpts = {
+      ...validOpts,
+      type: IdentityType.Mnemonic,
+    };
+    unvalidWIF = {
+      ...validOpts,
+      opts: {
+        signingKeyWIF: 'cPNMJD4VyFnQjGbGs3kcydRzAbDCXrLAbvH6wTCqs88qg1SkZT3J',
+        blindingKeyWIF: 'invalidWIF',
+      },
+    };
+    keypair = ECPairFactory(ecc).fromWIF(validOpts.opts.signingKeyWIF, network);
+    keypair2 = ECPairFactory(ecc).fromWIF(
+      validOpts.opts.blindingKeyWIF,
+      network
+    );
+    p2wpkh = payments.p2wpkh({
+      pubkey: keypair.publicKey!,
+      blindkey: keypair2.publicKey!,
+      network: network,
+    });
+  });
+
   describe('Constructor', () => {
     it('should build a valid PrivateKey class if the constructor arguments are valid', () => {
       const privateKey = new PrivateKey(validOpts);
