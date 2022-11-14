@@ -90,7 +90,7 @@ export interface BuildTxArgs {
   errorHandler?: CoinSelectorErrorFn;
 }
 
-export const DEFAULT_SATS_PER_BYTE = 0.2;
+export const DEFAULT_SATS_PER_BYTE = 0.1;
 
 function validateAndProcess(args: BuildTxArgs): BuildTxArgs {
   if (!args.satsPerByte) {
