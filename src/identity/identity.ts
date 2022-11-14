@@ -11,7 +11,7 @@ import {
 } from '../types';
 import { IdentityType } from '../types';
 import { isConfidentialOutput, psetToUnsignedHex, decodePset } from '../utils';
-import secp256k1 from '@vulpemventures/secp256k1-zkp';
+import secp256k1, { ZKP } from '@vulpemventures/secp256k1-zkp';
 import { Confidential } from 'liquidjs-lib/src/confidential';
 
 export type TinySecp256k1Interface = bip32TinySecp256k1Interface &
@@ -62,6 +62,7 @@ export interface IdentityOpts<optsT> {
   type: number;
   opts: optsT;
   ecclib: TinySecp256k1Interface;
+  zkplib: ZKP;
 }
 
 /**

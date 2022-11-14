@@ -161,12 +161,14 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   static Random(
     chain: IdentityOpts<any>['chain'],
     ecclib: IdentityOpts<any>['ecclib'],
+    zkplib: IdentityOpts<any>['zkplib'],
     baseDerivationPath?: string
   ): Mnemonic {
     const randomMnemonic = bip39.generateMnemonic();
     return new Mnemonic({
       chain,
       ecclib,
+      zkplib,
       type: IdentityType.Mnemonic,
       opts: {
         mnemonic: randomMnemonic,
