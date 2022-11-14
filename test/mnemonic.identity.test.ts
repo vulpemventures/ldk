@@ -1,16 +1,19 @@
 import * as assert from 'assert';
 import { mnemonicToSeedSync } from 'bip39';
 import {
-  Psbt,
   Transaction,
-  confidential,
   networks,
   payments,
   address,
   TxOutput,
   AssetHash,
+  confidential,
 } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import {
+  Confidential,
+  satoshiToConfidentialValue,
+} from 'liquidjs-lib/src/confidential';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import {
   IdentityOpts,
   IdentityType,
@@ -22,12 +25,14 @@ import {
 } from '../src';
 import * as ecc from 'tiny-secp256k1';
 import { Restorer } from '../src';
+// @ts-ignore
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import BIP32Factory from 'bip32';
 import { SLIP77Factory } from 'slip77';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(500_000);
 
@@ -187,6 +192,8 @@ describe('Identity: Mnemonic', () => {
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+      const zkpLib = await secp256k1();
+      const confidential = new Confidential(zkpLib);
       const unblindedPrevout = await confidential.unblindOutputWithKey(
         prevout as TxOutput,
         Buffer.from(
@@ -209,13 +216,13 @@ describe('Identity: Mnemonic', () => {
         .addOutputs([
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(49999500),
+            value: satoshiToConfidentialValue(49999500),
             script,
             asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(60000000),
+            value: satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
             asset: lbtc.bytes,
           },

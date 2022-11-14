@@ -1,4 +1,4 @@
-import { Psbt } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { CoinSelector } from './coinselection/coinSelector';
 import {
   AddressInterface,

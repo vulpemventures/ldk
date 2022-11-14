@@ -1,10 +1,10 @@
-import { confidential } from 'liquidjs-lib';
 import { BlindingKeyGetterAsync, TxInterface, UnblindedOutput } from '../types';
 import { isConfidentialOutput } from '../utils';
 import { ChainAPI } from './api';
 import { unblindTransaction } from './transaction';
 import { EsploraTx, EsploraUtxo } from './types';
 import { tryToUnblindUtxo } from './utxos';
+import { confidentialValueToSatoshi } from 'liquidjs-lib/src/confidential';
 
 export async function* utxosFetchGenerator(
   addresses: string[],
@@ -26,9 +26,7 @@ export async function* utxosFetchGenerator(
           ...utxo,
           unblindData: {
             asset: utxo.prevout.asset.slice(1),
-            value: confidential
-              .confidentialValueToSatoshi(utxo.prevout.value)
-              .toString(10),
+            value: confidentialValueToSatoshi(utxo.prevout.value).toString(10),
             assetBlindingFactor: Buffer.alloc(32),
             valueBlindingFactor: Buffer.alloc(32),
           },

@@ -1,6 +1,5 @@
 import * as assert from 'assert';
 import {
-  Psbt,
   Transaction,
   confidential,
   networks,
@@ -8,6 +7,7 @@ import {
   address,
   AssetHash,
 } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import {
   AddressInterface,
   IdentityOpts,
@@ -15,12 +15,13 @@ import {
   PrivateKey,
   PrivateKeyOpts,
 } from '../src';
+// @ts-ignore
 import { faucet, fetchTxHex, fetchUtxos } from './_regtest';
 import * as ecc from 'tiny-secp256k1';
 import ECPairFactory from 'ecpair';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 // increase default timeout of jest
 jest.setTimeout(15000);

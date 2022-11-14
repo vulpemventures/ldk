@@ -13,7 +13,9 @@ import {
   Output,
   utxosFromTransactions,
 } from '../src';
+// @ts-ignore
 import { newRandomMnemonic } from './fixtures/wallet.keys';
+// @ts-ignore
 import { APIURL, faucet, sleep } from './_regtest';
 
 jest.setTimeout(80000);

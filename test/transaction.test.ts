@@ -1,7 +1,7 @@
 import * as ecc from 'tiny-secp256k1';
 import * as assert from 'assert';
-import { address, networks, Psbt, Transaction } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import { address, networks, Transaction } from 'liquidjs-lib';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import { walletFromAddresses, WalletInterface } from '../src';
 import { greedyCoinSelector } from '../src/coinselection/greedy';
 import { fetchTxHex } from '../src/explorer/esplora';
@@ -9,7 +9,9 @@ import { decodePset, psetToUnsignedHex, psetToUnsignedTx } from '../src/utils';
 import { fetchAndUnblindUtxos } from '../src/explorer/utxos';
 import { BuildTxArgs, craftMultipleRecipientsPset } from '../src/transaction';
 import { RecipientInterface } from '../src/types';
+// @ts-ignore
 import { APIURL, broadcastTx, faucet, mint } from './_regtest';
+// @ts-ignore
 import { recipientAddress, newRandomMnemonic } from './fixtures/wallet.keys';
 
 jest.setTimeout(50000);

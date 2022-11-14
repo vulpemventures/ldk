@@ -1,6 +1,6 @@
 import ECPairFactory, { ECPairInterface } from 'ecpair';
-import { Psbt, payments } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import { payments } from 'liquidjs-lib';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import { AddressInterface, IdentityType } from '../types';
 import { checkIdentityType } from '../utils';
 import { Identity, IdentityInterface, IdentityOpts } from './identity';

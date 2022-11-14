@@ -10,12 +10,12 @@ import {
   CoinSelectorErrorFn,
 } from './types';
 import {
-  Psbt,
   address as laddress,
   AssetHash,
   confidential,
   address,
 } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { checkCoinSelect, throwErrorHandler } from './coinselection/utils';
 import { decodePset, isConfidentialOutput } from './utils';
 
@@ -242,7 +242,7 @@ export function addToTx(
     const script =
       address === '' ? Buffer.alloc(0) : laddress.toOutputScript(address);
     pset.addOutput({
-      asset: AssetHash.fromHex(asset, false).bytes,
+      asset: AssetHash.fromHex(asset).bytes,
       value: confidential.satoshiToConfidentialValue(value),
       script,
       nonce,

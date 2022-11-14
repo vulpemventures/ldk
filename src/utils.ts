@@ -1,12 +1,7 @@
 import { setDefaultWordlist, validateMnemonic } from 'bip39';
 import b58 from 'bs58check';
-import {
-  Psbt,
-  Transaction,
-  confidential,
-  networks,
-  address,
-} from 'liquidjs-lib';
+import { Transaction, confidential, networks, address } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { Network } from 'liquidjs-lib/src/networks';
 import {
   AddressInterface,
@@ -16,6 +11,11 @@ import {
   NetworkString,
   UnblindedOutput,
 } from './types';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
+import {
+  Confidential,
+  confidentialValueToSatoshi,
+} from 'liquidjs-lib/src/confidential';
 
 const ZERO = Buffer.alloc(32);
 
@@ -200,15 +200,15 @@ export async function unblindOutput(
       ...utxo,
       unblindData: {
         asset: utxo.prevout.asset.slice(1),
-        value: confidential
-          .confidentialValueToSatoshi(utxo.prevout.value)
-          .toString(10),
+        value: confidentialValueToSatoshi(utxo.prevout.value).toString(10),
         assetBlindingFactor: ZERO,
         valueBlindingFactor: ZERO,
       },
     };
   }
 
+  const zkpLib = await secp256k1();
+  const confidential = new Confidential(zkpLib);
   const unblindData = await confidential.unblindOutputWithKey(
     utxo.prevout,
     Buffer.from(blindPrivKey, 'hex')
