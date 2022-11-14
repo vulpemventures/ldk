@@ -9,18 +9,21 @@ import {
 import { isConfidentialOutput, unblindOutput } from '../utils';
 import { esploraTxToTxInterface } from './esplora';
 import { EsploraTx } from './types';
+import { ZKPInterface } from 'liquidjs-lib/src/confidential';
 
 /**
  * Return an async generator fetching and unblinding addresses' transactions
  * @param addresses
  * @param blindingKeyGetter
  * @param explorerUrl
+ * @param zkplib
  * @param skip optional, can be used to skip certain transaction
  */
 export async function* fetchAndUnblindTxsGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string,
+  zkplib: ZKPInterface,
   skip?: (tx: TxInterface) => boolean
 ): AsyncGenerator<
   TxInterface,
@@ -43,7 +46,8 @@ export async function* fetchAndUnblindTxsGenerator(
 
         const { unblindedTx, errors: errs } = await unblindTransaction(
           tx,
-          async (script: string) => blindingKeyGetter(script)
+          async (script: string) => blindingKeyGetter(script),
+          zkplib
         );
         errors.push(...errs);
         yield unblindedTx;
@@ -71,18 +75,21 @@ export async function* fetchAndUnblindTxsGenerator(
  * @param addresses
  * @param blindingKeyGetter
  * @param explorerUrl
+ * @param zkplib
  * @param skip optional
  */
 export async function fetchAndUnblindTxs(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetter,
   explorerUrl: string,
+  zkplib: ZKPInterface,
   skip?: (tx: TxInterface) => boolean
 ): Promise<TxInterface[]> {
   const generator = fetchAndUnblindTxsGenerator(
     addresses,
     blindingKeyGetter,
     explorerUrl,
+    zkplib,
     skip
   );
 
@@ -101,6 +108,7 @@ export async function fetchAndUnblindTxs(
  * Fetch all the txs associated to a given address and unblind them using the blindingPrivateKey.
  * @param address the confidential address
  * @param explorerUrl the Esplora URL API using to fetch blockchain data.
+ * @param skip
  */
 async function* fetchTxsGenerator(
   address: string,
@@ -141,13 +149,15 @@ async function* fetchTxsGenerator(
 }
 
 /**
- * takes the a TxInterface and try to transform BlindedOutputInterface to UnblindedOutputInterface (prevouts & outputs)
+ * takes the TxInterface and try to transform BlindedOutputInterface to UnblindedOutputInterface (prevouts & outputs)
  * @param tx transaction to unblind
- * @param blindingPrivateKeys the privateKeys using to unblind the outputs.
+ * @param blindingPrivateKeyGetter
+ * @param zkplib
  */
 export async function unblindTransaction(
   tx: TxInterface,
-  blindingPrivateKeyGetter: BlindingKeyGetterAsync
+  blindingPrivateKeyGetter: BlindingKeyGetterAsync,
+  zkplib: ZKPInterface
 ): Promise<{ unblindedTx: TxInterface; errors: UnblindError[] }> {
   const promises: Promise<void>[] = [];
   const errors: UnblindError[] = [];
@@ -162,8 +172,11 @@ export async function unblindTransaction(
         );
         if (blindingKey) {
           try {
-            const unblinded = await unblindOutput(output, blindingKey);
-            tx.vin[inputIndex].prevout = unblinded;
+            tx.vin[inputIndex].prevout = await unblindOutput(
+              output,
+              blindingKey,
+              zkplib
+            );
           } catch (_) {
             errors.push(
               new UnblindError(
@@ -190,8 +203,11 @@ export async function unblindTransaction(
         );
         if (blindingKey) {
           try {
-            const unblinded = await unblindOutput(output, blindingKey);
-            tx.vout[outputIndex] = unblinded;
+            tx.vout[outputIndex] = await unblindOutput(
+              output,
+              blindingKey,
+              zkplib
+            );
           } catch (err) {
             errors.push(new UnblindError(tx.txid, outputIndex, blindingKey));
           }

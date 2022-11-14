@@ -4,12 +4,16 @@ import { ChainAPI } from './api';
 import { unblindTransaction } from './transaction';
 import { EsploraTx, EsploraUtxo } from './types';
 import { tryToUnblindUtxo } from './utxos';
-import { confidentialValueToSatoshi } from 'liquidjs-lib/src/confidential';
+import {
+  confidentialValueToSatoshi,
+  ZKPInterface,
+} from 'liquidjs-lib/src/confidential';
 
 export async function* utxosFetchGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
+  zkplib: ZKPInterface,
   skip?: (utxo: EsploraUtxo) => boolean
 ): AsyncGenerator<
   UnblindedOutput,
@@ -41,7 +45,11 @@ export async function* utxosFetchGenerator(
         continue;
       }
 
-      const unblindedUtxo = await tryToUnblindUtxo(utxo, privateBlindingKey);
+      const unblindedUtxo = await tryToUnblindUtxo(
+        utxo,
+        privateBlindingKey,
+        zkplib
+      );
       yield unblindedUtxo;
       numberOfUtxos++;
     } catch (err) {
@@ -64,6 +72,7 @@ export async function* txsFetchGenerator(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
+  zkplib: ZKPInterface,
   skip?: (tx: EsploraTx) => boolean
 ): AsyncGenerator<
   TxInterface,
@@ -77,7 +86,8 @@ export async function* txsFetchGenerator(
     try {
       const { unblindedTx, errors: errs } = await unblindTransaction(
         tx,
-        blindingKeyGetter
+        blindingKeyGetter,
+        zkplib
       );
       errors.push(...errs);
       yield unblindedTx;
@@ -101,6 +111,7 @@ export async function fetchAllTxs(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
+  zkplib: ZKPInterface,
   skip?: (tx: EsploraTx) => boolean
 ): Promise<TxInterface[]> {
   const txs: TxInterface[] = [];
@@ -108,6 +119,7 @@ export async function fetchAllTxs(
     addresses,
     blindingKeyGetter,
     api,
+    zkplib,
     skip
   )) {
     txs.push(tx);
@@ -119,6 +131,7 @@ export async function fetchAllUtxos(
   addresses: string[],
   blindingKeyGetter: BlindingKeyGetterAsync,
   api: ChainAPI,
+  zkplib: ZKPInterface,
   skip?: (utxo: EsploraUtxo) => boolean
 ): Promise<UnblindedOutput[]> {
   const utxos: UnblindedOutput[] = [];
@@ -126,6 +139,7 @@ export async function fetchAllUtxos(
     addresses,
     blindingKeyGetter,
     api,
+    zkplib,
     skip
   )) {
     utxos.push(utxo);

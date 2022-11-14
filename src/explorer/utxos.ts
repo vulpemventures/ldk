@@ -10,15 +10,19 @@ import {
 } from '../types';
 import { unblindOutput } from '../utils';
 import { fetchUtxos } from './esplora';
+import { ZKPInterface } from 'liquidjs-lib/src/confidential';
 
 /**
  * fetchAndUnblindUtxosGenerator returns the unblinded utxos associated with a set of addresses.
+ * @param ecclib
+ * @param zkplib
  * @param addressesAndBlindingKeys the set of addresses with blinding key (if confidential)
  * @param url esplora URL
  * @param skip optional, using to skip blinding step
  */
 export async function* fetchAndUnblindUtxosGenerator(
   ecclib: TinySecp256k1Interface,
+  zkplib: ZKPInterface,
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: Output) => boolean
@@ -55,7 +59,7 @@ export async function* fetchAndUnblindUtxosGenerator(
       for (const blindedUtxo of blindedUtxos) {
         if (skip?.(blindedUtxo)) continue;
 
-        yield await tryToUnblindUtxo(blindedUtxo, blindingPrivateKey);
+        yield await tryToUnblindUtxo(blindedUtxo, blindingPrivateKey, zkplib);
         numberOfUtxos++;
       }
     } catch (err) {
@@ -70,12 +74,14 @@ export async function* fetchAndUnblindUtxosGenerator(
 // Aggregate generator's result.
 export async function fetchAndUnblindUtxos(
   ecclib: TinySecp256k1Interface,
+  zkplib: ZKPInterface,
   addressesAndBlindingKeys: AddressInterface[],
   url: string,
   skip?: (utxo: Output) => boolean
 ): Promise<UnblindedOutput[]> {
   const utxosGenerator = fetchAndUnblindUtxosGenerator(
     ecclib,
+    zkplib,
     addressesAndBlindingKeys,
     url,
     skip
@@ -96,14 +102,15 @@ export async function fetchAndUnblindUtxos(
  * if unblind step success: set prevout & unblindData members in UtxoInterface result
  * @param utxo utxo to unblind
  * @param blindPrivKey the blinding private key using to unblind
- * @param url esplora endpoint URL
+ * @param zkplib
  */
 export async function tryToUnblindUtxo(
   utxo: Output,
-  blindPrivKey: string
+  blindPrivKey: string,
+  zkplib: ZKPInterface
 ): Promise<UnblindedOutput> {
   try {
-    return unblindOutput(utxo, blindPrivKey);
+    return unblindOutput(utxo, blindPrivKey, zkplib);
   } catch (_) {
     throw new UnblindError(utxo.txid, utxo.vout, blindPrivKey);
   }
