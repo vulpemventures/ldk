@@ -87,7 +87,7 @@
     "bip39": "^3.0.4",
     "bs58check": "^2.1.2",
     "ecpair": "^2.1.0",
-    "liquidjs-lib": "6.0.2-liquid.20",
+    "liquidjs-lib": "6.0.2-liquid.23",
     "slip77": "^0.2.0",
     "tslib": "^2.3.1"
   }
