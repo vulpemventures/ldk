@@ -203,7 +203,9 @@ describe('sendTx', () => {
       recipient,
       greedyCoinSelector(),
       () => changeAddress,
-      substractScenario
+      substractScenario,
+      // TODO: remove tmp fix
+      0.2
     );
     const recipientIndex = psetToUnsignedTx(pset).outs.findIndex(out =>
       out.script.equals(
