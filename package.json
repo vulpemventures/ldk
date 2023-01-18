@@ -70,6 +70,8 @@
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "^4.9.1",
+    "@types/bip32": "^2.0.0",
+    "@types/bip39": "^3.0.0",
     "@types/bs58check": "^2.1.0",
     "@types/node": "^14.14.31",
     "@types/tiny-secp256k1": "^2.0.1",
@@ -79,12 +81,13 @@
     "tsdx": "^0.14.1"
   },
   "dependencies": {
+    "@vulpemventures/secp256k1-zkp": "^2.1.1",
     "axios": "^0.21.1",
-    "bip32": "^3.0.1",
-    "bip39": "^3.0.3",
+    "bip32": "^3.1.0",
+    "bip39": "^3.0.4",
     "bs58check": "^2.1.2",
-    "ecpair": "^2.0.1",
-    "liquidjs-lib": "^6.0.2-liquid.7",
+    "ecpair": "^2.1.0",
+    "liquidjs-lib": "6.0.2-liquid.23",
     "slip77": "^0.2.0",
     "tslib": "^2.3.1"
   }

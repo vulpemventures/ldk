@@ -1,4 +1,4 @@
-import { Psbt } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { CoinSelector } from './coinselection/coinSelector';
 import {
   AddressInterface,
@@ -17,6 +17,7 @@ import {
 import { fetchAndUnblindUtxos } from './explorer/utxos';
 import { Network } from 'liquidjs-lib/src/networks';
 import { TinySecp256k1Interface } from 'ecpair';
+import { ZKPInterface } from 'liquidjs-lib/src/confidential';
 
 /**
  * Wallet abstraction.
@@ -106,17 +107,25 @@ export class Wallet implements WalletInterface {
 
 /**
  * Factory: list of addresses --to--> Wallet
+ * @param ecclib
+ * @param zkplib
  * @param addresses a list of addressInterface.
  * @param explorerUrl the esplora endpoint used to fetch addresses's utxos
  * @param network network type
  */
 export async function walletFromAddresses(
   ecclib: TinySecp256k1Interface,
+  zkplib: ZKPInterface,
   addresses: AddressInterface[],
   explorerUrl: string,
   network?: NetworkString
 ): Promise<WalletInterface> {
-  const utxos = await fetchAndUnblindUtxos(ecclib, addresses, explorerUrl);
+  const utxos = await fetchAndUnblindUtxos(
+    ecclib,
+    zkplib,
+    addresses,
+    explorerUrl
+  );
   return walletFromCoins(utxos, network);
 }
 

@@ -8,14 +8,17 @@ import {
   privateBlindKeyGetter,
 } from '../src';
 import * as ecc from 'tiny-secp256k1';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 jest.setTimeout(100000);
 
 describe('Electrs', () => {
   it.skip('should fetch on mainnet using ElectrsBatchServer', async () => {
+    const zkplib = await secp256k1();
     const id = new Mnemonic({
       chain: 'liquid',
       ecclib: ecc,
+      zkplib: zkplib,
       type: IdentityType.Mnemonic,
       opts: {
         mnemonic: '',
@@ -35,7 +38,8 @@ describe('Electrs', () => {
     const utxos = await fetchAllUtxos(
       addressesStr,
       privateBlindKeyGetter(restored),
-      api
+      api,
+      zkplib
     );
     console.timeEnd('utxos');
 

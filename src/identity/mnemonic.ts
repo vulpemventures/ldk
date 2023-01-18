@@ -1,8 +1,8 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import * as bip39 from 'bip39';
-import { Psbt, networks } from 'liquidjs-lib';
+import { networks } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
 import { SLIP77Factory, Slip77Interface } from 'slip77';
 
 import { IdentityType } from '../types';
@@ -161,12 +161,14 @@ export class Mnemonic extends MasterPublicKey implements IdentityInterface {
   static Random(
     chain: IdentityOpts<any>['chain'],
     ecclib: IdentityOpts<any>['ecclib'],
+    zkplib: IdentityOpts<any>['zkplib'],
     baseDerivationPath?: string
   ): Mnemonic {
     const randomMnemonic = bip39.generateMnemonic();
     return new Mnemonic({
       chain,
       ecclib,
+      zkplib,
       type: IdentityType.Mnemonic,
       opts: {
         mnemonic: randomMnemonic,

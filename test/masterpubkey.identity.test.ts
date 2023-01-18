@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import { networks, payments } from 'liquidjs-lib';
 import * as ecc from 'tiny-secp256k1';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 import {
   IdentityOpts,
   IdentityType,
@@ -11,37 +12,46 @@ import {
   MnemonicOpts,
   toXpub,
 } from '../src';
+// @ts-ignore
 import { faucet, sleep } from './_regtest';
 
 jest.setTimeout(60000);
 
-const validOpts: IdentityOpts<MasterPublicKeyOpts> = {
-  chain: 'regtest',
-  ecclib: ecc,
-  type: IdentityType.MasterPublicKey,
-  opts: {
-    masterPublicKey: toXpub(
-      'tpubD6NzVbkrYhZ4XzWjD4v6Q3aNJzvGYFrCNvL5FvWkpE5yBwXwzPeUAF7KrdUKQ4feKGquMXJNn5dkm3xL8eFyDjSrD1C5s5Byh3ZTiBU1wHd'
-    ),
-    masterBlindingKey:
-      'c90591b4766a23ca881767626f4c2222641c944b21ad23bcadb699c031868c85',
-  },
-};
-
-const invalidKeysOpts: IdentityOpts<MasterPublicKeyOpts> = {
-  ...validOpts,
-  opts: {
-    masterPublicKey: "I'm not a good pub key",
-    masterBlindingKey: "i'm not a hex encoded blindingkey éç",
-  },
-};
-
-const wrongTypeOpts: IdentityOpts<MasterPublicKeyOpts> = {
-  ...validOpts,
-  type: IdentityType.Mnemonic,
-};
+let validOpts: IdentityOpts<MasterPublicKeyOpts>;
+let invalidKeysOpts: IdentityOpts<MasterPublicKeyOpts>;
+let wrongTypeOpts: IdentityOpts<MasterPublicKeyOpts>;
 
 describe('Identity: Master Pub Key', () => {
+  beforeAll(async () => {
+    let zkplib = await secp256k1();
+    validOpts = {
+      chain: 'regtest',
+      ecclib: ecc,
+      zkplib: zkplib,
+      type: IdentityType.MasterPublicKey,
+      opts: {
+        masterPublicKey: toXpub(
+          'tpubD6NzVbkrYhZ4XzWjD4v6Q3aNJzvGYFrCNvL5FvWkpE5yBwXwzPeUAF7KrdUKQ4feKGquMXJNn5dkm3xL8eFyDjSrD1C5s5Byh3ZTiBU1wHd'
+        ),
+        masterBlindingKey:
+          'c90591b4766a23ca881767626f4c2222641c944b21ad23bcadb699c031868c85',
+      },
+    };
+
+    invalidKeysOpts = {
+      ...validOpts,
+      opts: {
+        masterPublicKey: "I'm not a good pub key",
+        masterBlindingKey: "i'm not a hex encoded blindingkey éç",
+      },
+    };
+
+    wrongTypeOpts = {
+      ...validOpts,
+      type: IdentityType.Mnemonic,
+    };
+  });
+
   describe('Constructor', () => {
     it('should build a valid MasterPubkey class instance if the constructor arguments are valid', () => {
       const pubKey = new MasterPublicKey(validOpts);
@@ -182,10 +192,12 @@ describe('Identity: Master Pub Key', () => {
   });
 
   describe('MasterPubKey X Mnemonic', () => {
-    it('should generate same addresses than Mnemonic', () => {
+    it('should generate same addresses than Mnemonic', async () => {
+      let zkplib = await secp256k1();
       const mnemonicValidOpts: IdentityOpts<MnemonicOpts> = {
         chain: 'regtest',
         ecclib: ecc,
+        zkplib: zkplib,
         type: IdentityType.Mnemonic,
         opts: {
           mnemonic:
@@ -211,7 +223,8 @@ describe('Identity: Master Pub Key', () => {
 
   describe('testnet', () => {
     it('should generate testnet addresses with chain = "testnet"', async () => {
-      const mnemonic = Mnemonic.Random('testnet', ecc);
+      let zkplib = await secp256k1();
+      const mnemonic = Mnemonic.Random('testnet', ecc, zkplib);
       const address = await mnemonic.getNextAddress();
       assert.ok(address.confidentialAddress.startsWith('tlq'));
     });

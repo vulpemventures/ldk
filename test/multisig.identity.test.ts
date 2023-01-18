@@ -4,12 +4,16 @@ import {
   networks,
   address,
   Transaction,
-  Psbt,
-  confidential,
   TxOutput,
   AssetHash,
+  confidential,
 } from 'liquidjs-lib';
-import { BlindingDataLike } from 'liquidjs-lib/src/psbt';
+import {
+  Confidential,
+  satoshiToConfidentialValue,
+} from 'liquidjs-lib/src/confidential';
+import { BlindingDataLike, Psbt } from 'liquidjs-lib/src/psbt';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 import {
   IdentityOpts,
@@ -22,45 +26,52 @@ import {
 } from '../src';
 import * as ecc from 'tiny-secp256k1';
 
+// @ts-ignore
 import { faucet, fetchTxHex, fetchUtxos, sleep } from './_regtest';
 
 const network = networks.regtest;
-const lbtc = AssetHash.fromHex(network.assetHash, false);
+const lbtc = AssetHash.fromHex(network.assetHash);
 
 jest.setTimeout(60000);
 
-const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
-  Mnemonic.Random('regtest', ecc, DEFAULT_BASE_DERIVATION_PATH),
-];
-
-const validOpts: IdentityOpts<MultisigOpts> = {
-  chain: 'regtest',
-  type: IdentityType.Multisig,
-  ecclib: ecc,
-  opts: {
-    signer: {
-      mnemonic: generateMnemonic(),
-      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
-    }, // 1 signer
-    cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
-    requiredSignatures: 2, // need 2 signatures among 3 pubkeys
-  },
-};
-
-const invalidOpts: IdentityOpts<MultisigOpts> = {
-  ...validOpts,
-  opts: {
-    signer: {
-      mnemonic: generateMnemonic(),
-      baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
-    }, // 1 signer
-    cosigners: cosigners.map(m => m.getXPub()),
-    requiredSignatures: 10000000,
-  },
-};
+let cosigners: Mnemonic[];
+let validOpts: IdentityOpts<MultisigOpts>;
+let invalidOpts: IdentityOpts<MultisigOpts>;
 
 describe('Identity:  Multisig', () => {
+  beforeAll(async () => {
+    const zkplib = await secp256k1();
+    cosigners = [
+      Mnemonic.Random('regtest', ecc, zkplib, DEFAULT_BASE_DERIVATION_PATH),
+      Mnemonic.Random('regtest', ecc, zkplib, DEFAULT_BASE_DERIVATION_PATH),
+    ];
+    validOpts = {
+      chain: 'regtest',
+      type: IdentityType.Multisig,
+      ecclib: ecc,
+      zkplib: zkplib,
+      opts: {
+        signer: {
+          mnemonic: generateMnemonic(),
+          baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
+        }, // 1 signer
+        cosigners: cosigners.map(m => m.getXPub()), // 2 co signers
+        requiredSignatures: 2, // need 2 signatures among 3 pubkeys
+      },
+    };
+    invalidOpts = {
+      ...validOpts,
+      opts: {
+        signer: {
+          mnemonic: generateMnemonic(),
+          baseDerivationPath: DEFAULT_BASE_DERIVATION_PATH,
+        }, // 1 signer
+        cosigners: cosigners.map(m => m.getXPub()),
+        requiredSignatures: 10000000,
+      },
+    };
+  });
+
   describe('Constructor', () => {
     it('should build a valid Multisig class instance if the constructor arguments are valid', () => {
       const multisig = new Multisig(validOpts);
@@ -158,6 +169,8 @@ describe('Identity:  Multisig', () => {
 
       const prevoutHex = await fetchTxHex(utxo.txid);
       const prevout = Transaction.fromHex(prevoutHex).outs[utxo.vout];
+      const zkpLib = await secp256k1();
+      const confidential = new Confidential(zkpLib);
       const unblindedPrevout = await confidential.unblindOutputWithKey(
         prevout as TxOutput,
         Buffer.from(
@@ -181,13 +194,13 @@ describe('Identity:  Multisig', () => {
         .addOutputs([
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(49999500),
+            value: satoshiToConfidentialValue(49999500),
             script,
             asset: lbtc.bytes,
           },
           {
             nonce: Buffer.from('00', 'hex'),
-            value: confidential.satoshiToConfidentialValue(60000000),
+            value: satoshiToConfidentialValue(60000000),
             script: Buffer.alloc(0),
             asset: lbtc.bytes,
           },

@@ -10,34 +10,41 @@ import {
 } from '../src';
 import * as ecc from 'tiny-secp256k1';
 import { faucet, sleep } from './_regtest';
+import secp256k1 from '@vulpemventures/secp256k1-zkp';
 
 jest.setTimeout(60000);
 
-const cosigners: Mnemonic[] = [
-  Mnemonic.Random('regtest', ecc),
-  Mnemonic.Random('regtest', ecc),
-  Mnemonic.Random('regtest', ecc),
-];
-
-const validOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
-  chain: 'regtest',
-  type: IdentityType.MultisigWatchOnly,
-  ecclib: ecc,
-  opts: {
-    cosigners: cosigners.map(m => m.getXPub()),
-    requiredSignatures: 1,
-  },
-};
-
-const invalidOpts: IdentityOpts<MultisigWatchOnlyOpts> = {
-  ...validOpts,
-  opts: {
-    cosigners: cosigners.map(m => m.getXPub()),
-    requiredSignatures: 10000000,
-  },
-};
+let cosigners: Mnemonic[];
+let validOpts: IdentityOpts<MultisigWatchOnlyOpts>;
+let invalidOpts: IdentityOpts<MultisigWatchOnlyOpts>;
 
 describe('Identity:  Multisig watch only', () => {
+  beforeAll(async () => {
+    const zkplib = await secp256k1();
+    cosigners = [
+      Mnemonic.Random('regtest', ecc, zkplib),
+      Mnemonic.Random('regtest', ecc, zkplib),
+      Mnemonic.Random('regtest', ecc, zkplib),
+    ];
+    validOpts = {
+      chain: 'regtest',
+      type: IdentityType.MultisigWatchOnly,
+      ecclib: ecc,
+      zkplib: zkplib,
+      opts: {
+        cosigners: cosigners.map(m => m.getXPub()),
+        requiredSignatures: 1,
+      },
+    };
+    invalidOpts = {
+      ...validOpts,
+      opts: {
+        cosigners: cosigners.map(m => m.getXPub()),
+        requiredSignatures: 10000000,
+      },
+    };
+  });
+
   describe('Constructor', () => {
     it('should build a valid MultisigWatchOnly class instance if the constructor arguments are valid', () => {
       const multisig = new MultisigWatchOnly(validOpts);

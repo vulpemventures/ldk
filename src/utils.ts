@@ -1,12 +1,7 @@
 import { setDefaultWordlist, validateMnemonic } from 'bip39';
 import b58 from 'bs58check';
-import {
-  Psbt,
-  Transaction,
-  confidential,
-  networks,
-  address,
-} from 'liquidjs-lib';
+import { Transaction, confidential, networks, address } from 'liquidjs-lib';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { Network } from 'liquidjs-lib/src/networks';
 import {
   AddressInterface,
@@ -16,6 +11,11 @@ import {
   NetworkString,
   UnblindedOutput,
 } from './types';
+import {
+  Confidential,
+  confidentialValueToSatoshi,
+  ZKPInterface,
+} from 'liquidjs-lib/src/confidential';
 
 const ZERO = Buffer.alloc(32);
 
@@ -190,25 +190,25 @@ export function getNetwork(str?: NetworkString): Network {
  * Compute the blinding data for a given output
  * @param utxo blinded utxo
  * @param blindPrivKey blinding private key
+ * @param zkplib
  */
 export async function unblindOutput(
   utxo: Output,
-  blindPrivKey: string
+  blindPrivKey: string,
+  zkplib: ZKPInterface
 ): Promise<UnblindedOutput> {
   if (!isConfidentialOutput(utxo.prevout)) {
     return {
       ...utxo,
       unblindData: {
         asset: utxo.prevout.asset.slice(1),
-        value: confidential
-          .confidentialValueToSatoshi(utxo.prevout.value)
-          .toString(10),
+        value: confidentialValueToSatoshi(utxo.prevout.value).toString(10),
         assetBlindingFactor: ZERO,
         valueBlindingFactor: ZERO,
       },
     };
   }
-
+  const confidential = new Confidential(zkplib);
   const unblindData = await confidential.unblindOutputWithKey(
     utxo.prevout,
     Buffer.from(blindPrivKey, 'hex')

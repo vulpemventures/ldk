@@ -1,8 +1,9 @@
 import BIP32Factory, { BIP32Interface } from 'bip32';
 import { mnemonicToSeedSync } from 'bip39';
 import ECPairFactory from 'ecpair';
-import { address, networks, Psbt } from 'liquidjs-lib';
+import { address, networks } from 'liquidjs-lib';
 import { Network } from 'liquidjs-lib/src/networks';
+import { Psbt } from 'liquidjs-lib/src/psbt';
 import { IdentityType, HDSignerMultisig } from '../types';
 import { checkIdentityType, checkMnemonic, toXpub } from '../utils';
 import { IdentityInterface, IdentityOpts } from './identity';
